@@ -1,9 +1,9 @@
 # Brand Design Principles
 
-Brand identity for this project. Filled sections are fixed constraints: `grill-design` and `grill-product` read this file at runtime and design inside them.
+Brand identity for this project. Filled sections are fixed constraints: any session making a brand or surface decision reads this file first and designs inside them.
 
-- Bracketed placeholders mark axes not yet decided; the `brand-init` skill fills them through its derivation session, and no other session derives brand decisions inline.
-- This file stays thin and tightly curated: it carries binding constraints only, a line earns its place by changing what a design session renders, and rationale, history, and derivations live in `docs/adr/` — an overgrown brand doc steers no better than an empty one, so additions strengthen an existing line before appending a sibling.
+- Bracketed placeholders mark axes not yet decided; the one-time `brand-init` skill fills them, and no other session derives brand decisions inline.
+- This file stays thin and tightly curated: it carries binding constraints only, and a line earns its place by changing what a design session renders — an overgrown brand doc steers no better than an empty one, so additions strengthen an existing line before appending a sibling.
 - The app's CSS is the source of truth for actual token values; read it before quoting any value in code.
 - In monorepos, a per-app `BRANDING.md` (e.g. `apps/<app>/BRANDING.md`) overrides or extends this file.
 

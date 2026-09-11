@@ -5,13 +5,13 @@ paths:
 
 # Frontend styling conventions
 
-How this project writes styles. The usability floors these styles must clear live in [`ux-standards.md`](./ux-standards.md); the palette, type scale, spacing rhythm, and motion character they express live in [`BRANDING.md`](../../BRANDING.md).
+How this project writes styles. The usability floors these styles must clear live in [`ux-standards.md`](./ux-standards.md); the palette, type scale, spacing rhythm, and motion character they express live in [`BRANDING.md`](../../BRANDING.md), and the app's theme CSS is the source of truth for token values.
 
 Loads when a session reads a file matching the globs above, which covers every `Edit` because that tool requires a prior read of the file. Two routes reach a matching path without triggering the load: a `Write` creating a new file, which carries no read precondition, and any Bash write (`sed -i`, a `cat >` heredoc, a formatter run in place), which the load mechanism does not observe. `CLAUDE.md` names this file directly so both routes have somewhere to read it from.
 
 **[`transactional-email.md`](./transactional-email.md) overrides this file on every path it matches.** Its globs sit inside these, so both load on an email template, and the rules genuinely conflict there: an email client needs nested tables, inline styles, and a `600px` column, all of which these rules forbid. On an email path, follow that file and treat this one as inert.
 
-This is the file that tracks the project's stack: `project-init` prunes or swaps the styling-system section below to whatever the destination actually uses, and deletes the file outright when the destination ships no UI.
+This is the file that tracks the project's stack: swap the styling-system section below for whatever the project actually uses, and delete the file when the project ships no UI.
 
 ## Units and scaling
 

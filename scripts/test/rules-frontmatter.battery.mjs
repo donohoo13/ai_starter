@@ -10,8 +10,7 @@
 // checks that the block parses and that every glob is a plausible, quoted,
 // brace-balanced pattern. It does NOT check match semantics, because the
 // harness owns the glob engine and no glob library ships in this repo.
-// Whether a given path actually matches is tracked separately; see
-// docs/tasks/2026-08-09-chore-rules-frontmatter-battery.md.
+// Whether a given path actually matches is not covered here.
 
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
