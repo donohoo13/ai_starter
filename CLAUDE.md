@@ -19,7 +19,7 @@ The full company perspective lives in [docs/company/company-overview.md](./docs/
 - Quality of prose should be prioritized when adding to text based content by rewriting whole points, paragraphs, or documents when append only additions would degrade the underlying readability of the information.
 - Memory from previous conversations is a hint, not ground truth: verify any remembered file, command, or convention against the current code or with the user before acting on it.
 - Use LSP tools for code navigation, symbol searches, and diagnostics; fall back to terminal commands when a real LSP call reports the file type unsupported, not before.
-- The UI/UX floors live in the `.claude/rules/` files named under Frontend and UI below and load on their own when a session reads a matching file; a session that opens no source file reads `ux-standards.md` by path before deciding anything about a surface.
+- Read [BRANDING.md](BRANDING.md) before any brand or surface decision, then follow it. It is not imported, so it is not in context until a session opens it; the one-time `brand-init` skill fills it on a new project. The UI/UX floors live in the `.claude/rules/` files named under Frontend and UI below and load on their own when a session reads a matching file; a session that opens no source file reads `ux-standards.md` by path before deciding anything about a surface.
 - Confirm with the user to address root causes, not symptoms.
 - Evidence before completion claims: do not state something passes, builds, is fixed, or was checked and found clean without running the command that proves it or directing the user to run guided QA steps to confirm the fix.
 - No em-dashes (U+2014) in customer-facing text (UI, emails, marketing, AI prompts). Use commas, periods, or rephrasing instead. Hyphens (U+002D) and en-dashes (U+2013) are fine. Internal dev artifacts (code comments, CLAUDE.md, PRs) exempt.
@@ -61,8 +61,9 @@ The full company perspective lives in [docs/company/company-overview.md](./docs/
 
 ## Skills
 
-- Five skills, each self-contained and user-invoked: `sdd` interviews and writes a spec to `docs/specs/`, `implement-spec` builds one, `tdd` is the test-first discipline under any build, `stage-for-commit` hands back a commit for small changes that needed no spec, and `skill-creator` governs skill authoring. Nothing chains into anything else; the user decides when to call each one. The map is [the skills README](.claude/skills/README.md).
-- Any edit under `.claude/skills/` loads `skill-creator` first; the `guard-skill-edit` hook denies `Edit` and `Write` there until it has, and the skill holds every body to 3500 characters excluding frontmatter.
+- Seven skills, each self-contained and user-invoked: `sdd` interviews and writes a spec to `docs/specs/`, `implement-spec` builds one, `tdd` is the test-first discipline under any build, `stage-for-commit` hands back a commit for small changes that needed no spec, `skill-creator` governs skill authoring, `curate-context` governs context-file edits, and `brand-init` fills `BRANDING.md` once on a new project. Nothing chains into anything else; the user decides when to call each one. The map is [the skills README](.claude/skills/README.md).
+- Any edit under `.claude/skills/` loads `skill-creator` first; the `guard-skill-edit` hook denies `Edit` and `Write` there until it has, and the skill holds every body to 5000 characters excluding frontmatter.
+- Any edit to a `CLAUDE.md`, `CLAUDE.local.md`, `README.md`, `BRANDING.md`, or `.claude/rules/` file loads `curate-context` first; no hook enforces this, so this rule and the skill's description are the whole mechanism.
 
 ## Data handling
 

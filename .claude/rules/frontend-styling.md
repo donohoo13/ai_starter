@@ -5,7 +5,7 @@ paths:
 
 # Frontend styling conventions
 
-How this project writes styles. The usability floors these styles must clear live in [`ux-standards.md`](./ux-standards.md); the app's theme CSS is the source of truth for token values.
+How this project writes styles. The usability floors these styles must clear live in [`ux-standards.md`](./ux-standards.md); the palette, type scale, spacing rhythm, and motion character they express live in [`BRANDING.md`](../../BRANDING.md), and the app's theme CSS is the source of truth for token values.
 
 Loads when a session reads a file matching the globs above, which covers every `Edit` because that tool requires a prior read of the file. Two routes reach a matching path without triggering the load: a `Write` creating a new file, which carries no read precondition, and any Bash write (`sed -i`, a `cat >` heredoc, a formatter run in place), which the load mechanism does not observe. `CLAUDE.md` names this file directly so both routes have somewhere to read it from.
 

@@ -18,6 +18,7 @@ The design is settled: build what the spec says and never re-decide architecture
 
 - Never build on `main`, and never switch branches in a shared checkout; another session may be working there.
 - Derive the branch from the filename, `docs/specs/NNN-<slug>.md` to `<type>/<slug>` with `type` feature, bug, or chore by the spec's nature. Offer one confirm for a dedicated worktree via `scripts/setup/gwt-add.sh --no-open <branch>` entered with `EnterWorktree`; a decline means the user names a non-main branch and the build runs there. A checkout already on the spec's branch is simply continued.
+- Before the tree splits, check `git status` for uncommitted `docs/**`, `CLAUDE.md`, `BRANDING.md`, and `.claude/**` changes, reading the tree rather than session memory. Make one offer to stage exactly those paths and hand back a commit message for the user to commit on `main`; a declined offer leaves them behind by the user's choice. Never stage other dirt, which may be another session's work in flight. The spec file itself must exist on the branch before the first slice.
 - When Architecture says the existing implementation is stripped first, delete those files as the first commit and build from the spec rather than from memory of the old code. A rewrite lands cleaner when the old shape is gone from the tree than when it is patched around, so weigh that call against the spec rather than defaulting to keeping what compiles.
 
 ## Slice loop
@@ -35,5 +36,6 @@ Report `DONE`, `DONE_WITH_CONCERNS` (continue, note the doubt), or `BLOCKED` (st
 ## Land
 
 - Run the full suite once, its first run; a failure is a real regression to fix and commit.
+- When any slice touched a user-facing surface, offer a render pass: the user starts the app (hand the command with the worktree's absolute path, since a terminal in the main checkout serves `main`), then screenshot each touched surface at mobile and desktop width, in every theme shipped, with the UI tool named in `CLAUDE.md`. Judge against the spec's Design Requirements, `BRANDING.md`, and the `ux-standards.md` floors; fix what fails. A declined pass is noted in the spec so a later reader knows the gap.
 - Hand over a QA script: exact commands, URLs, and actions, each observation mapped to a slice's done-when. Servers are user-run; give instructions, never start one. Stop and wait. Green checks prove the code does what the tests say; only the user confirms it does what they meant, so recommend nothing downstream until then. Issues found go back through the loop, then the suite runs again.
 - On confirmation flip `status: done`, commit the flip, and stop. Never push or open a PR from here.

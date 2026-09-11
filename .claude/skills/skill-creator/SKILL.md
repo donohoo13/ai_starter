@@ -13,7 +13,7 @@ Mine the session before interviewing: the conversation that triggered the change
 
 ## Authoring rules
 
-- **The budget is 3500 characters of body**, frontmatter excluded, measured before landing. A skill over budget is carrying gating, chaining, or rationale that belongs in a reference file or nowhere; cut until it fits.
+- **The budget is 5000 characters of body**, frontmatter excluded, measured before landing. A skill over budget is carrying gating, chaining, or rationale that belongs in a reference file or nowhere; cut until it fits.
 - **The description is the trigger.** Third person, stating what the skill does and when to use it, with concrete contexts and trigger phrases spelled out. Phrase triggers around session state as well as user intent ("use when editing any file under X") so mid-task situations fire. Undertriggering is the default failure mode; specificity is the cure.
 - **Progressive disclosure.** Metadata sits in the listing, the body loads on invocation and stays for the session, references load on demand. Push long or fragile detail into `references/` exactly one hop from SKILL.md; every bundled file states its mode, run or read.
 - **Explain why over MUST.** Imperative voice with the reasoning attached. All-caps ALWAYS/NEVER and rigid enumerations are a yellow flag that the reasoning is missing. Generalize past the motivating example: a skill runs across many prompts, not the one that inspired it.
