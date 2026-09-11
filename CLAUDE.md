@@ -19,7 +19,7 @@ The full company perspective lives in [docs/company/company-overview.md](./docs/
 - Quality of prose should be prioritized when adding to text based content by rewriting whole points, paragraphs, or documents when append only additions would degrade the underlying readability of the information.
 - Memory from previous conversations is a hint, not ground truth: verify any remembered file, command, or convention against the current code or with the user before acting on it.
 - Use LSP tools for code navigation, symbol searches, and diagnostics; fall back to terminal commands when a real LSP call reports the file type unsupported, not before.
-- Read [BRANDING.md](BRANDING.md) before any brand decision, then follow it. It is not imported, so it is not in context until a session opens it. The UI/UX floors live in the `.claude/rules/` files named under Frontend and UI below and load on their own when a session reads a matching file.
+- The UI/UX floors live in the `.claude/rules/` files named under Frontend and UI below and load on their own when a session reads a matching file; a session that opens no source file reads `ux-standards.md` by path before deciding anything about a surface.
 - Confirm with the user to address root causes, not symptoms.
 - Evidence before completion claims: do not state something passes, builds, is fixed, or was checked and found clean without running the command that proves it or directing the user to run guided QA steps to confirm the fix.
 - No em-dashes (U+2014) in customer-facing text (UI, emails, marketing, AI prompts). Use commas, periods, or rephrasing instead. Hyphens (U+002D) and en-dashes (U+2013) are fine. Internal dev artifacts (code comments, CLAUDE.md, PRs) exempt.
@@ -50,8 +50,8 @@ The full company perspective lives in [docs/company/company-overview.md](./docs/
 
 - Use CLI tools (like `gh` for GitHub) for PR, issue, and remote repository management; fall back to raw git only when no CLI covers the operation.
 - Commit only from a non-main branch: check `git branch --show-current` before every commit and branch first when on `main`.
-- Branches are named `<type>/<kebab-slug>` (`type`: `feature` | `bug` | `chore`), matching the given works taxonomy.
-- `implement-task` builds run in a dedicated git worktree — `scripts/setup/gwt-add.sh --no-open <branch>` creates it, the native `EnterWorktree` tool relocates the session into it — so the main checkout stays on `main`; declining the skill's one confirm falls back to a plain feature branch. Post-merge cleanup is `scripts/setup/gwt-remove.sh <branch>` from the main checkout.
+- Branches are named `<type>/<kebab-slug>` (`type`: `feature` | `bug` | `chore`).
+- `implement-spec` builds run in a dedicated git worktree — `scripts/setup/gwt-add.sh --no-open <branch>` creates it, the native `EnterWorktree` tool relocates the session into it — so the main checkout stays on `main`; declining the skill's one confirm falls back to a plain feature branch. Post-merge cleanup is `scripts/setup/gwt-remove.sh <branch>` from the main checkout.
 
 ### Markdown
 
@@ -59,11 +59,10 @@ The full company perspective lives in [docs/company/company-overview.md](./docs/
 - Escape literal pipes in table cells as `\|`, including inside backticks: `|` separates columns regardless of code spans, so `` `a || b` `` silently adds phantom columns.
 - Use a list rather than a table when cells run past about one line; long-form content reads better and cannot break the table grammar.
 
-## MCP Tools
+## Skills
 
-### Skills
-
-- Use the project skill whose trigger matches the task instead of improvising, and improvise only when no skill matches; per-skill roles and usage live in [the skills README](.claude/skills/README.md).
+- Five skills, each self-contained and user-invoked: `sdd` interviews and writes a spec to `docs/specs/`, `implement-spec` builds one, `tdd` is the test-first discipline under any build, `stage-for-commit` hands back a commit for small changes that needed no spec, and `skill-creator` governs skill authoring. Nothing chains into anything else; the user decides when to call each one. The map is [the skills README](.claude/skills/README.md).
+- Any edit under `.claude/skills/` loads `skill-creator` first; the `guard-skill-edit` hook denies `Edit` and `Write` there until it has, and the skill holds every body to 3500 characters excluding frontmatter.
 
 ## Data handling
 

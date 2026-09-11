@@ -29,7 +29,7 @@ Distilled from the Agent Skills specification (agentskills.io/specification), An
 
 ## Writing style
 
-- Imperative voice; explain why over bare MUSTs — all-caps ALWAYS/NEVER and rigid structure are a yellow flag that the reasoning is missing.
+- Imperative voice; explain why over bare MUSTs, all-caps ALWAYS/NEVER and rigid structure are a yellow flag that the reasoning is missing.
 - Match freedom to fragility: heuristic prose where many approaches work, a parameterized script where one pattern is preferred, an exact no-argument script where sequence deviation breaks things.
 - Every bundled file states its mode: run ("Run `scripts/x.py`") vs read ("See `references/x.md` for the schema").
 - No time-sensitive statements ("after August", "the new API"); park deprecated material in an explicitly labeled old-patterns section instead of interleaving it.
@@ -40,5 +40,5 @@ Distilled from the Agent Skills specification (agentskills.io/specification), An
 - Write prompts a real user would type: concrete file names, a line of backstory, casual phrasing, occasional typos. Abstract category labels ("Format this data") test nothing.
 - Make prompts substantive enough that a session would genuinely benefit from consulting a skill; trivial one-step asks don't trigger skills regardless of description quality.
 - Should-trigger set: vary phrasing and formality, include cases that never name the skill or its file type, and include one where this skill competes with a neighboring skill and should win.
-- Should-not-trigger set: near-misses only — adjacent domains, shared keywords, contexts where another tool is correct. Obviously irrelevant negatives test nothing.
+- Should-not-trigger set: near-misses only, adjacent domains, shared keywords, contexts where another tool is correct. Obviously irrelevant negatives test nothing.
 - State the expected behavior for every prompt so the user can judge pass or fail without interpreting.

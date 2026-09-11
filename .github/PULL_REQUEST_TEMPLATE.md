@@ -1,6 +1,6 @@
 ## Summary
 
-<!-- What changed and why, 2-4 lines. Link the docs/tasks/ file if one drove this. -->
+<!-- What changed and why, 2-4 lines. Link the docs/specs/ file if one drove this. -->
 
 ## QA
 

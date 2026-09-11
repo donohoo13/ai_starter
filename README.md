@@ -4,12 +4,12 @@ Opinionated AI-first starter template: a Claude Code process suite on a pnpm + T
 
 ## What Ships
 
-- **AI process suite** ([`.claude/`](./.claude/)) — the skill chain (grilling lenses, capture/implement/review flow), review-board agents, guard hooks, and the permission/secrets registry; the human-readable map is [`.claude/skills/README.md`](./.claude/skills/README.md).
-- **Context files** ([`CLAUDE.md`](./CLAUDE.md), [`BRANDING.md`](./BRANDING.md)) plus path-scoped rules in [`.claude/rules/`](./.claude/rules/) — AI coding standards, a brand skeleton filled by `/brand-init`, and the frontend rule set (brand-agnostic UX floors, styling conventions, transactional email) that loads on its own when a session reads a matching file.
+- **AI process suite** ([`.claude/`](./.claude/)) — four self-contained skills (`sdd` writes a spec through a three-lens interview, `implement-spec` builds it, `tdd` under any build, `stage-for-commit` for small changes), one research agent, guard hooks, and the permission/secrets registry; the human-readable map is [`.claude/skills/README.md`](./.claude/skills/README.md).
+- **Context files** ([`CLAUDE.md`](./CLAUDE.md)) plus path-scoped rules in [`.claude/rules/`](./.claude/rules/) — AI coding standards and the frontend rule set (UX floors, styling conventions, transactional email) that loads on its own when a session reads a matching file.
 - **Monorepo skeleton** — `apps/*` and `packages/*` pnpm workspaces with a Turborepo task graph (`turbo build` / `lint` / `test` / `typecheck`), Prettier + husky pre-commit, and pnpm-only installs enforced at `preinstall`. No example app: the suite ships process, not product code.
 - **Setup scripts** ([`scripts/setup/`](./scripts/setup/)) — `doctor.sh` (warn-only LSP binary check, wired into `prepare`), `check-install.mjs` (pnpm-only + Node-major preinstall guard against `.nvmrc`), `gwt-add.sh`/`gwt-remove.sh` (git worktree helpers for parallel AI branches).
 - **MCP config** ([`.mcp.json`](./.mcp.json)) — browser-verification servers plus boilerplate stanzas for common services, all launched via `pnpm dlx`.
-- **Update channel** ([`CHANGELOG.md`](./CHANGELOG.md) + the `sync-template` skill) — versioned releases instances pull on their own terms.
+- **Update channel** ([`CHANGELOG.md`](./CHANGELOG.md)) — versioned releases, each a tagged entry describing what changed and how to adapt it.
 
 ## Using the Template
 
@@ -19,13 +19,13 @@ Create a new project from it — "Use this template" on GitHub, or:
 gh repo create <your-project> --template donohoo13/ai_starter --private --clone
 ```
 
-Then run `/project-init` in a Claude Code session there: a one-shot onboarding audit that tailors the suite to the project's platform, stack, and tracker, clears template residue (this README included), stamps the template lineage, and removes itself when done. For an existing repo, copy the payload in by hand (`.claude/` and the sibling context files, scripts, and configs) and run `/project-init` the same way — it detects partial copies and degrades gracefully. This is a starting point, not a framework: add your own apps and packages on top; the AI configuration works regardless of what you build.
+Then fill the bracketed placeholders in `CLAUDE.md`, swap the styling section of `.claude/rules/frontend-styling.md` for your stack (or delete the frontend rules when you ship no UI), delete `.claude/rules/template-dev.md` and `CHANGELOG.md`, and rewrite this README as your own. For an existing repo, copy the payload in by hand (`.claude/`, `CLAUDE.md`, scripts, and configs) and do the same. This is a starting point, not a framework: add your own apps and packages on top; the AI configuration works regardless of what you build.
 
 First-run network note: the initial `pnpm install` always downloads the pinned Node runtime on a cold pnpm store (`devEngines.runtime` in `package.json`, ~57MB compressed and ~218MB unpacked, fetched from `nodejs.org` even when your ambient Node already matches), so `nodejs.org` reachability is a hard requirement for `pnpm install` rather than a fallback; the store is content-addressed, so extra worktrees reuse it rather than re-downloading, and CI caches it by caching `$(pnpm store path)`. Alpine and other musl-based images provision the pin the same way from `unofficial-builds.nodejs.org` (community musl builds, pinned by integrity hash in the lockfile); deleting the `devEngines` block and letting the base image supply Node remains a supported opt-out. The browser MCP servers resolve their packages through `pnpm dlx` on first session start, and Playwright fetches its Chromium binary (~100MB) on its first launch — one-time, cache-warmed costs after that. Restricted networks need access to the npm registry, `nodejs.org` (plus `unofficial-builds.nodejs.org` on musl), and Playwright's browser CDN.
 
 ## Receiving Template Updates
 
-Instances share no git history with the template, so updates are pulled, never pushed. Each release is a `CHANGELOG.md` entry (what, why, adaptation notes) plus a matching `vX.Y.Z` tag; the shipped `sync-template` skill reads the `Template lineage:` stamp `project-init` left in `CLAUDE.md`, fetches the template remote, and walks unapplied releases as an itemized adaptation interview — landing working-tree changes for your review and logging outcomes to `docs/template-sync-log.md`. Run `/sync-template` whenever you want to catch up; skipping releases you don't want is a recorded, first-class outcome.
+Projects share no git history with the template, so updates are pulled by hand, never pushed. Each release is a `CHANGELOG.md` entry (what, why, adaptation notes) plus a matching `vX.Y.Z` tag; read the entries newer than the version you started from and apply what fits. Skipping a release is fine.
 
 ## Maintaining This Repo
 
