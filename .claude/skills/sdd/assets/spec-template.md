@@ -6,6 +6,8 @@ status: ready
 
 <The task at hand in a sentence or two.>
 
+† marks a decision the user drove, in the ask or under interview.
+
 ## Product Requirements
 
 ### Problem
@@ -34,7 +36,7 @@ status: ready
 
 ### Slices
 
-- [ ] <Slice: the end-to-end behavior it delivers.> Done when: <the observable check>.
+- [ ] <Slice: the end-to-end behavior it delivers.> Done when: <the observable check>. <† only when the user drove it>
 
 ### Architecture
 

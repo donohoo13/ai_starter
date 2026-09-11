@@ -10,7 +10,7 @@ One session, one output: a spec in `docs/specs/` that a fresh session can build 
 
 ## Open
 
-Restate the ask in one paragraph with every assumption and every undefined point, then say "Speccing <subject>, until <objective>." When the argument is a `docs/specs/` file, grill the gap between what it claims and what the code shows, resolving each `TBD`.
+Restate the ask in one paragraph with every assumption and every undefined point, then say "Speccing <subject>, until <objective>." When the argument is a `docs/specs/` file, grill the gap between what it claims and what the code shows, resolving each `TBD` and leaving every `†` item standing.
 
 ## Interview
 
@@ -30,3 +30,4 @@ Stop when the objective is met, not before or after, then write the spec from `a
 - Slices are vertical: each a thin, demoable cut through every layer it touches, in build order, each ending in the observable check that proves it. Every requirement maps to a slice; an unmapped requirement is a dropped requirement.
 - Architecture describes interfaces and contracts, not file paths or snippets, which go stale. References is the one place paths live.
 - Anything still unknown stays `TBD` rather than invented content. Rejections and Out of Scope carry the session's residue so the next session does not re-litigate it.
+- A trailing `†` marks a slice check, constraint, rejection, or exclusion the user drove, whether stated in the ask or held under interview; a recommendation the user merely accepted stays unmarked. The spec otherwise reads as one voice, and the next session needs to know which lines are the user's own before it weighs any of them. The legend line under the title appears only when a mark does.

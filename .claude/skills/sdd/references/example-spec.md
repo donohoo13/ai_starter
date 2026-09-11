@@ -1,6 +1,6 @@
 # Example: a spec at `status: ready`
 
-The artifact `sdd` writes, shown for a mid-sized feature. Read it for altitude before writing one: product and design sections say what and why in a few lines each, engineering carries the weight, and every slice ends in a check a build session can run. The template is a spine; sections that do not apply are omitted, and a small chore's spec might be fifteen lines.
+The artifact `sdd` writes, shown for a mid-sized feature. Read it for altitude before writing one: product and design sections say what and why in a few lines each, engineering carries the weight, every slice ends in a check a build session can run, and a trailing `†` sits only on the lines the user drove. The template is a spine; sections that do not apply are omitted, and a small chore's spec might be fifteen lines.
 
 ---
 
@@ -13,6 +13,8 @@ status: ready
 # Show who is viewing a record in real time
 
 While viewing a customer record, a support agent sees which teammates have the same record open right now.
+
+† marks a decision the user drove, in the ask or under interview.
 
 ## Product Requirements
 
@@ -40,7 +42,7 @@ The surface's job is one glance: is anyone else here. It never competes with the
 
 ## Engineering Requirements
 
-- Best-effort presence over short-interval polling; no new real-time infrastructure. Sub-second freshness is explicitly not required.
+- Best-effort presence over short-interval polling; no new real-time infrastructure. Sub-second freshness is explicitly not required. †
 - Presence never reveals a record the viewer could not already open; reuse the existing record access check.
 - Presence data is non-durable and lives in the cache layer, never Postgres.
 - The in-process cache is per instance, so viewers on different app instances may not see each other; accepted for v1.
@@ -50,7 +52,7 @@ The surface's job is one glance: is anyone else here. It never competes with the
 - [ ] `PresenceStore` with TTL semantics. Done when: a marked viewer is listed, and is absent after the TTL, through the store's interface alone.
 - [ ] Heartbeat endpoint with auth and identity resolution. Done when: a second viewer appears within one poll interval, a caller without record access gets 403, and a store outage returns an empty list rather than an error.
 - [ ] `useRecordPresence` hook. Done when: the hook polls while mounted and no heartbeat fires after unmount.
-- [ ] Avatar cluster in the record header. Done when: a second browser session on the same record shows the first session's avatar, and zero viewers renders nothing.
+- [ ] Avatar cluster in the record header. Done when: a second browser session on the same record shows the first session's avatar, and zero viewers renders nothing. †
 
 ### Architecture
 
@@ -72,7 +74,7 @@ The surface's job is one glance: is anyone else here. It never competes with the
 
 ## Out of Scope
 
-- Edit locks or any enforcement.
+- Edit locks or any enforcement. †
 - Presence anywhere other than an open record.
 - History of past viewers.
 - A team-lead aggregate view of multi-viewer records.
@@ -80,4 +82,4 @@ The surface's job is one glance: is anyone else here. It never competes with the
 ## Rejections
 
 - Storing presence in Postgres: rejected because high-churn writes on the primary for ephemeral data buys nothing over the cache.
-- WebSocket transport: rejected because it adds infrastructure for freshness nobody asked for; the store interface leaves the door open.
+- WebSocket transport: rejected because it adds infrastructure for freshness nobody asked for; the store interface leaves the door open. †
