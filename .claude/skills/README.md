@@ -20,7 +20,7 @@ The keystone: ceremony scales with size, engineering discipline never does. A on
 
 ## Rules
 
-`.claude/rules/` holds path-scoped conventions that load on their own when a session reads a matching file: `ux-standards.md` (the usability and accessibility floors every surface meets), `frontend-styling.md` (how this project writes styles), `javascript-typescript.md`, and `transactional-email.md` (which overrides the styling file on email paths). A session that opens no source file, such as `sdd` on a surface-bearing ask, reads `ux-standards.md` by path.
+`.claude/rules/` holds path-scoped conventions that load on their own when a session reads a matching file: `ux-standards.md` (the usability and accessibility floors every surface meets), `frontend-styling.md` (how this project writes styles), `html-tables.md` (the markup and CSS floor for a plain `<table>`), `javascript-typescript.md`, and `transactional-email.md` (which overrides the styling file on email paths). A session that opens no source file, such as `sdd` on a surface-bearing ask, reads `ux-standards.md` by path.
 
 ## Spec lifecycle
 

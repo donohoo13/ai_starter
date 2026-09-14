@@ -44,6 +44,7 @@ The full company perspective lives in [docs/company/company-overview.md](./docs/
 
 - [`.claude/rules/ux-standards.md`](.claude/rules/ux-standards.md)
 - [`.claude/rules/frontend-styling.md`](.claude/rules/frontend-styling.md)
+- [`.claude/rules/html-tables.md`](.claude/rules/html-tables.md)
 - [`.claude/rules/transactional-email.md`](.claude/rules/transactional-email.md)
 
 ### Git Control
