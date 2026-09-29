@@ -71,23 +71,23 @@
 // the install honors it. pnpm 9 (which also defaults manage-package-manager-
 // versions to false, so it ignores the packageManager pin), a non-pnpm
 // installer, or a sandbox with no network all land here on the ambient Node.
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 
 function fail(lines) {
-  console.error(['', ...lines, ''].join('\n'));
+  console.error(["", ...lines, ""].join("\n"));
   process.exit(1);
 }
 
-const agent = process.env.npm_config_user_agent ?? '';
-if (!agent.startsWith('pnpm/')) {
+const agent = process.env.npm_config_user_agent ?? "";
+if (!agent.startsWith("pnpm/")) {
   fail([
-    '  ✖ This repo installs with pnpm only.',
-    `    Detected installer: ${agent || '(none — run via a package manager, not node directly)'}`,
-    '',
-    '    Fix it:',
-    '      • corepack enable && pnpm install   (packageManager pin in package.json)',
+    "  ✖ This repo installs with pnpm only.",
+    `    Detected installer: ${agent || "(none — run via a package manager, not node directly)"}`,
+    "",
+    "    Fix it:",
+    "      • corepack enable && pnpm install   (packageManager pin in package.json)",
   ]);
 }
 
@@ -97,24 +97,24 @@ if (!agent.startsWith('pnpm/')) {
 const pnpmMajor = Number((agent.match(/^pnpm\/(\d+)/) || [])[1]);
 
 const here = dirname(fileURLToPath(import.meta.url));
-const nvmrcPath = join(here, '..', '..', '.nvmrc');
+const nvmrcPath = join(here, "..", "..", ".nvmrc");
 
 let raw;
 try {
-  raw = readFileSync(nvmrcPath, 'utf8');
+  raw = readFileSync(nvmrcPath, "utf8");
 } catch {
   fail([
     `  ✖ .nvmrc not found at ${nvmrcPath}.`,
-    '',
-    '    This repo pins its Node major in .nvmrc. Fix it:',
-    '      • restore .nvmrc (a concrete version, e.g. 26.5.0), or',
+    "",
+    "    This repo pins its Node major in .nvmrc. Fix it:",
+    "      • restore .nvmrc (a concrete version, e.g. 26.5.0), or",
     '      • drop the guard deliberately: delete .nvmrc AND the "preinstall"',
-    '        script in package.json together.',
+    "        script in package.json together.",
   ]);
 }
 
-const required = raw.trim().replace(/^v/, '');
-const [reqMajor, reqMinor = 0, reqPatch = 0] = required.split('.').map(Number);
+const required = raw.trim().replace(/^v/, "");
+const [reqMajor, reqMinor = 0, reqPatch = 0] = required.split(".").map(Number);
 
 if (
   !Number.isInteger(reqMajor) ||
@@ -124,10 +124,10 @@ if (
 ) {
   fail([
     `  ✖ Malformed .nvmrc: expected a concrete version like 26.5.0, got "${required}".`,
-    '',
-    '    Aliases (lts/*, node, latest) are not supported by this guard — pin the',
-    '    exact version, and mirror the range it implies in package.json',
-    '    engines.node and devEngines.runtime.version.',
+    "",
+    "    Aliases (lts/*, node, latest) are not supported by this guard — pin the",
+    "    exact version, and mirror the range it implies in package.json",
+    "    engines.node and devEngines.runtime.version.",
   ]);
 }
 
@@ -137,17 +137,17 @@ if (
 // instead — this is the cheapest place to catch it, since the guard already runs
 // on every install and has .nvmrc in hand.
 const expectedRange = `>=${required} <${reqMajor + 1}`;
-const pkgPath = join(here, '..', '..', 'package.json');
+const pkgPath = join(here, "..", "..", "package.json");
 
 let pkg;
 try {
-  pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+  pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
 } catch (error) {
   fail([
     `  ✖ Could not read package.json at ${pkgPath}: ${error.message}`,
-    '',
-    '    This guard cross-checks the Node pin against engines.node and',
-    '    devEngines.runtime.version, so it needs a parseable package.json.',
+    "",
+    "    This guard cross-checks the Node pin against engines.node and",
+    "    devEngines.runtime.version, so it needs a parseable package.json.",
   ]);
 }
 
@@ -156,7 +156,7 @@ const devEnginesVersion = pkg.devEngines?.runtime?.version;
 const drifted = [];
 
 if (enginesNode !== expectedRange) {
-  drifted.push(`engines.node is "${enginesNode ?? '(missing)'}", expected "${expectedRange}"`);
+  drifted.push(`engines.node is "${enginesNode ?? "(missing)"}", expected "${expectedRange}"`);
 }
 // devEngines is optional: a project may opt out of the runtime pin deliberately
 // (e.g. the base image supplies Node). Present-but-wrong is drift; absent is a choice.
@@ -168,16 +168,16 @@ if (drifted.length > 0) {
   fail([
     `  ✖ The Node pin disagrees with itself. .nvmrc says ${required}, so:`,
     ...drifted.map((line) => `      • ${line}`),
-    '',
-    '    This is a repo bug, not a problem with your machine — retargeting the',
-    '    pin means changing every site together:',
+    "",
+    "    This is a repo bug, not a problem with your machine — retargeting the",
+    "    pin means changing every site together:",
     `      • .nvmrc                     → the exact version (currently ${required})`,
     `      • engines.node               → "${expectedRange}"`,
     `      • devEngines.runtime.version → "${required}" — exact, never a range; a`,
-    '                                     range makes pnpm install a registry stub',
-    '                                     and silently use the ambient Node.',
-    '      • pnpm-lock.yaml             → run `pnpm install` and commit the result,',
-    '                                     or CI fails on --frozen-lockfile',
+    "                                     range makes pnpm install a registry stub",
+    "                                     and silently use the ambient Node.",
+    "      • pnpm-lock.yaml             → run `pnpm install` and commit the result,",
+    "                                     or CI fails on --frozen-lockfile",
   ]);
 }
 
@@ -206,25 +206,25 @@ if (drifted.length > 0) {
 // load-bearing only on pnpm <=10 and the no-devEngines opt-out posture.
 function readIfPresent(path) {
   try {
-    return readFileSync(path, 'utf8');
+    return readFileSync(path, "utf8");
   } catch {
     return null;
   }
 }
 
 function engineStrictSite() {
-  const workspace = readIfPresent(join(here, '..', '..', 'pnpm-workspace.yaml'));
+  const workspace = readIfPresent(join(here, "..", "..", "pnpm-workspace.yaml"));
   if (
     workspace !== null &&
     /^engineStrict[ \t]*:[ \t]*(true|'true'|"true")[ \t]*(#.*)?$/m.test(workspace)
   ) {
-    return { file: 'pnpm-workspace.yaml', found: 'engineStrict: true', fix: 'engineStrict: false' };
+    return { file: "pnpm-workspace.yaml", found: "engineStrict: true", fix: "engineStrict: false" };
   }
   // The .npmrc spelling predates pnpm's move of settings into pnpm-workspace.yaml
   // and is still honored, so a project carrying it deadlocks identically.
-  const npmrc = readIfPresent(join(here, '..', '..', '.npmrc'));
+  const npmrc = readIfPresent(join(here, "..", "..", ".npmrc"));
   if (npmrc !== null && /^[ \t]*engine-strict[ \t]*=[ \t]*true[ \t]*$/m.test(npmrc)) {
-    return { file: '.npmrc', found: 'engine-strict=true', fix: 'engine-strict=false' };
+    return { file: ".npmrc", found: "engine-strict=true", fix: "engine-strict=false" };
   }
   return null;
 }
@@ -240,35 +240,35 @@ const engineStrict = pkg.devEngines?.runtime === undefined ? null : engineStrict
 const pairingDeadlocks = Number.isNaN(pnpmMajor) || pnpmMajor <= 10;
 
 if (engineStrict && pairingDeadlocks) {
-  const majorLabel = Number.isNaN(pnpmMajor) ? '<=10' : String(pnpmMajor);
+  const majorLabel = Number.isNaN(pnpmMajor) ? "<=10" : String(pnpmMajor);
   fail([
     `  ✖ On pnpm ${majorLabel}, engineStrict and devEngines deadlock. As configured,`,
     `    this repo is uninstallable by anyone whose ambient Node is not already ${required}.`,
     `    Found ${engineStrict.found} in ${engineStrict.file}, alongside`,
-    '    devEngines.runtime in package.json.',
-    '',
-    '    On pnpm <=10 the engines check runs against the ambient Node BEFORE the',
-    '    switch to the devEngines runtime, so it blocks the very install that would',
+    "    devEngines.runtime in package.json.",
+    "",
+    "    On pnpm <=10 the engines check runs against the ambient Node BEFORE the",
+    "    switch to the devEngines runtime, so it blocks the very install that would",
     `    have downloaded Node ${required}. Every pnpm command fails that way, not`,
-    '    just install. You are reading this instead of ERR_PNPM_UNSUPPORTED_ENGINE',
+    "    just install. You are reading this instead of ERR_PNPM_UNSUPPORTED_ENGINE",
     `    only because your own Node (v${process.versions.node}) satisfies the range.`,
-    '',
-    '    Fix it — pick one:',
-    '      • Upgrade to pnpm 11+, which provisions the runtime BEFORE the engines',
-    '        check, so the pairing installs cleanly and this guard stops blocking it.',
+    "",
+    "    Fix it — pick one:",
+    "      • Upgrade to pnpm 11+, which provisions the runtime BEFORE the engines",
+    "        check, so the pairing installs cleanly and this guard stops blocking it.",
     `      • Keep this pnpm: set ${engineStrict.fix} in ${engineStrict.file}, so the`,
-    '        runtime download works and contributors need no Node of their own.',
-    '      • Keep engineStrict: delete the devEngines block from package.json and',
+    "        runtime download works and contributors need no Node of their own.",
+    "      • Keep engineStrict: delete the devEngines block from package.json and",
     `        require every contributor to install Node ${required} themselves.`,
-    '',
-    '    What engineStrict off gives up on pnpm <=10: pnpm no longer hard-blocks a',
-    '    DEPENDENCY that declares an incompatible engine. On pnpm 11+ you keep both,',
-    '    so upgrading is the clean fix.',
+    "",
+    "    What engineStrict off gives up on pnpm <=10: pnpm no longer hard-blocks a",
+    "    DEPENDENCY that declares an incompatible engine. On pnpm 11+ you keep both,",
+    "    so upgrading is the clean fix.",
   ]);
 }
 
 const actual = process.versions.node;
-const [actMajor, actMinor, actPatch] = actual.split('.').map(Number);
+const [actMajor, actMinor, actPatch] = actual.split(".").map(Number);
 
 // Pin to the .nvmrc major and require at least the .nvmrc patch within it.
 const okMajor = actMajor === reqMajor;
@@ -281,35 +281,35 @@ if (!okMajor || !okFloor) {
   // they demonstrably have.
   const wrongMajorHelp = [
     `    Node ${reqMajor} is very likely not installed anywhere on this machine.`,
-    '    Verify that before anything else — both checks below fail in ways that',
-    '    make an absent Node look present:',
-    '',
+    "    Verify that before anything else — both checks below fail in ways that",
+    "    make an absent Node look present:",
+    "",
     `      • Homebrew's versioned aliases can all point at ONE build, so the`,
     `        existence of /opt/homebrew/opt/node@${reqMajor} proves nothing:`,
     `            readlink /opt/homebrew/opt/node@${reqMajor}`,
-    '            ls /opt/homebrew/Cellar | grep node',
+    "            ls /opt/homebrew/Cellar | grep node",
     `        If that symlink resolves to a Cellar build that is not ${reqMajor}.x,`,
     `        you do not have Node ${reqMajor}.`,
-    '',
-    '      • nvm can be installed but never sourced, which hides every version it',
+    "",
+    "      • nvm can be installed but never sourced, which hides every version it",
     '        manages behind "nvm: command not found":',
-    '            command -v nvm || ls ~/.nvm/nvm.sh',
-    '        If the file exists but the command does not, source it first:',
-    '            . ~/.nvm/nvm.sh',
-    '',
-    '    Then install it:',
-    '      • nvm:  nvm install && nvm use      (reads .nvmrc; needs nvm sourced)',
+    "            command -v nvm || ls ~/.nvm/nvm.sh",
+    "        If the file exists but the command does not, source it first:",
+    "            . ~/.nvm/nvm.sh",
+    "",
+    "    Then install it:",
+    "      • nvm:  nvm install && nvm use      (reads .nvmrc; needs nvm sourced)",
     `      • pnpm 11+:  pnpm runtime set node ${reqMajor} -g`,
     `        pnpm 10 spelling: pnpm env use --global ${reqMajor}`,
-    '        Both error with ERR_PNPM_NO_GLOBAL_BIN_DIR when the global bin dir is',
-    '        unset or off PATH. Run `pnpm setup` first if you hit that.',
+    "        Both error with ERR_PNPM_NO_GLOBAL_BIN_DIR when the global bin dir is",
+    "        unset or off PATH. Run `pnpm setup` first if you hit that.",
     `      • or install Node ${required} through whatever version manager you use.`,
   ];
 
   const oldPatchHelp = [
     `    You have Node ${reqMajor}, but ${actual} is older than the ${required} floor.`,
     `    Upgrade within the major — there is nothing wrong with your Node install:`,
-    '      • nvm:  nvm install && nvm use      (reads .nvmrc)',
+    "      • nvm:  nvm install && nvm use      (reads .nvmrc)",
     `      • pnpm 11+:  pnpm runtime set node ${required} -g`,
     `      • brew:  brew upgrade node@${reqMajor}`,
   ];
@@ -317,17 +317,17 @@ if (!okMajor || !okFloor) {
   fail([
     `  ✖ Wrong Node.js version: this repo requires Node ${reqMajor}.x (>= ${required}).`,
     `    You are running v${actual}.`,
-    '',
+    "",
     ...(okMajor ? oldPatchHelp : wrongMajorHelp),
-    '',
-    '    Why pnpm did not supply it: package.json pins the runtime in',
-    '    devEngines.runtime, which pnpm downloads and runs lifecycle scripts under.',
-    '    That engages only when the pnpm running this install honors devEngines and',
-    '    could reach the network. Check which pnpm actually ran:',
-    '        pnpm -v      # compare against the packageManager pin in package.json',
-    '    If it is below that pin, the fix is to get onto it (`corepack enable`, or',
-    '    upgrade pnpm) — pnpm 9 and older ignore devEngines entirely and do not',
-    '    self-switch to the pin. Upgrading pnpm is safe here: the pin no longer',
+    "",
+    "    Why pnpm did not supply it: package.json pins the runtime in",
+    "    devEngines.runtime, which pnpm downloads and runs lifecycle scripts under.",
+    "    That engages only when the pnpm running this install honors devEngines and",
+    "    could reach the network. Check which pnpm actually ran:",
+    "        pnpm -v      # compare against the packageManager pin in package.json",
+    "    If it is below that pin, the fix is to get onto it (`corepack enable`, or",
+    "    upgrade pnpm) — pnpm 9 and older ignore devEngines entirely and do not",
+    "    self-switch to the pin. Upgrading pnpm is safe here: the pin no longer",
     "    rides pnpm-workspace.yaml's useNodeVersion, which pnpm 11 removed.",
   ]);
 }

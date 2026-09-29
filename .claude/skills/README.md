@@ -1,6 +1,6 @@
 # Agent Skills Overview
 
-Seven skills, one agent, and a spec file carrying a unit of work from interview to done. Each skill is self-contained: nothing chains into anything else, and the user decides when to call each one.
+Six skills, one agent, and a spec file carrying a unit of work from interview to done. Each skill is self-contained: nothing chains into anything else, and the user decides when to call each one.
 
 The keystone: ceremony scales with size, engineering discipline never does. A one-line chore still gets a failing test first and a real validation run; what collapses for small work is artifacts, never rigor.
 
@@ -10,7 +10,6 @@ The keystone: ceremony scales with size, engineering discipline never does. A on
 - **implement-spec** (`/implement-spec <spec>`): builds a ready spec slice by slice on a worktree or non-main branch: plan, `/tdd`, validate, commit, per slice. Flips the spec `ready` to `in-progress` to `done`, and `done` waits on the human QA gate: the user sees it work before anything is marked finished. Never pushes or opens a PR.
 - **tdd**: red before green at pre-agreed public seams, mocks only at true external boundaries, appearance never a test target. Runs under the hood of `implement-spec` and directly whenever a test can lock something down.
 - **stage-for-commit**: for small changes that needed no spec. Stages exactly this session's files by explicit path, proves the staged set, and hands back a commit message. Never commits, branches, or pushes.
-- **skill-creator**: the authoring discipline for any change under `.claude/skills/`. The `guard-skill-edit` hook denies `Edit` and `Write` there until it loads. Holds every body to 5000 characters, makes the description the trigger, and closes with gut-check prompts for a fresh session.
 - **curate-context**: the gate on the prescriptive context files (every `CLAUDE.md` and `CLAUDE.local.md`, `README.md`, `BRANDING.md`, `.claude/rules/`), loaded on any edit to one by its description and the `CLAUDE.md` rule, with no hook behind it. Attributes friction-born candidates, holds an admission bar, routes to the narrowest file, and lands nothing model-invented without approval; zero net growth is the benchmark.
 - **brand-init** (`/brand-init`): one and done. Interviews a new project's brand from the bracketed `BRANDING.md` scaffold to a governing doc, opening on a mood-board gate over `docs/branding/moodboard/`, and offers to delete itself once the doc is filled. Later brand changes are edits to `BRANDING.md`, which every brand or surface decision reads first.
 
@@ -20,7 +19,7 @@ The keystone: ceremony scales with size, engineering discipline never does. A on
 
 ## Rules
 
-`.claude/rules/` holds path-scoped conventions that load on their own when a session reads a matching file: `ux-standards.md` (the usability and accessibility floors every surface meets), `frontend-styling.md` (how this project writes styles), `html-tables.md` (the markup and CSS floor for a plain `<table>`), `javascript-typescript.md`, and `transactional-email.md` (which overrides the styling file on email paths). A session that opens no source file, such as `sdd` on a surface-bearing ask, reads `ux-standards.md` by path.
+`.claude/rules/` holds path-scoped conventions that load on their own when a session reads a matching file: `ux-standards.md` (the usability and accessibility floors every surface meets), `frontend-styling.md` (how this project writes styles), `html-tables.md` (the markup and CSS floor for a plain `<table>`), `javascript-typescript.md`, `transactional-email.md` (which overrides the styling file on email paths), and `skill-authoring.md` (the discipline for any change under `.claude/skills/`: the 5000-character body budget, the description as trigger, and gut-check prompts for a fresh session). A session that opens no source file, such as `sdd` on a surface-bearing ask, reads `ux-standards.md` by path.
 
 ## Spec lifecycle
 

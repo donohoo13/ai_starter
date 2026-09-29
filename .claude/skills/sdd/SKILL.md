@@ -1,7 +1,7 @@
 ---
 name: sdd
 description: Spec-driven development interview. Grills the user one question at a time about a change to this codebase through three lenses at once, engineering (60%), product (25%), and design (15%), grounding facts in the code and sourced research, and always ends by writing an implementable spec to docs/specs/. Use whenever the user wants to plan, scope, spec, grill, or stress-test a feature, bug, chore, or refactor before building it, or says "spec this", "sdd", "let's plan", "grill me".
-argument-hint: '[the ask to spec, or a docs/specs file to resume]'
+argument-hint: "[the ask to spec, or a docs/specs file to resume]"
 ---
 
 # SDD

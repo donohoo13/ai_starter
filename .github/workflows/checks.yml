@@ -9,6 +9,7 @@ on:
       - "pnpm-lock.yaml"
       - "scripts/setup/check-install.mjs"
       - "scripts/test/**"
+      - "scripts/dev/**"
       - ".claude/hooks/**"
       - ".claude/settings.json"
       - ".github/workflows/checks.yml"
@@ -19,6 +20,7 @@ on:
       - "pnpm-lock.yaml"
       - "scripts/setup/check-install.mjs"
       - "scripts/test/**"
+      - "scripts/dev/**"
       - ".claude/hooks/**"
       - ".claude/settings.json"
       - ".github/workflows/checks.yml"
@@ -48,9 +50,14 @@ jobs:
         run: node scripts/test/check-install.battery.mjs
 
       # Executes every case through the command string registered in
-      # settings.json, so prefilter and hook cannot drift apart unseen.
-      - name: Dev-server guard battery
-        run: node scripts/test/guard-dev-server.battery.mjs
+      # settings.json against a throwaway clone, so prefilter and hook cannot
+      # drift apart unseen.
+      - name: guard-main battery
+        run: node scripts/test/guard-main.battery.mjs
+
+      # Drives the `pnpm dev` entry point against a fake turbo.
+      - name: Dev-server battery
+        run: node scripts/test/node-dev-server.battery.mjs
 
       # Proves pnpm provisions and uses the pinned Node across a mismatched
       # ambient Node, a no-Node image, and a musl image.

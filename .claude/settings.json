@@ -62,20 +62,17 @@
       "Edit(//**/.config/gh/**)",
       "Edit(//**/.docker/config.json)",
       "Edit(//**/.kube/config)",
-      "Bash(git push* main)",
-      "Bash(git push* main *)",
-      "Bash(git push*:main)",
-      "Bash(git push*:main *)",
-      "Bash(git push* +main*)",
-      "Bash(git push*/main)",
-      "Bash(git push*/main *)",
       "Bash(npx*)",
       "Bash(pnpm dlx*)",
       "Bash(clerk*)",
-      "Bash(*wrangler*)",
-      "Bash(*deploy*)"
+      "Bash(*wrangler deploy*)",
+      "Bash(*wrangler pages deploy*)",
+      "Bash(*wrangler versions deploy*)",
+      "Bash(*wrangler publish*)",
+      "Bash(*pnpm deploy*)",
+      "Bash(*run deploy*)"
     ],
-    "ask": ["Bash(git*--force)", "Bash(git reset --hard*)"],
+    "ask": ["Bash(git*--force)", "Bash(git reset --hard*)", "Bash(*wrangler*--remote*)"],
     "defaultMode": "default"
   },
   "enableAllProjectMcpServers": true,
@@ -91,19 +88,6 @@
           {
             "type": "command",
             "command": "input=$(cat); case \"$input\" in *.env*|*.vars*|*secret*|*.ssh*|*.claude.json*|*.config/gh*|*.docker*|*.kube*) printf '%s' \"$input\" | node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-secret-read.mjs\";; esac"
-          },
-          {
-            "type": "command",
-            "command": "input=$(cat); case \"$input\" in *dev*|*vite*|*storybook*|*serve*|*start*|*preview*|*ngrok*|*cloudflared*|*compose*|*docker*|*podman*|*tunnel*) printf '%s' \"$input\" | node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-dev-server.mjs\";; esac"
-          }
-        ]
-      },
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "input=$(cat); case \"$input\" in *.claude/skills/*) printf '%s' \"$input\" | node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-skill-edit.mjs\";; esac"
           }
         ]
       }

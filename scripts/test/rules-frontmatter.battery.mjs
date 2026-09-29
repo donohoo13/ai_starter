@@ -12,10 +12,10 @@
 // harness owns the glob engine and no glob library ships in this repo.
 // Whether a given path actually matches is not covered here.
 
-import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
-const RULES_DIR = join(process.cwd(), '.claude', 'rules');
+const RULES_DIR = join(process.cwd(), ".claude", "rules");
 let failures = 0;
 
 function check(name, condition, detail) {
@@ -23,26 +23,26 @@ function check(name, condition, detail) {
     console.log(`ok   ${name}`);
     return;
   }
-  console.log(`FAIL ${name}${detail ? ` — ${detail}` : ''}`);
+  console.log(`FAIL ${name}${detail ? ` — ${detail}` : ""}`);
   failures += 1;
 }
 
 function parseFrontmatter(source) {
-  if (!source.startsWith('---\n')) return null;
-  const end = source.indexOf('\n---\n', 4);
+  if (!source.startsWith("---\n")) return null;
+  const end = source.indexOf("\n---\n", 4);
   if (end === -1) return { malformed: true };
   return { body: source.slice(4, end + 1) };
 }
 
 function readGlobs(block) {
-  const lines = block.split('\n');
+  const lines = block.split("\n");
   const start = lines.findIndex(function isPathsKey(line) {
-    return line.trim() === 'paths:';
+    return line.trim() === "paths:";
   });
   if (start === -1) return null;
   const globs = [];
   for (const line of lines.slice(start + 1)) {
-    if (!line.startsWith(' ')) break;
+    if (!line.startsWith(" ")) break;
     const match = line.match(/^\s+-\s+(.*)$/);
     if (!match) break;
     globs.push(match[1].trim());
@@ -51,12 +51,12 @@ function readGlobs(block) {
 }
 
 const files = readdirSync(RULES_DIR).filter(function isMarkdown(name) {
-  return name.endsWith('.md');
+  return name.endsWith(".md");
 });
-check('rules directory holds at least one file', files.length > 0, `found ${files.length}`);
+check("rules directory holds at least one file", files.length > 0, `found ${files.length}`);
 
 for (const file of files) {
-  const source = readFileSync(join(RULES_DIR, file), 'utf8');
+  const source = readFileSync(join(RULES_DIR, file), "utf8");
   const frontmatter = parseFrontmatter(source);
 
   // A rules file without frontmatter loads unconditionally. That is a legal,
@@ -68,7 +68,7 @@ for (const file of files) {
   }
 
   if (frontmatter.malformed) {
-    check(`${file}: frontmatter closes`, false, 'opening --- with no closing ---');
+    check(`${file}: frontmatter closes`, false, "opening --- with no closing ---");
     continue;
   }
 
@@ -82,7 +82,7 @@ for (const file of files) {
 
   for (const glob of globs) {
     const quoted = /^'.*'$/.test(glob) || /^".*"$/.test(glob);
-    check(`${file}: ${glob} is quoted`, quoted, 'an unquoted glob starting with * is invalid YAML');
+    check(`${file}: ${glob} is quoted`, quoted, "an unquoted glob starting with * is invalid YAML");
 
     const inner = quoted ? glob.slice(1, -1) : glob;
     check(`${file}: ${glob} is non-empty`, inner.length > 0);
@@ -100,9 +100,9 @@ for (const file of files) {
   }
 }
 
-console.log('');
+console.log("");
 if (failures > 0) {
   console.log(`${failures} failed`);
   process.exit(1);
 }
-console.log('all frontmatter checks passed');
+console.log("all frontmatter checks passed");

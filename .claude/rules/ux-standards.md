@@ -1,6 +1,6 @@
 ---
 paths:
-  - '**/*.{tsx,jsx,vue,svelte,astro,mdx,html,htm,mjml,hbs,css,scss,sass,less}'
+  - "**/*.{tsx,jsx,vue,svelte,astro,mdx,html,htm,mjml,hbs,css,scss,sass,less}"
 ---
 
 # UX standards

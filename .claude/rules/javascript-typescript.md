@@ -1,11 +1,11 @@
 ---
 paths:
-  - '**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}'
-  - '**/package.json'
-  - '**/tsconfig.json'
-  - '**/pnpm-workspace.yaml'
-  - '**/turbo.json'
-  - '.nvmrc'
+  - "**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}"
+  - "**/package.json"
+  - "**/tsconfig.json"
+  - "**/pnpm-workspace.yaml"
+  - "**/turbo.json"
+  - ".nvmrc"
 ---
 
 # JavaScript, TypeScript, and Node conventions

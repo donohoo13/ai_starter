@@ -1,7 +1,7 @@
 ---
 name: implement-spec
 description: Build a docs/specs/ file slice by slice on a dedicated worktree or non-main branch, planning, testing first, validating, and committing each slice, keeping the spec's status current, and gating done on human QA; never pushes or opens a PR. Use when the user points at a spec file to build, says "implement this spec", "build the spec", or resumes an in-progress spec in a fresh session.
-argument-hint: '[path to a docs/specs/*.md file, or blank to pick from ready specs]'
+argument-hint: "[path to a docs/specs/*.md file, or blank to pick from ready specs]"
 ---
 
 # Implement Spec

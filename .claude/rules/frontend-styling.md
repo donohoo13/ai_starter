@@ -1,6 +1,6 @@
 ---
 paths:
-  - '**/*.{tsx,jsx,vue,svelte,astro,mdx,html,htm,css,scss,sass,less}'
+  - "**/*.{tsx,jsx,vue,svelte,astro,mdx,html,htm,css,scss,sass,less}"
 ---
 
 # Frontend styling conventions

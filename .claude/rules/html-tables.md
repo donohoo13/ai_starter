@@ -1,6 +1,6 @@
 ---
 paths:
-  - '**/*.{tsx,jsx,vue,svelte,astro,mdx,html,htm,hbs,css,scss,sass,less}'
+  - "**/*.{tsx,jsx,vue,svelte,astro,mdx,html,htm,hbs,css,scss,sass,less}"
 ---
 
 # HTML tables

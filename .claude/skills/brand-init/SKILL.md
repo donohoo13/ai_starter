@@ -1,7 +1,7 @@
 ---
 name: brand-init
 description: One-time brand initialization. Interviews the user from the bracketed BRANDING.md scaffold to a governing document, brand foundations (audience, promise, positioning), identity tokens (palette, typography, logo, shape, themes), anchored steering sections, four-part voice, and anti-goals, opening on a mood-board gate over docs/branding/moodboard/. Use once, on a new project whose BRANDING.md is still placeholder-bracketed, when the user says "set up the brand", "fill in BRANDING.md", "derive the brand", or "run brand-init". Later brand changes are ordinary edits to the doc, not a re-run.
-argument-hint: '[optional: the product or brand direction to derive from]'
+argument-hint: "[optional: the product or brand direction to derive from]"
 ---
 
 # Brand Init

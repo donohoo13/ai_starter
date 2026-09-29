@@ -19,18 +19,18 @@
 // is not an access control, same posture as the sibling guards. Fail-open:
 // unreadable settings or bad input must not lock Bash shut. Exit 2 blocks
 // the tool call and surfaces stderr to Claude; exit 0 allows.
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 let input;
 try {
-  input = JSON.parse(readFileSync(0, 'utf8'));
+  input = JSON.parse(readFileSync(0, "utf8"));
 } catch {
   process.exit(0);
 }
 
-if (input.tool_name !== 'Bash') process.exit(0);
-const command = input.tool_input?.command ?? '';
+if (input.tool_name !== "Bash") process.exit(0);
+const command = input.tool_input?.command ?? "";
 if (!command) process.exit(0);
 
 const projectDir = process.env.CLAUDE_PROJECT_DIR || input.cwd || process.cwd();
@@ -40,7 +40,7 @@ const projectDir = process.env.CLAUDE_PROJECT_DIR || input.cwd || process.cwd();
 function expandBraces(pattern) {
   const m = pattern.match(/^(.*?)\{([^}]*)\}(.*)$/);
   if (!m) return [pattern];
-  return m[2].split(',').flatMap((alt) => expandBraces(m[1] + alt + m[3]));
+  return m[2].split(",").flatMap((alt) => expandBraces(m[1] + alt + m[3]));
 }
 
 // Convert one deny glob to a whole-token RegExp. Anchors (`//` absolute,
@@ -49,35 +49,35 @@ function expandBraces(pattern) {
 // relative .ssh/key alike — cross-anchor over-blocking is deliberate. `**/`
 // matches any depth including none; `*` and `?` stay within one segment.
 function globToRegExp(glob) {
-  const g = glob.replace(/^\/\//, '').replace(/^~\//, '').replace(/^\.\//, '');
-  let re = '';
+  const g = glob.replace(/^\/\//, "").replace(/^~\//, "").replace(/^\.\//, "");
+  let re = "";
   let i = 0;
   while (i < g.length) {
-    if (g.startsWith('**/', i)) {
-      re += '(?:.*/)?';
+    if (g.startsWith("**/", i)) {
+      re += "(?:.*/)?";
       i += 3;
-    } else if (g.startsWith('**', i)) {
-      re += '.*';
+    } else if (g.startsWith("**", i)) {
+      re += ".*";
       i += 2;
-    } else if (g[i] === '*') {
-      re += '[^/]*';
+    } else if (g[i] === "*") {
+      re += "[^/]*";
       i += 1;
-    } else if (g[i] === '?') {
-      re += '[^/]';
+    } else if (g[i] === "?") {
+      re += "[^/]";
       i += 1;
     } else {
-      re += g[i].replace(/[.+^${}()|[\]\\]/g, '\\$&');
+      re += g[i].replace(/[.+^${}()|[\]\\]/g, "\\$&");
       i += 1;
     }
   }
-  return new RegExp('^' + re + '$');
+  return new RegExp("^" + re + "$");
 }
 
 const rules = [];
-for (const file of ['settings.json', 'settings.local.json']) {
+for (const file of ["settings.json", "settings.local.json"]) {
   let deny;
   try {
-    deny = JSON.parse(readFileSync(join(projectDir, '.claude', file), 'utf8')).permissions?.deny;
+    deny = JSON.parse(readFileSync(join(projectDir, ".claude", file), "utf8")).permissions?.deny;
   } catch {
     continue; // fail-open per file
   }

@@ -1,7 +1,7 @@
 ---
 name: stage-for-commit
 description: Stage the files changed during this session by explicit path and hand back a ready-to-paste commit message, without committing, branching, or pushing. Use at the end of a quick chore, small feature, or bug fix that needed no spec (a theme color, a new column, a copy change) when the user wants to commit it themselves. Trigger on "stage my changes", "stage what you did", "I'll commit this myself", "ready to commit", "write me a commit message". Invoke only on the user's word, after they have confirmed the change works.
-argument-hint: '(no args needed)'
+argument-hint: "(no args needed)"
 ---
 
 # Stage for Commit

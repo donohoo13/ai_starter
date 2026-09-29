@@ -29,7 +29,7 @@ The full company perspective lives in [docs/company/company-overview.md](./docs/
 - Never leave stubs, TODO comments, or placeholder logic in delivered code unless explicitly asked to scaffold. Finish the implementation.
 - Write a comment only when it prevents a dangerous action, or caches a fact that costs multiple discovery jumps through files or symbols to reconstruct — or that no file in the repo can answer at all — stated in one line.
 - Do not leave dead or orphaned code in the codebase.
-- Do not run dev servers unless given direct authorization from the user.
+- Start dev servers only through `pnpm dev` run as a background task, never a framework binary directly: it exits early with the running pid when a server is already up and mirrors output to `.logs/dev-server.log`, the file to read for server logs.
 
 #### Python
 
@@ -62,8 +62,8 @@ The full company perspective lives in [docs/company/company-overview.md](./docs/
 
 ## Skills
 
-- Seven skills, each self-contained and user-invoked: `sdd` interviews and writes a spec to `docs/specs/`, `implement-spec` builds one, `tdd` is the test-first discipline under any build, `stage-for-commit` hands back a commit for small changes that needed no spec, `skill-creator` governs skill authoring, `curate-context` governs context-file edits, and `brand-init` fills `BRANDING.md` once on a new project. Nothing chains into anything else; the user decides when to call each one. The map is [the skills README](.claude/skills/README.md).
-- Any edit under `.claude/skills/` loads `skill-creator` first; the `guard-skill-edit` hook denies `Edit` and `Write` there until it has, and the skill holds every body to 5000 characters excluding frontmatter.
+- Six skills, each self-contained and user-invoked: `sdd` interviews and writes a spec to `docs/specs/`, `implement-spec` builds one, `tdd` is the test-first discipline under any build, `stage-for-commit` hands back a commit for small changes that needed no spec, `curate-context` governs context-file edits, and `brand-init` fills `BRANDING.md` once on a new project. Nothing chains into anything else; the user decides when to call each one. The map is [the skills README](.claude/skills/README.md).
+- Any create, edit, rename, or delete under `.claude/skills/` follows [`.claude/rules/skill-authoring.md`](.claude/rules/skill-authoring.md), which holds every body to 5000 characters excluding frontmatter; it loads on its own when a skill file is read, so a session creating a skill or deleting one through Bash reads it by path first.
 - Any edit to a `CLAUDE.md`, `CLAUDE.local.md`, `README.md`, `BRANDING.md`, or `.claude/rules/` file loads `curate-context` first; no hook enforces this, so this rule and the skill's description are the whole mechanism.
 
 ## Data handling

@@ -1,13 +1,13 @@
 ---
 paths:
-  - 'email/**/*.{tsx,jsx,html,mjml,hbs}'
-  - 'emails/**/*.{tsx,jsx,html,mjml,hbs}'
-  - 'mail/**/*.{tsx,jsx,html,mjml,hbs}'
-  - '**/email/**/*.{tsx,jsx,html,mjml,hbs}'
-  - '**/emails/**/*.{tsx,jsx,html,mjml,hbs}'
-  - '**/mail/**/*.{tsx,jsx,html,mjml,hbs}'
-  - '**/templates/{email,emails,mail}/**/*.{html,mjml,hbs}'
-  - '**/*.email.{tsx,jsx,html,mjml,hbs}'
+  - "email/**/*.{tsx,jsx,html,mjml,hbs}"
+  - "emails/**/*.{tsx,jsx,html,mjml,hbs}"
+  - "mail/**/*.{tsx,jsx,html,mjml,hbs}"
+  - "**/email/**/*.{tsx,jsx,html,mjml,hbs}"
+  - "**/emails/**/*.{tsx,jsx,html,mjml,hbs}"
+  - "**/mail/**/*.{tsx,jsx,html,mjml,hbs}"
+  - "**/templates/{email,emails,mail}/**/*.{html,mjml,hbs}"
+  - "**/*.email.{tsx,jsx,html,mjml,hbs}"
 ---
 
 # Transactional email

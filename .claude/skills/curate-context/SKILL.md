@@ -1,12 +1,12 @@
 ---
 name: curate-context
 description: Curation discipline for the prescriptive context files, every CLAUDE.md and CLAUDE.local.md at any depth (the user-global ~/.claude/CLAUDE.md included), README.md, BRANDING.md, and the rules under .claude/rules/. Use whenever a session is about to create or edit one of these files, whatever brought the edit, a convention to record, a doc correction, or an edit arriving mid-task with nobody naming this skill; the file path is the trigger. Also the distillation path, when the user says "codify", "capture this convention", "add this to CLAUDE.md", or "we should document this". No model-invented content lands unseen.
-argument-hint: '[optional: the edit or lesson to consider]'
+argument-hint: "[optional: the edit or lesson to consider]"
 ---
 
 # Curate Context
 
-The discipline for the files that steer future sessions: every `CLAUDE.md` and `CLAUDE.local.md` (root, nested, `~/.claude/CLAUDE.md`), every `README.md`, `.claude/rules/`, and `BRANDING.md`. Every edit to one loads this skill first; only this description and the `CLAUDE.md` rule enforce that. `.claude/skills/` is `skill-creator`'s.
+The discipline for the files that steer future sessions: every `CLAUDE.md` and `CLAUDE.local.md` (root, nested, `~/.claude/CLAUDE.md`), every `README.md`, `.claude/rules/`, and `BRANDING.md`. Every edit to one loads this skill first; only this description and the `CLAUDE.md` rule enforce that. `.claude/skills/` follows `.claude/rules/skill-authoring.md`.
 
 A rule is paid for by every future session that loads the file. Default to writing nothing; when writing, hold the edit near zero net growth. Forcing output is this skill's primary failure mode.
 

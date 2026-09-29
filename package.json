@@ -1,6 +1,6 @@
 {
   "name": "ai_starter",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "description": "Opinionated AI-first starter template: Claude Code process suite on a pnpm + Turborepo monorepo skeleton",
   "private": true,
   "license": "ISC",
@@ -19,7 +19,7 @@
     "preinstall": "node scripts/setup/check-install.mjs",
     "prepare": "husky; bash scripts/setup/doctor.sh || true",
     "build": "turbo build",
-    "dev": "turbo dev",
+    "dev": "node scripts/dev/node-dev-server.mjs",
     "lint": "turbo lint",
     "test": "turbo test",
     "typecheck": "turbo typecheck",
