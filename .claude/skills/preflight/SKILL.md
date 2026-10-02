@@ -61,24 +61,14 @@ Present one report and wait:
 A fix the user chooses is made, gets one scoped `code-reviewer` pass over its commits, runs Validate, and returns to this report.
 Nothing leaves the machine without an explicit yes, because a push and a PR are seen by others.
 
-## Publish
+## Publish and CI
+
+Read `references/publish-and-ci.md` before the first push; it holds the exact commands, the PR body, and the CI repair procedure.
 
 - With no remote or no `gh`, stop here and hand over the push and PR commands instead of running them.
-- `git push -u origin <branch>`, never with any force flag.
-- When `gh pr view --json state` shows an `OPEN` PR, update it with `gh pr edit`; otherwise `gh pr create` against the default branch, since a merged or closed PR on a reused branch is not this change's PR.
-  The title is imperative and under 72 characters.
-  The body follows `.github/PULL_REQUEST_TEMPLATE.md`, filling Validation with each command and its result and Review with the fixes made, docs corrected, and findings deferred with their reasons; with no template, use those same headings.
-  QA states what a human actually verified, and "not yet human-verified" is an honest entry.
-  No AI attribution anywhere.
-
-## CI
-
-- `gh pr checks --watch`.
-  A new PR's run takes a moment to register, so "no checks reported" gets a short wait and a few retries before it means the repo has no CI, which skips this section.
-- On a failure, find the run with `gh run list --branch <branch> --limit 1 --json databaseId` and read `gh run view <id> --log-failed`, since without a terminal it needs the id.
-  If the cause is local by the same three tests, fix it, pass the failing command locally, and push once under the stop point's yes.
-- The repair cap is one round.
-  A second failure, or one caused outside the diff (secrets, runners, outages), goes to the user with the failing excerpt.
+- Push without any force flag, and edit an existing PR only when it is `OPEN`.
+- The PR body fills the template's Validation and Review from the report, with no AI attribution.
+- CI gets one repair round, passed locally first and pushed under the stop point's yes; a second failure or a cause outside the diff goes to the user.
 - Never merge, and never re-run a job to turn it green.
 
 Report `READY` (PR link, checks green), `READY_WITH_DEFERRALS` (PR link, what was deferred), or `BLOCKED` (what stopped it, what would clear it).
