@@ -19,6 +19,10 @@ Restate the ask in one paragraph with every assumption and every undefined point
 - Decisions are the user's. Put each one to them and wait. When the code or the research supports your recommendation, hold it under pushback and restate the case; drop it only for a new fact or an explicit move-on. Folding to an assertion the evidence contradicts is a failed session.
 - Product lens: who has the problem, what they do today, what done looks like to them, what is deliberately out.
 - Design lens, surfaces only: the one job the surface serves, what ranks first, which control carries each value, what sits behind disclosure. Hold the floors in `.claude/rules/ux-standards.md` and the identity in `BRANDING.md`, both read by path since no source file opens here.
+- When a design decision is visual (competing layouts, a flow, a density call), show it rather than describe it: render the options side by side as one HTML page and continue from the user's comments.
+  Publish it with the harness's private page tool when one exists; otherwise write it to the gitignored `.review/` folder and hand the user the path to open.
+  The page is a review surface and the spec stays the record, so every decision it settles lands in the spec.
+  Mockups only, never secrets, customer data, or security findings, because a published page leaves the machine.
 - Engineering lens: reference implementations already in the tree, touch points and their current signatures, shared types and their consumers (LSP find-references), the test seams, and what happens to the existing implementation.
 - A claim that needs sourcing (a pattern, a competitor, a study, a pricing structure) dispatches the `research-analyst` agent in the background, announced in one line; keep grilling and weave the evidence in when it lands. Block only when the next question depends on it.
 

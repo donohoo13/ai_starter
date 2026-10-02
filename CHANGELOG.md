@@ -2,6 +2,19 @@
 
 Template releases, newest first. Each entry carries three parts: **what** changed, **why**, and **adaptation notes** for instances whose posture diverges from the shipped defaults (compliance regimes, external trackers, collapsed monorepos). A release is a git tag (`vX.Y.Z`) on `main` matching the entry heading; the `sync-template` skill in an instance walks unapplied entries oldest-to-newest (later releases assume earlier ones landed) and negotiates each into the instance's own posture. In an instance this file is template residue: `project-init` stamps the template lineage into `CLAUDE.md` from the top entry here, then deletes this copy.
 
+## v4.3.0 — 2026-10-02
+
+- **What**: `sdd`'s design lens gains a visual-review step.
+  When a design decision is visual (competing layouts, a flow, a density call), the session renders the options side by side as one HTML page and continues from the user's comments.
+  It publishes through the harness's private page tool when one exists, and otherwise writes to a new gitignored `.review/` folder and hands the user the path.
+  The page is a review surface only, the spec stays the record, and mockups never carry secrets, customer data, or security findings.
+  `package.json` `version` to 4.3.0.
+- **Why**: a design choice described in prose gets answered in prose, and the user's real reaction arrives only after the build.
+  Showing the options turns a 15% lens into a decision the user can see, and harness page tools such as Claude Code's Artifact tool already carry comments back to the session, covering most of what a dedicated local review server would.
+  The wording names no specific tool so the skill stays harness-agnostic, and the local `.review/` fallback keeps it working where no page tool exists.
+- **Adaptation notes**: additive; copy the bullet and the `.gitignore` line.
+  An instance under stricter data rules drops the publish branch and keeps only the local `.review/` path.
+
 ## v4.1.0 — 2026-10-02
 
 - **What**: `CLAUDE.md` Markdown rule flips from one continuous line per bullet to one sentence per physical line, with a multi-sentence bullet continuing on indented lines and untouched passages left unreflowed; `curate-context` drafting guidance changes from "single-line bullets" to "one sentence per line" to match.
