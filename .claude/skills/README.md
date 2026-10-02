@@ -20,7 +20,7 @@ The keystone: ceremony scales with size, engineering discipline never does. A on
 
 - **code-reviewer** and **docs-reviewer** (`.claude/agents/`): the adversarial pair `preflight` dispatches in fresh contexts.
   The first reviews a diff against its intent and scopes each finding `branch` or `trunk`; the second finds doc statements the diff made false.
-  Both are read-only and report with `file:line` evidence, never fixes.
+  Neither carries an edit tool, both keep `Bash` for `git` and test runs so read-only holds by instruction, and both report with `file:line` evidence, never fixes.
 - **research-analyst** (`.claude/agents/`): a background evidence fetcher `sdd` dispatches mid-interview to answer one scoped question with sourced, tiered claims while the conversation continues. Read-only; returns evidence, never advice.
 
 ## Rules
