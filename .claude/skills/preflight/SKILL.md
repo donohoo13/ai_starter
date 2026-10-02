@@ -58,7 +58,7 @@ Present one report and wait:
 - Each surfaced finding quoted with `file:line`, scope, and the choice of fix, defer, or skip.
 - Rejected findings with the evidence, docs corrected, held context-file corrections with their exact text, and every validation command with its result.
 
-A fix decision goes back through Review and Validate.
+A fix the user chooses is made, gets one scoped `code-reviewer` pass over its commits, runs Validate, and returns to this report.
 Nothing leaves the machine without an explicit yes, because a push and a PR are seen by others.
 
 ## Publish
@@ -76,7 +76,7 @@ Nothing leaves the machine without an explicit yes, because a push and a PR are 
 - `gh pr checks --watch`.
   A new PR's run takes a moment to register, so "no checks reported" gets a short wait and a few retries before it means the repo has no CI, which skips this section.
 - On a failure, find the run with `gh run list --branch <branch> --limit 1 --json databaseId` and read `gh run view <id> --log-failed`, since without a terminal it needs the id.
-  Fix and push once if the cause is local by the same three tests.
+  If the cause is local by the same three tests, fix it, pass the failing command locally, and push once under the stop point's yes.
 - The repair cap is one round.
   A second failure, or one caused outside the diff (secrets, runners, outages), goes to the user with the failing excerpt.
 - Never merge, and never re-run a job to turn it green.
