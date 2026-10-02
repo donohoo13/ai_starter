@@ -28,6 +28,7 @@ The full company perspective lives in [docs/company/company-overview.md](./docs/
 
 - Never leave stubs, TODO comments, or placeholder logic in delivered code unless explicitly asked to scaffold. Finish the implementation.
 - Start every bug fix by reproducing the bug the way a user hits it, and confirm the reproduction fails for the reported reason before changing code.
+- Scripts, hooks, and CLIs an agent runs follow [`.claude/rules/agent-facing-output.md`](.claude/rules/agent-facing-output.md); a session creating one reads it by path first.
 - Write a comment only when it prevents a dangerous action, or caches a fact that costs multiple discovery jumps through files or symbols to reconstruct — or that no file in the repo can answer at all — stated in one line.
 - Do not leave dead or orphaned code in the codebase.
 - Start dev servers only through `pnpm dev` run as a background task, never a framework binary directly: it exits early with the running pid when a server is already up and mirrors output to `.logs/dev-server.log`, the file to read for server logs.

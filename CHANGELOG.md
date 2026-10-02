@@ -8,13 +8,17 @@ Template releases, newest first. Each entry carries three parts: **what** change
   `CLAUDE.md` Development gains a bug-fix rule: reproduce the bug the way a user hits it and confirm the repro fails for the reported reason before changing code.
   `tdd` gains a Bug fixes section placing that repro as a failing test at the lowest seam that exhibits the bug, climbing to end-to-end only when no lower seam can show it, and the skills `README.md` blurb names it.
   `implement-spec` Workspace relaxes its first bullet: building on `main` is allowed when the user dictates it, and switching branches in a shared checkout is cautioned rather than forbidden outright.
+  A new path-scoped rules file, `.claude/rules/agent-facing-output.md` (`scripts/**`, `.claude/hooks/**`), sets five output floors for anything an agent runs: a definitive outcome line including empty and no-op cases, failures that name the next command, no interactive prompts, summary-first bounded output, and idempotent mutations; `CLAUDE.md` Development and the skills `README.md` rules paragraph name it.
   `package.json` `version` to 4.1.0.
 - **Why**: one sentence per line makes a prose diff name the sentence that changed instead of a whole paragraph-length bullet, which is the review cost that mattered more than cut-and-move atomicity.
   The bug-fix rule exists because a fix written before a faithful repro tends to patch a symptom; the principle lives in `CLAUDE.md` where every session sees it, and the seam mechanics live in `tdd` where test placement is already decided.
   The `implement-spec` change hands the main-branch call back to the user, who may run a solo or throwaway build where a branch is ceremony.
+  The output floors are distilled from [AXI](https://axi.md/), whose author-run benchmarks show agent-shaped CLI output cutting turns and cost against raw CLIs and MCP servers; the payload's own scripts already followed most of them unwritten, so a project's new scripts had no way to learn the convention.
+  AXI's TOON output format, ambient session hooks, and no-argument-shows-content behavior were left out: a nonstandard format buys little over JSON or plain text, and a per-session hook taxes every session's context.
 - **Adaptation notes**: the Markdown rule applies to new writing only; existing docs need no reformat, and an instance that prefers the old atomic-bullet convention keeps its line and skips the `curate-context` wording change together, since the two must agree.
   `.prettierrc` already sets `proseWrap: preserve`, so the sentence breaks survive formatting; an instance that changed that setting restores it before adopting the rule.
   An instance running Git branch protection or a stricter worktree posture keeps its own `implement-spec` Workspace bullet.
+  The output rules file is additive; an instance whose scripts live outside `scripts/` adds those paths to its frontmatter.
 
 ## v4.0.0 — 2026-09-29
 
