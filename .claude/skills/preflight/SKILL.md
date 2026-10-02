@@ -38,7 +38,8 @@ Every finding is either fixed here with proof or put in front of the user, and n
 3. Re-review once: dispatch `code-reviewer` on the fix commits with the findings they claim to resolve.
    Whatever stays open is surfaced; there is no second pass.
 4. Dispatch the `docs-reviewer` agent on the final range.
-   Correct false statements under `docs/**` and in code directly; a correction to `CLAUDE.md`, a `README.md`, `BRANDING.md`, or `.claude/rules/` goes through `/curate-context`.
+   Correct each false statement in its own commit: `docs/**`, code, agent files, and the changelog head directly, and skill files under `.claude/rules/skill-authoring.md`.
+   A correction to `CLAUDE.md`, a `README.md`, `BRANDING.md`, or `.claude/rules/` is drafted under `/curate-context` and held for the stop point, so the user approves it there rather than mid-run.
    Gaps are surfaced as suggestions.
 
 ## Validate
@@ -54,7 +55,7 @@ Present one report and wait:
 
 - The intent and each fix commit with the finding it resolves.
 - Each surfaced finding quoted with `file:line`, scope, and the choice of fix, defer, or skip.
-- Rejected findings with the evidence, docs corrected, and every validation command with its result.
+- Rejected findings with the evidence, docs corrected, held context-file corrections with their exact text, and every validation command with its result.
 
 A fix decision goes back through Review and Validate.
 Nothing leaves the machine without an explicit yes, because a push and a PR are seen by others.
