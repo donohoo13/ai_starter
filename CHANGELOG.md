@@ -10,7 +10,7 @@ Template releases, newest first. Each entry carries three parts: **what** change
   It dispatches two new agents in fresh contexts, with no edit tools and read-only by instruction: `code-reviewer` reviews the diff against the intent and scopes each finding `branch` or `trunk`, and `docs-reviewer` finds statements across `docs/**`, every `README.md`, `CLAUDE.md`, `.claude/`, the changelog head, and in-code help that the diff made false.
   The session fixes a finding only when it has few dependents, is verifiable in the session, and leaves the intent unchanged, with a `/tdd` reproduction first for behavioral fixes and one commit per fix; a single scoped re-review checks the fixes; everything else stops at one report for the user to fix, defer, or skip.
   Lint, format, typecheck, and the full suite must pass, flaky tests are surfaced rather than rerun, and pushing and the PR wait on the user's yes.
-  The PR body fills the template's Validation and Review sections, CI gets one repair round, and nothing is ever merged.
+  The PR body fills the template's Validation and Review sections, CI gets one repair round, and nothing is ever merged; the publish commands, PR body, and CI repair procedure live in `preflight/references/publish-and-ci.md`, read before the first push.
   `CLAUDE.md` Skills, the root `README.md`, and the skills `README.md` name the skill and agents.
   `.github/PULL_REQUEST_TEMPLATE.md` grows from Summary and QA to Summary, Validation, Review, and QA, generic enough for a human-written PR.
   `.github/workflows/checks.yml` is rewritten to one job on every PR and every push to `main`, with no path filters: `jdx/mise-action` installs the pinned toolchain, the pnpm store is cached, then `pnpm install --frozen-lockfile`, `format:check`, `lint`, `typecheck`, `test`, and a new root `test:scripts` that runs every `scripts/test/*.battery.mjs`.
@@ -31,7 +31,7 @@ Template releases, newest first. Each entry carries three parts: **what** change
   An instance with no PR template gets a body under the same Summary, Validation, Review, and QA headings.
   CI deliberately stops at the 80% case; an instance adds its own OS or Node matrix, coverage thresholds, E2E, security scanning, a `build` step, previews, and release automation, and makes `checks` a required status check in branch protection.
   An instance not using mise swaps `jdx/mise-action` for `actions/setup-node` with `node-version-file: .nvmrc` plus `pnpm/action-setup`, and may delete `mise.toml`; one that relied on the env matrix for musl images keeps its copy.
-  An instance whose CI needs more than one repair round raises the cap in the CI section; one whose host is not GitHub replaces the `gh` calls with its own CLI.
+  An instance whose CI needs more than one repair round raises the cap in both `preflight/SKILL.md`'s Publish and CI section and `preflight/references/publish-and-ci.md`'s CI section; one whose host is not GitHub replaces the `gh` calls with its own CLI.
   An instance under stricter data rules drops `sdd`'s publish branch and keeps only the local `.review/` path.
 
 ## v4.1.0 — 2026-10-02
