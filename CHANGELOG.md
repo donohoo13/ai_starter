@@ -2,6 +2,25 @@
 
 Template releases, newest first. Each entry carries three parts: **what** changed, **why**, and **adaptation notes** for instances whose posture diverges from the shipped defaults (compliance regimes, external trackers, collapsed monorepos). A release is a git tag (`vX.Y.Z`) on `main` matching the entry heading; the `sync-template` skill in an instance walks unapplied entries oldest-to-newest (later releases assume earlier ones landed) and negotiates each into the instance's own posture. In an instance this file is template residue: `project-init` stamps the template lineage into `CLAUDE.md` from the top entry here, then deletes this copy.
 
+## v4.2.0 — 2026-10-02
+
+- **What**: a seventh skill, `preflight`, proves a finished feature branch is production ready and then opens its PR.
+  It gates on a non-default branch, a clean tree, and a settled intent (argument, the branch's spec, or one line from the user, never transcripts).
+  It syncs by rebasing an unpublished branch or merging the default branch into a published one, and never force-pushes.
+  It dispatches two new read-only agents in fresh contexts: `code-reviewer` reviews the diff against the intent and scopes each finding `branch` or `trunk`, and `docs-reviewer` finds statements across `docs/**`, every `README.md`, `CLAUDE.md`, `.claude/`, the changelog head, and in-code help that the diff made false.
+  The session fixes a finding only when it has few dependents, is verifiable in the session, and leaves the intent unchanged, with a `/tdd` reproduction first for behavioral fixes and one commit per fix; a single scoped re-review checks the fixes; everything else stops at one report for the user to fix, defer, or skip.
+  Lint, format, typecheck, and the full suite must pass, flaky tests are surfaced rather than rerun, and pushing and the PR wait on the user's yes.
+  The PR body follows `.github/PULL_REQUEST_TEMPLATE.md` plus a Preflight section, CI gets one repair round, and nothing is ever merged.
+  `CLAUDE.md` Skills, the root `README.md`, and the skills `README.md` name the skill and agents.
+  `package.json` `version` to 4.2.0.
+- **Why**: `implement-spec` ends at human QA and nothing between QA and a reviewable PR held a standard, so a branch reached reviewers with whatever slop, stale docs, or unrun suites the build left behind.
+  The flow follows [no-mistakes](https://github.com/kunchenguid/no-mistakes)' pipeline (review, test, document, lint, push, PR, CI) without its disposable worktree, background daemon, permission bypass, or self-driven pushes: a clean-tree gate replaces worktree isolation, and the user's yes replaces an automatic push.
+  Reviewers are agents rather than reference files so their tool list is read-only, which keeps a reviewer from quietly fixing what it should report; the docs review is its own agent because "did the code make a doc false" is a different search than "is the code wrong".
+  Published history is never rewritten because a lease protects the remote, not a teammate's local branch, so the skill stays safe in a team repo.
+- **Adaptation notes**: additive; copy the skill directory and both agent files, then add the name-drops.
+  An instance with no PR template gets a body built from the Preflight section alone.
+  An instance whose CI needs more than one repair round raises the cap in the CI section; one whose host is not GitHub replaces the `gh` calls with its own CLI.
+
 ## v4.1.0 — 2026-10-02
 
 - **What**: `CLAUDE.md` Markdown rule flips from one continuous line per bullet to one sentence per physical line, with a multi-sentence bullet continuing on indented lines and untouched passages left unreflowed; `curate-context` drafting guidance changes from "single-line bullets" to "one sentence per line" to match.
