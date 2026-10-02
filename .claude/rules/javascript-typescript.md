@@ -6,6 +6,7 @@ paths:
   - "**/pnpm-workspace.yaml"
   - "**/turbo.json"
   - ".nvmrc"
+  - "mise.toml"
 ---
 
 # JavaScript, TypeScript, and Node conventions
@@ -16,7 +17,7 @@ Loads when a session reads a file matching the globs above, which covers every `
 
 - Use `pnpm` as the package manager; in monorepos its workspace support (`pnpm-workspace.yaml`) beats npm/yarn.
 - Run local package bins through `pnpm exec` and one-off remote tools through `pnpm dlx`, never `npx`; installs are pnpm-only, enforced with the Node-major pin by the `preinstall` guard (`scripts/setup/check-install.mjs`). AI sessions are the stated exception: `Bash(pnpm dlx*)` and `Bash(npx*)` are deny-listed, so a session needing a one-off remote tool hands the user a ready-to-run `pnpm dlx` command for their own terminal.
-- Retarget the Node pin as a set, never a file: `.nvmrc` (exact version, read by the guard, CI `setup-node`, and nvm/fnm, never by pnpm itself), `engines.node` (`>=X.Y.Z <X+1`), and `devEngines.runtime.version` (the same exact version, never a range) change together.
+- Retarget the Node pin as a set, never a file: `.nvmrc` (exact version, read by the guard, by mise through `mise.toml` locally and in CI, and by nvm/fnm, never by pnpm itself), `engines.node` (`>=X.Y.Z <X+1`), and `devEngines.runtime.version` (the same exact version, never a range) change together.
   - Then `pnpm install` and commit the regenerated `pnpm-lock.yaml`; `scripts/setup/check-install.mjs` fails the install on drift between the first three.
   - The script's header comment carries the mechanism and the causal reasoning behind each choice, so read that header before changing how the pin works rather than rediscovering why a range or `useNodeVersion` fails.
 - Run one-off Node commands through `pnpm exec node`, never bare `node`, so they execute on the version pinned in `devEngines.runtime` instead of the shell's ambient Node; `pnpm run` scripts already run under the pinned runtime on pnpm 11, and bare `node` is reserved for when the ambient version is deliberately wanted.

@@ -24,7 +24,8 @@
     "test": "turbo test",
     "typecheck": "turbo typecheck",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "test:scripts": "for f in scripts/test/*.battery.mjs; do node \"$f\" || exit 1; done"
   },
   "devDependencies": {
     "husky": "9.1.7",

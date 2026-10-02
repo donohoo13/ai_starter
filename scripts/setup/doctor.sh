@@ -43,7 +43,7 @@ if [[ -f .nvmrc ]]; then
   if [[ -n "$ambient" && "${ambient#v}" != "$pinned" ]]; then
     warn \
       "shell Node is $ambient but the project pins $pinned: npx run from this project fails the devEngines check (EBADDEVENGINES), which also kills npx-launched Claude Code plugin MCP servers" \
-      "nvm install $pinned && nvm use $pinned, then relaunch this shell (and Claude Code, if running) so PATH picks it up"
+      "mise install (or nvm install $pinned && nvm use $pinned), then relaunch this shell (and Claude Code, if running) so PATH picks it up"
   fi
 fi
 
