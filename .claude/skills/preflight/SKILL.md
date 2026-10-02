@@ -62,7 +62,7 @@ Nothing leaves the machine without an explicit yes, because a push and a PR are 
 ## Publish
 
 - `git push -u origin <branch>`, never with any force flag.
-- With `gh pr view` empty, `gh pr create` against the default branch; otherwise update it with `gh pr edit`.
+- When `gh pr view --json state` shows an `OPEN` PR, update it with `gh pr edit`; otherwise `gh pr create` against the default branch, since a merged or closed PR on a reused branch is not this change's PR.
   The title is imperative and under 72 characters.
   The body follows `.github/PULL_REQUEST_TEMPLATE.md`, filling Validation with each command and its result and Review with the fixes made, docs corrected, and findings deferred with their reasons; with no template, use those same headings.
   QA states what a human actually verified, and "not yet human-verified" is an honest entry.
