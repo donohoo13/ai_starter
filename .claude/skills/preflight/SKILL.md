@@ -20,7 +20,8 @@ Every finding is either fixed here with proof or put in front of the user, and n
 
 ## Sync
 
-- `git fetch origin`; when the branch has an upstream, take teammate commits from it first with `git merge --ff-only @{u}`, or a plain merge if it has diverged.
+- `git fetch origin`; the branch is published when `origin/<branch>` exists afterwards, whatever its upstream setting says.
+  Take teammate commits from `origin/<branch>` first with `git merge --ff-only`, or a plain merge if it has diverged.
 - An unpublished branch rebases onto `origin/<default>`; a published one merges `origin/<default>` in.
   Never rewrite published history or force-push: a lease protects the remote, not a teammate's local copy.
 - Resolve mechanical conflicts (imports, lockfiles regenerated, both sides kept); a conflict where both sides change behavior goes to the user.
