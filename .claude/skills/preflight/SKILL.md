@@ -72,7 +72,9 @@ Nothing leaves the machine without an explicit yes, because a push and a PR are 
 ## CI
 
 - `gh pr checks --watch`.
-  On a failure read `gh run view --log-failed`; fix and push once if the cause is local by the same three tests.
+  A new PR's run takes a moment to register, so "no checks reported" gets a short wait and a few retries before it means the repo has no CI, which skips this section.
+- On a failure, find the run with `gh run list --branch <branch> --limit 1 --json databaseId` and read `gh run view <id> --log-failed`, since without a terminal it needs the id.
+  Fix and push once if the cause is local by the same three tests.
 - The repair cap is one round.
   A second failure, or one caused outside the diff (secrets, runners, outages), goes to the user with the failing excerpt.
 - Never merge, and never re-run a job to turn it green.
