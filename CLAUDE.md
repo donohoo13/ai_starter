@@ -27,6 +27,7 @@ The full company perspective lives in [docs/company/company-overview.md](./docs/
 ### Development
 
 - Never leave stubs, TODO comments, or placeholder logic in delivered code unless explicitly asked to scaffold. Finish the implementation.
+- Start every bug fix by reproducing the bug the way a user hits it, and confirm the reproduction fails for the reported reason before changing code.
 - Write a comment only when it prevents a dangerous action, or caches a fact that costs multiple discovery jumps through files or symbols to reconstruct — or that no file in the repo can answer at all — stated in one line.
 - Do not leave dead or orphaned code in the codebase.
 - Start dev servers only through `pnpm dev` run as a background task, never a framework binary directly: it exits early with the running pid when a server is already up and mirrors output to `.logs/dev-server.log`, the file to read for server logs.
@@ -56,7 +57,9 @@ The full company perspective lives in [docs/company/company-overview.md](./docs/
 
 ### Markdown
 
-- Keep bullet points and long descriptions as single continuous lines (no line breaks within a bullet); one bullet per line keeps cuts, moves, and diffs atomic.
+- Put each sentence on its own physical line when writing or substantially editing Markdown, so a diff names the exact sentence that changed.
+  A bullet with several sentences continues on indented lines beneath its marker.
+  Leave passages you are not editing in their existing format rather than reflowing them.
 - Escape literal pipes in table cells as `\|`, including inside backticks: `|` separates columns regardless of code spans, so `` `a || b` `` silently adds phantom columns.
 - Use a list rather than a table when cells run past about one line; long-form content reads better and cannot break the table grammar.
 

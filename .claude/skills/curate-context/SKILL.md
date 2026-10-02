@@ -32,7 +32,7 @@ Glob for the actual layout first. The test is who executes the rule. An imperati
 
 ## Draft
 
-Imperative, present tense, absolutes with exceptions at point of use; no "prefer", "try to", "going forward". State the action and its concrete check, not the ban; grant permission to say "unknown" where a rule meets uncertainty. Front-load the constraint, the why only when non-obvious. Scope surfaces a rule could bleed across. Cite a living example by path rather than pasting code. Match the target file's tone; single-line bullets. Reaching for ALWAYS/NEVER usually means the why is missing. Maintainer notes ride free in HTML comments, which Claude Code strips before injecting a `CLAUDE.md`; the why that lets the model generalize stays in loaded text.
+Imperative, present tense, absolutes with exceptions at point of use; no "prefer", "try to", "going forward". State the action and its concrete check, not the ban; grant permission to say "unknown" where a rule meets uncertainty. Front-load the constraint, the why only when non-obvious. Scope surfaces a rule could bleed across. Cite a living example by path rather than pasting code. Match the target file's tone; one sentence per line. Reaching for ALWAYS/NEVER usually means the why is missing. Maintainer notes ride free in HTML comments, which Claude Code strips before injecting a `CLAUDE.md`; the why that lets the model generalize stays in loaded text.
 
 ## Present, then apply
 

@@ -16,7 +16,7 @@ The design is settled: build what the spec says and never re-decide architecture
 
 ## Workspace
 
-- Never build on `main`, and never switch branches in a shared checkout; another session may be working there.
+- Never build on `main` unless specifically dictated by the user, and never switch branches in a shared checkout carelessly; another session may be working there.
 - Derive the branch from the filename, `docs/specs/NNN-<slug>.md` to `<type>/<slug>` with `type` feature, bug, or chore by the spec's nature. Offer one confirm for a dedicated worktree via `scripts/setup/gwt-add.sh --no-open <branch>` entered with `EnterWorktree`; a decline means the user names a non-main branch and the build runs there. A checkout already on the spec's branch is simply continued.
 - Before the tree splits, check `git status` for uncommitted `docs/**`, `CLAUDE.md`, `BRANDING.md`, and `.claude/**` changes, reading the tree rather than session memory. Make one offer to stage exactly those paths and hand back a commit message for the user to commit on `main`; a declined offer leaves them behind by the user's choice. Never stage other dirt, which may be another session's work in flight. The spec file itself must exist on the branch before the first slice.
 - When Architecture says the existing implementation is stripped first, delete those files as the first commit and build from the spec rather than from memory of the old code. A rewrite lands cleaner when the old shape is gone from the tree than when it is patched around, so weigh that call against the spec rather than defaulting to keeping what compiles.

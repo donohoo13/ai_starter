@@ -24,6 +24,12 @@ Choose the seam by what the code depends on:
 
 UI seams split. Layout, appearance, and composition are never test targets, because jsdom computes no layout, so such a test can neither see nor protect how a surface looks. View logic (state, view-model math, derived values) tests through its module interface; behavioral contracts test at the component seam the way a user exercises them: clicking save submits the right payload, the error message renders, the hidden section stays hidden until toggled. When the loop touches an existing test file, appearance-shaped assertions there (inline styles, look-classes, snapshots, geometry) are removed in the same change, re-expressed at the behavior seam when they smuggle a real guarantee; roles, accessible names, and `aria-*` assertions stay. Report every removal.
 
+## Bug fixes
+
+A bug fix opens with a failing test that reproduces the report.
+Write it at the lowest seam that actually exhibits the bug, then confirm it fails for the reported reason and not an incidental one; a test that fails for the wrong reason proves nothing about the fix.
+Climb to an end-to-end test only when no lower seam can show the bug, since every layer added makes the repro slower and flakier.
+
 ## Anti-patterns
 
 - **Implementation-coupled**: mocks internal collaborators, tests private methods, or verifies through a side channel such as querying the database. The tell: the test breaks on a refactor that changed no behavior.
