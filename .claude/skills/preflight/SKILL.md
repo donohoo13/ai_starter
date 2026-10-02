@@ -11,7 +11,7 @@ Every finding is either fixed here with proof or put in front of the user, and n
 
 ## Gate
 
-- Resolve the default branch from `origin/HEAD`, or `gh repo view` when that is unset.
+- Resolve the default branch from `origin/HEAD`, else `git ls-remote --symref origin HEAD`, else a local `main` or `master`.
   On it, stop: preflight reviews a feature branch, so the user names or creates one.
 - Require a clean tree (`git status --porcelain` empty).
   Otherwise list the paths and stop, since uncommitted work would either ride into the PR unreviewed or be reviewed as if it ships.
@@ -20,6 +20,7 @@ Every finding is either fixed here with proof or put in front of the user, and n
 
 ## Sync
 
+- With no remote, skip this section.
 - `git fetch origin`; the branch is published when `origin/<branch>` exists afterwards, whatever its upstream setting says.
   Take teammate commits from `origin/<branch>` first with `git merge --ff-only`, or a plain merge if it has diverged.
 - An unpublished branch rebases onto `origin/<default>`; a published one merges `origin/<default>` in.
@@ -62,13 +63,13 @@ Nothing leaves the machine without an explicit yes, because a push and a PR are 
 
 ## Publish
 
+- With no remote or no `gh`, stop here and hand over the push and PR commands instead of running them.
 - `git push -u origin <branch>`, never with any force flag.
 - When `gh pr view --json state` shows an `OPEN` PR, update it with `gh pr edit`; otherwise `gh pr create` against the default branch, since a merged or closed PR on a reused branch is not this change's PR.
   The title is imperative and under 72 characters.
   The body follows `.github/PULL_REQUEST_TEMPLATE.md`, filling Validation with each command and its result and Review with the fixes made, docs corrected, and findings deferred with their reasons; with no template, use those same headings.
   QA states what a human actually verified, and "not yet human-verified" is an honest entry.
   No AI attribution anywhere.
-- With no remote or no `gh`, stop after the report and hand over the commands.
 
 ## CI
 
