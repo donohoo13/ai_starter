@@ -11,7 +11,7 @@ Template releases, newest first. Each entry carries three parts: **what** change
   The session fixes a finding only when it has few dependents, is verifiable in the session, and leaves the intent unchanged, with a `/tdd` reproduction first for behavioral fixes and one commit per fix; a single scoped re-review checks the fixes; everything else stops at one report for the user to fix, defer, or skip.
   Lint, format, typecheck, and the full suite must pass, flaky tests are surfaced rather than rerun, and pushing and the PR wait on the user's yes.
   The PR body fills the template's Validation and Review sections, CI gets one repair round, and nothing is ever merged; the publish commands, PR body, and CI repair procedure live in `preflight/references/publish-and-ci.md`, read before the first push.
-  `CLAUDE.md` Skills, the root `README.md`, and the skills `README.md` name the skill and agents.
+  `CLAUDE.md` Skills and the root `README.md` name the skill; the skills `README.md` names the skill and both agents.
   `.github/PULL_REQUEST_TEMPLATE.md` grows from Summary and QA to Summary, Validation, Review, and QA, generic enough for a human-written PR.
   `.github/workflows/checks.yml` is rewritten to one job on every PR and every push to `main`, with no path filters: `jdx/mise-action` installs the pinned toolchain, the pnpm store is cached, then `pnpm install --frozen-lockfile`, `format:check`, `lint`, `typecheck`, `test`, and a new root `test:scripts` that runs every `scripts/test/*.battery.mjs`.
   `scripts/test/env-matrix/` and its Docker-based CI step are deleted.
