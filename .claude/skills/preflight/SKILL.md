@@ -21,7 +21,7 @@ Every finding is either fixed here with proof or put in front of the user, and n
 ## Sync
 
 - With no remote, skip this section.
-- The branch is published when `git ls-remote --exit-code --heads origin <branch>` finds it, whatever its upstream or fetch refspec says.
+- The branch is published when `git ls-remote --exit-code origin refs/heads/<branch>` finds it, whatever its upstream or fetch refspec says.
   Fetch with explicit refspecs, `git fetch origin +refs/heads/<default>:refs/remotes/origin/<default>` plus the same for `<branch>` when published, since a single-branch clone's refspec skips them.
   Then take teammate commits from `origin/<branch>` with `git merge --ff-only`, or a plain merge if it has diverged.
 - An unpublished branch rebases onto `origin/<default>`; a published one merges `origin/<default>` in.
