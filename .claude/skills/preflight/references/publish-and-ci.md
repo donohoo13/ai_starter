@@ -19,7 +19,7 @@ Read before the first push. The exact commands and edge cases behind the Publish
 
 - `gh pr checks --watch`.
   A new PR's run takes a moment to register, so "no checks reported" gets a short wait and a few retries before it means the repo has no CI, which ends this section.
-- On a failure, find the run with `gh run list --branch <branch> --limit 1 --json databaseId` and read `gh run view <id> --log-failed`; without a terminal, `gh run view` needs the id.
+- On a failure, find the run with `gh run list --branch <branch> --status failure --limit 1 --json databaseId` and read `gh run view <id> --log-failed`; without a terminal, `gh run view` needs the id.
 - If the cause is local by the three fix tests in `SKILL.md`, fix it in its own commit, pass the failing command locally, and push once under the stop point's yes.
 - The repair cap is one round.
   A second failure, or one caused outside the diff (secrets, runners, outages), goes to the user with the failing excerpt.
