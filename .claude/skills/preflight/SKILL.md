@@ -60,6 +60,7 @@ Present one report and wait:
 - Rejected findings with the evidence, docs corrected, held context-file corrections with their exact text, and every validation command with its result.
 
 A fix the user chooses is made, gets one scoped `code-reviewer` pass over its commits, runs Validate, and returns to this report.
+An approved held correction is committed alone and covered by that same Validate run before anything is pushed.
 Nothing leaves the machine without an explicit yes, because a push and a PR are seen by others.
 
 ## Publish and CI
