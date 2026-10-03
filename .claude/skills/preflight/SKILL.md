@@ -34,7 +34,7 @@ Every finding is either fixed here with proof or put in front of the user, and n
 2. Triage every finding yourself; the agent's scope is input, not a verdict.
    Fix it when all three hold: few dependents with nothing on the trunk (shared utilities, public interfaces, schemas, config), verifiable in this session, and the intent unchanged.
    A behavioral fix opens with a failing reproduction under `/tdd`.
-   Commit each fix alone, its message naming the finding.
+   Commit each fix alone, its message naming the finding and carrying no AI attribution, which no later step can strip without rewriting history.
    Everything else is surfaced, and a finding that the approach itself is wrong stops preflight at once rather than waiting for the batch.
    A finding you judge false is rejected with evidence and still shown to the user.
 3. Re-review once: dispatch `code-reviewer` on the fix commits with the findings they claim to resolve.
