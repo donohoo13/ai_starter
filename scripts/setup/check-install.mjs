@@ -8,7 +8,7 @@
 // story. Read from the installer's own user agent, so it needs no dependencies.
 //
 // ── The Node pin: four sites, one version ───────────────────────────────────
-//   .nvmrc                      exact version. The source of truth, and what nvm reads.
+//   .nvmrc                      exact version. The source of truth, and what mise and nvm read.
 //   engines.node                ">=<version> <<major+1>". The range this file enforces.
 //   devEngines.runtime.version  exact version. What pnpm downloads and runs scripts under.
 //   pnpm-lock.yaml              regenerate and commit; stale fails --frozen-lockfile, CI's default.
@@ -87,6 +87,7 @@ if (!agent.startsWith("pnpm/")) {
     `    Detected installer: ${agent || "(none — run via a package manager, not node directly)"}`,
     "",
     "    Fix it:",
+    "      • mise install && pnpm install      (mise reads the packageManager pin)",
     "      • corepack enable && pnpm install   (packageManager pin in package.json)",
   ]);
 }
@@ -298,6 +299,7 @@ if (!okMajor || !okFloor) {
     "            . ~/.nvm/nvm.sh",
     "",
     "    Then install it:",
+    "      • mise:  mise install               (reads .nvmrc through mise.toml)",
     "      • nvm:  nvm install && nvm use      (reads .nvmrc; needs nvm sourced)",
     `      • pnpm 11+:  pnpm runtime set node ${reqMajor} -g`,
     `        pnpm 10 spelling: pnpm env use --global ${reqMajor}`,
@@ -309,6 +311,7 @@ if (!okMajor || !okFloor) {
   const oldPatchHelp = [
     `    You have Node ${reqMajor}, but ${actual} is older than the ${required} floor.`,
     `    Upgrade within the major — there is nothing wrong with your Node install:`,
+    "      • mise:  mise install               (reads .nvmrc through mise.toml)",
     "      • nvm:  nvm install && nvm use      (reads .nvmrc)",
     `      • pnpm 11+:  pnpm runtime set node ${required} -g`,
     `      • brew:  brew upgrade node@${reqMajor}`,

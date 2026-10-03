@@ -1,6 +1,6 @@
 {
   "name": "ai_starter",
-  "version": "4.1.0",
+  "version": "4.2.0",
   "description": "Opinionated AI-first starter template: Claude Code process suite on a pnpm + Turborepo monorepo skeleton",
   "private": true,
   "license": "ISC",
@@ -24,7 +24,8 @@
     "test": "turbo test",
     "typecheck": "turbo typecheck",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "test:scripts": "for f in scripts/test/*.battery.mjs; do [ -e \"$f\" ] || continue; node \"$f\" || exit 1; done"
   },
   "devDependencies": {
     "husky": "9.1.7",

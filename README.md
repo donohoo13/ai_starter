@@ -4,7 +4,7 @@ Opinionated AI-first starter template: a Claude Code process suite on a pnpm + T
 
 ## What Ships
 
-- **AI process suite** ([`.claude/`](./.claude/)) — six self-contained skills (`sdd` writes a spec through a three-lens interview, `implement-spec` builds it, `tdd` under any build, `stage-for-commit` for small changes, `curate-context` for context-file edits, `brand-init` run once to fill the brand doc), one research agent, guard hooks, and the permission/secrets registry; the human-readable map is [`.claude/skills/README.md`](./.claude/skills/README.md).
+- **AI process suite** ([`.claude/`](./.claude/)) — seven self-contained skills (`sdd` writes a spec through a three-lens interview, `implement-spec` builds it, `preflight` reviews and validates a finished branch before opening its PR, `tdd` under any build, `stage-for-commit` for small changes, `curate-context` for context-file edits, `brand-init` run once to fill the brand doc), a research agent and two adversarial reviewer agents, guard hooks, and the permission/secrets registry; the human-readable map is [`.claude/skills/README.md`](./.claude/skills/README.md).
 - **Context files** ([`CLAUDE.md`](./CLAUDE.md), [`BRANDING.md`](./BRANDING.md)) plus path-scoped rules in [`.claude/rules/`](./.claude/rules/) — AI coding standards, a brand skeleton filled once by `/brand-init`, the frontend rule set (UX floors, styling conventions, transactional email), and the skill-authoring discipline, each loading on its own when a session reads a matching file.
 - **Monorepo skeleton** — `apps/*` and `packages/*` pnpm workspaces with a Turborepo task graph (`turbo build` / `lint` / `test` / `typecheck`), Prettier + husky pre-commit, and pnpm-only installs enforced at `preinstall`. `pnpm dev` runs `turbo dev` once per checkout and mirrors its output to `.logs/dev-server.log`, so `tail -f .logs/dev-server.log` follows a server an AI session started and `kill $(cat .logs/dev-server.pid)` stops it; a second start reports the running pid instead of competing for ports. No example app: the suite ships process, not product code.
 - **Setup scripts** ([`scripts/setup/`](./scripts/setup/)) — `doctor.sh` (warn-only LSP binary check, wired into `prepare`), `check-install.mjs` (pnpm-only + Node-major preinstall guard against `.nvmrc`), `gwt-add.sh`/`gwt-remove.sh` (git worktree helpers for parallel AI branches).
@@ -21,7 +21,7 @@ gh repo create <your-project> --template donohoo13/ai_starter --private --clone
 
 Then fill the bracketed placeholders in `CLAUDE.md`, run `/brand-init` once to fill `BRANDING.md`, swap the styling section of `.claude/rules/frontend-styling.md` for your stack (or delete the frontend rules when you ship no UI), delete `.claude/rules/template-dev.md` and `CHANGELOG.md`, and rewrite this README as your own. For an existing repo, copy the payload in by hand (`.claude/`, `CLAUDE.md`, scripts, and configs) and do the same. This is a starting point, not a framework: add your own apps and packages on top; the AI configuration works regardless of what you build.
 
-First-run network note: the initial `pnpm install` always downloads the pinned Node runtime on a cold pnpm store (`devEngines.runtime` in `package.json`, ~57MB compressed and ~218MB unpacked, fetched from `nodejs.org` even when your ambient Node already matches), so `nodejs.org` reachability is a hard requirement for `pnpm install` rather than a fallback; the store is content-addressed, so extra worktrees reuse it rather than re-downloading, and CI caches it by caching `$(pnpm store path)`. Alpine and other musl-based images provision the pin the same way from `unofficial-builds.nodejs.org` (community musl builds, pinned by integrity hash in the lockfile); deleting the `devEngines` block and letting the base image supply Node remains a supported opt-out. The browser MCP servers resolve their packages through `pnpm dlx` on first session start, and Playwright fetches its Chromium binary (~100MB) on its first launch — one-time, cache-warmed costs after that. Restricted networks need access to the npm registry, `nodejs.org` (plus `unofficial-builds.nodejs.org` on musl), and Playwright's browser CDN.
+First-run network note: the initial `pnpm install` always downloads the pinned Node runtime on a cold pnpm store (`devEngines.runtime` in `package.json`, ~57MB compressed and ~218MB unpacked, fetched from `nodejs.org` even when your ambient Node already matches), so `nodejs.org` reachability is a hard requirement for `pnpm install` rather than a fallback; the store is content-addressed, so extra worktrees reuse it rather than re-downloading, and CI caches it by caching `$(pnpm store path)`. Deleting the `devEngines` block and letting mise or the base image supply Node remains a supported opt-out. The browser MCP servers resolve their packages through `pnpm dlx` on first session start, and Playwright fetches its Chromium binary (~100MB) on its first launch — one-time, cache-warmed costs after that. Restricted networks need access to the npm registry, `nodejs.org` (plus `unofficial-builds.nodejs.org` on musl), and Playwright's browser CDN.
 
 ## Receiving Template Updates
 
@@ -29,22 +29,24 @@ Projects share no git history with the template, so updates are pulled by hand, 
 
 ## Maintaining This Repo
 
-The only prerequisite is pnpm; it provisions the pinned Node itself, so you never install a specific Node by hand.
-
-- **macOS / Linux (Homebrew):** `brew install node pnpm` — Homebrew's pnpm needs a Node present to run.
-- **Apple Silicon with no Node yet:** `curl -fsSL https://get.pnpm.io/install.sh | sh -` installs a self-contained pnpm that needs no prior Node (Intel Macs use the Homebrew path above).
+[mise](https://mise.jdx.dev) is the supported toolchain installer.
+The repo's `mise.toml` holds no versions of its own; it tells mise to read the Node pin from `.nvmrc` and `package.json` and the pnpm pin from `packageManager`, so the pins stay in one place.
 
 ```bash
-pnpm install      # downloads the pinned Node (devEngines.runtime), dev tooling, husky pre-commit, doctor.sh
-pnpm format:check # Prettier check across the repo
+brew install mise   # or see mise.jdx.dev for other platforms; activate it in your shell once
+mise install        # trusts mise.toml and installs the pinned Node and pnpm
+pnpm install        # dev tooling, husky pre-commit, doctor.sh
+pnpm format:check   # CI also runs lint, typecheck, test, and test:scripts
 ```
+
+Without mise, pnpm alone works: `brew install node pnpm`, or on Apple Silicon with no Node, `curl -fsSL https://get.pnpm.io/install.sh | sh -` (pnpm 11 publishes no Intel macOS build, so Intel Macs use Homebrew), then `pnpm install`.
 
 `pnpm install` downloads the exact Node pinned in `package.json`'s `devEngines.runtime` and runs every `pnpm` command — scripts and `pnpm exec` alike — under it, regardless of the Node on your shell; run one-off Node through `pnpm exec node`, not bare `node`, to stay on the pinned version.
 
 > [!NOTE]
 > While the Node pin stays on 24, `corepack enable` is an equivalent way to activate the pinned pnpm from the `packageManager` field. Node 25+ removes Corepack, so a bump off Node 24 must migrate pnpm activation off it — to a direct pnpm install or pnpm's native package-manager management. See the Node-pin rules in [CLAUDE.md](./CLAUDE.md).
 
-Template development rules — payload semantics, the changelog/tag release discipline, what never runs here — live in [.claude/rules/template-dev.md](./.claude/rules/template-dev.md). There is no build or test step: the workspace ships empty by design.
+Template development rules — payload semantics, the changelog/tag release discipline, what never runs here — live in [.claude/rules/template-dev.md](./.claude/rules/template-dev.md). There is no build step and the `turbo` tasks no-op on the empty workspace; `pnpm test:scripts` runs the script batteries under `scripts/test/`.
 
 ## License
 

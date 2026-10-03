@@ -2,6 +2,39 @@
 
 Template releases, newest first. Each entry carries three parts: **what** changed, **why**, and **adaptation notes** for instances whose posture diverges from the shipped defaults (compliance regimes, external trackers, collapsed monorepos). A release is a git tag (`vX.Y.Z`) on `main` matching the entry heading; the `sync-template` skill in an instance walks unapplied entries oldest-to-newest (later releases assume earlier ones landed) and negotiates each into the instance's own posture. In an instance this file is template residue: `project-init` stamps the template lineage into `CLAUDE.md` from the top entry here, then deletes this copy.
 
+## v4.2.0 — 2026-10-02
+
+- **What**: a seventh skill, `preflight`, proves a finished feature branch is production ready and then opens its PR.
+  It gates on a non-default branch, a clean tree, and a settled intent (argument, the branch's spec, or one line from the user, never transcripts).
+  It syncs by rebasing an unpublished branch or merging the default branch into a published one, and never force-pushes.
+  It dispatches two new agents in fresh contexts, with no edit tools and read-only by instruction: `code-reviewer` reviews the diff against the intent and scopes each finding `branch` or `trunk`, and `docs-reviewer` finds statements across `docs/**`, every `README.md`, `CLAUDE.md`, `BRANDING.md`, `.claude/rules/`, `.claude/skills/**`, `.claude/agents/`, the changelog head, and in-code help that the diff made false.
+  The session fixes a finding only when it has few dependents, is verifiable in the session, and leaves the intent unchanged, with a `/tdd` reproduction first for behavioral fixes and one commit per fix; a single scoped re-review checks the fixes; everything else stops at one report for the user to fix, defer, or skip, except a finding that the approach is wrong, which stops preflight at once.
+  `docs-reviewer`'s false statements are corrected one commit each, with corrections to context files drafted under `curate-context` and held for approval at the report.
+  Lint, format, typecheck, and the full suite must pass or be deferred by the user, flaky tests are surfaced rather than rerun, and pushing and the PR wait on the user's yes.
+  The PR body fills the template's Validation and Review sections, CI gets one repair round, and nothing is ever merged; the publish commands, PR body, and CI repair procedure live in `preflight/references/publish-and-ci.md`, read before the first push.
+  `CLAUDE.md` Skills and the root `README.md` name the skill; the skills `README.md` names the skill and both agents.
+  `.github/PULL_REQUEST_TEMPLATE.md` grows from Summary and QA to Summary, Validation, Review, and QA, generic enough for a human-written PR.
+  `.github/workflows/checks.yml` is rewritten to one job on every PR and every push to `main`, with no path filters: `jdx/mise-action` installs the pinned toolchain, the pnpm store is cached, then `pnpm install --frozen-lockfile`, `format:check`, `lint`, `typecheck`, `test`, and a new root `test:scripts` that runs every `scripts/test/*.battery.mjs`.
+  `scripts/test/env-matrix/` and its Docker-based CI step are deleted.
+  A new `mise.toml` carries no versions, only `idiomatic_version_file_enable_tools = ["node", "pnpm"]`, so mise reads Node from `.nvmrc` and `devEngines.runtime` and pnpm from `packageManager`; the README quickstart becomes `mise install` then `pnpm install`, and `check-install.mjs`, `doctor.sh`, and `javascript-typescript.md` name mise alongside nvm.
+  `template-dev.md` names `pnpm test:scripts` as the battery entry point.
+  `sdd`'s design lens gains a visual-review step: a visual decision (competing layouts, a flow, a density call) is rendered as one HTML page, published through the harness's private page tool when one exists or written to a new gitignored `.review/` folder otherwise, and the interview continues from the user's comments; mockups never carry secrets, customer data, or security findings.
+  `package.json` `version` to 4.2.0.
+- **Why**: `implement-spec` ends at human QA and nothing between QA and a reviewable PR held a standard, so a branch reached reviewers with whatever slop, stale docs, or unrun suites the build left behind.
+  The flow follows [no-mistakes](https://github.com/kunchenguid/no-mistakes)' pipeline (review, test, document, lint, push, PR, CI) without its disposable worktree, background daemon, permission bypass, or self-driven pushes: a clean-tree gate replaces worktree isolation, and the user's yes replaces an automatic push.
+  Reviewers are agents rather than reference files so their tool list carries no edit tools, which keeps a reviewer from quietly fixing what it should report; `Bash` stays for `git diff`, `git grep`, and test runs, so read-only holds by instruction rather than enforcement, the same limit an earlier entry records for `Bash`; the docs review is its own agent because "did the code make a doc false" is a different search than "is the code wrong".
+  Published history is never rewritten because a lease protects the remote, not a teammate's local branch, so the skill stays safe in a team repo.
+  The old CI ran only when tooling files changed and never ran format, lint, typecheck, or tests, so most PRs got no checks and `preflight`'s CI step had nothing to watch; the new job is the independent check of what `preflight` claims to have run.
+  The env matrix proved pnpm provisioning across mismatched, Node-less, and musl Docker images, an edge real projects rarely hit, at the cost of the slowest step in CI.
+  A design choice described in prose gets answered in prose, so `sdd` now shows visual options; harness page tools such as Claude Code's Artifact tool already carry comments back to the session, and naming no specific tool keeps the skill harness-agnostic.
+  mise's idiomatic version files are off by default, so without the project `mise.toml` a teammate's mise silently supplies its own global Node and pnpm; reading the existing pins instead of repeating them adds no new drift site, at the cost of one `mise trust`, which `mise install` performs and linked worktrees inherit.
+- **Adaptation notes**: the skill and agents are additive; copy the skill directory and both agent files, then add the name-drops.
+  An instance with no PR template gets a body under the same Summary, Validation, Review, and QA headings.
+  CI deliberately stops at the 80% case; an instance adds its own OS or Node matrix, coverage thresholds, E2E, security scanning, a `build` step, previews, and release automation, and makes `checks` a required status check in branch protection.
+  An instance not using mise swaps `jdx/mise-action` for `actions/setup-node` with `node-version-file: .nvmrc` plus `pnpm/action-setup`, and may delete `mise.toml`; one that relied on the env matrix for musl images keeps its copy.
+  An instance whose CI needs more than one repair round raises the cap in both `preflight/SKILL.md`'s Publish and CI section and `preflight/references/publish-and-ci.md`'s CI section; one whose host is not GitHub replaces the `gh` calls with its own CLI.
+  An instance under stricter data rules drops `sdd`'s publish branch and keeps only the local `.review/` path.
+
 ## v4.1.0 — 2026-10-02
 
 - **What**: `CLAUDE.md` Markdown rule flips from one continuous line per bullet to one sentence per physical line, with a multi-sentence bullet continuing on indented lines and untouched passages left unreflowed; `curate-context` drafting guidance changes from "single-line bullets" to "one sentence per line" to match.
