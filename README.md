@@ -39,7 +39,7 @@ pnpm install        # dev tooling, husky pre-commit, doctor.sh
 pnpm format:check   # CI also runs lint, typecheck, test, and test:scripts
 ```
 
-Without mise, pnpm alone works: `brew install node pnpm`, or on Apple Silicon with no Node, `curl -fsSL https://get.pnpm.io/install.sh | sh -` (pnpm publishes no Intel macOS build, so Intel Macs use Homebrew), then `pnpm install`.
+Without mise, pnpm alone works: `brew install node pnpm`, or on Apple Silicon with no Node, `curl -fsSL https://get.pnpm.io/install.sh | sh -` (pnpm 11 publishes no Intel macOS build, so Intel Macs use Homebrew), then `pnpm install`.
 
 `pnpm install` downloads the exact Node pinned in `package.json`'s `devEngines.runtime` and runs every `pnpm` command — scripts and `pnpm exec` alike — under it, regardless of the Node on your shell; run one-off Node through `pnpm exec node`, not bare `node`, to stay on the pinned version.
 
