@@ -21,8 +21,9 @@ Every finding is either fixed here with proof or put in front of the user, and n
 ## Sync
 
 - With no remote, skip this section.
-- `git fetch origin`; the branch is published when `origin/<branch>` exists afterwards, whatever its upstream setting says.
-  Take teammate commits from `origin/<branch>` first with `git merge --ff-only`, or a plain merge if it has diverged.
+- The branch is published when `git ls-remote --exit-code --heads origin <branch>` finds it, whatever its upstream or fetch refspec says.
+  Fetch with explicit refspecs, `git fetch origin +refs/heads/<default>:refs/remotes/origin/<default>` plus the same for `<branch>` when published, since a single-branch clone's refspec skips them.
+  Then take teammate commits from `origin/<branch>` with `git merge --ff-only`, or a plain merge if it has diverged.
 - An unpublished branch rebases onto `origin/<default>`; a published one merges `origin/<default>` in.
   Never rewrite published history or force-push: a lease protects the remote, not a teammate's local copy.
 - Resolve mechanical conflicts (imports, lockfiles regenerated, both sides kept); a conflict where both sides change behavior goes to the user.
