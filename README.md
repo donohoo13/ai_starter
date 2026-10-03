@@ -46,7 +46,7 @@ Without mise, pnpm alone works: `brew install node pnpm`, or on Apple Silicon wi
 > [!NOTE]
 > While the Node pin stays on 24, `corepack enable` is an equivalent way to activate the pinned pnpm from the `packageManager` field. Node 25+ removes Corepack, so a bump off Node 24 must migrate pnpm activation off it — to a direct pnpm install or pnpm's native package-manager management. See the Node-pin rules in [CLAUDE.md](./CLAUDE.md).
 
-Template development rules — payload semantics, the changelog/tag release discipline, what never runs here — live in [.claude/rules/template-dev.md](./.claude/rules/template-dev.md). There is no build or test step: the workspace ships empty by design.
+Template development rules — payload semantics, the changelog/tag release discipline, what never runs here — live in [.claude/rules/template-dev.md](./.claude/rules/template-dev.md). There is no build step and the `turbo` tasks no-op on the empty workspace; `pnpm test:scripts` runs the script batteries under `scripts/test/`.
 
 ## License
 
