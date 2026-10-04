@@ -1,6 +1,6 @@
 {
   "name": "ai_starter",
-  "version": "4.2.0",
+  "version": "0.1.0",
   "description": "Opinionated AI-first starter template: Claude Code process suite on a pnpm + Turborepo monorepo skeleton",
   "private": true,
   "license": "ISC",
