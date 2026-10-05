@@ -1,5 +1,5 @@
 ---
-status: built
+status: done
 ---
 
 # Add a `refine` skill and run the build pipeline through fresh-context agents
