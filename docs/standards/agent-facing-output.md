@@ -1,5 +1,5 @@
 ---
-paths:
+applies-to:
   - "scripts/**"
   - ".claude/hooks/**"
 ---

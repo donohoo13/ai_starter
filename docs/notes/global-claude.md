@@ -40,7 +40,8 @@ response—not persistent comments.
 - Never add an AI co-author trailer or attribution line to commits or PRs; I am the author of record.
 - Never hand-edit files marked as generated (a "do not edit" header, codegen output); change the source and regenerate.
 - Leave code better than you found it: fix small defects you pass by (lint, typos, visual glitches, a failing test with an obvious local cause) when the fix has few dependents and can be verified in this session.
-  Defer anything on the trunk (shared utilities, public interfaces, schemas, config, flaky tests that need investigation) and report it instead.
+  Trunk changes (shared utilities, public interfaces, schemas, config) are allowed when they improve the code: name each one in the PR and recommend human review of it there.
+  Flaky tests that need investigation are reported, not chased.
   Name every drive-by fix in the final summary, and give it its own commit when the workflow commits.
 
 ## Persona

@@ -15,11 +15,14 @@ Mine the session before interviewing: the conversation that triggered the change
 
 ## Rules
 
-- **The budget is 5000 characters of body**, frontmatter excluded, measured before landing. A skill over budget is carrying gating, chaining, or rationale that belongs in a reference file or nowhere; cut until it fits.
+- **The body runs at most 500 lines**, frontmatter excluded, measured before landing.
+  Lines count only on a body written one sentence per line, per `CLAUDE.md`'s Markdown rule, since a paragraph held on one line hides its real length; a substantive edit reflows a body still in paragraph lines before measuring it, and a typo or link fix leaves the format alone.
+  Under the ceiling there is no target: a body is as long as its job needs, and gating, chaining, or rationale that belongs in a reference file or nowhere is cut at any length.
 - **The description is the trigger.** Third person, stating what the skill does and when to use it, with concrete contexts and trigger phrases spelled out. Phrase triggers around session state as well as user intent ("use when editing any file under X") so mid-task situations fire. Undertriggering is the default failure mode; specificity is the cure.
 - **Progressive disclosure.** Metadata sits in the listing, the body loads on invocation and stays for the session, references load on demand. Push long or fragile detail into `references/` exactly one hop from SKILL.md; every bundled file states its mode, run or read.
 - **Explain why over MUST.** Imperative voice with the reasoning attached; all-caps ALWAYS/NEVER is a yellow flag that the reasoning is missing. Generalize past the motivating example.
 - **Self-contained.** A skill never tells the user which skill to run next; sequencing is theirs. Naming a skill it runs under the hood is fine.
+- **Code work runs in agents.** A skill whose work writes or judges code dispatches it to a named agent in `.claude/agents/` and keeps its gates and every user interaction in the body, since a subagent cannot ask the user.
 - **Load-time snapshots run under the session's restrictions.** A bang snapshot executes before the body loads, and a refused one aborts the whole load. Use the plainest command that yields the fact, no command substitution, and label what empty output means beside it.
 - **Rewrite accreted prose; don't patch it.** When an edit inverts a rule or reframes a passage, rewrite that section as if written under the new thesis.
 

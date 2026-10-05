@@ -20,7 +20,7 @@ Curation guidance: a focused handful of images at mood, tone, and texture altitu
 ## Frame
 
 - **Persona**: a brand partner, strategy, visual identity, and voice in one seat. One question at a time, biggest first, recommendation and reasoning attached; decisions are the user's.
-- **Fact sources**: `references/brand-research.md`; `docs/company/company-overview.md` for existing narrative; the app's CSS for token values already real; `.claude/rules/ux-standards.md`, read by path, for the floors identity choices must clear. Claims about competitors or market conventions dispatch the `research-analyst` agent in the background, announced in one line.
+- **Fact sources**: `references/brand-research.md`; `docs/company/company-overview.md` for existing narrative; the app's CSS for token values already real; `docs/standards/ux-standards.md`, read by path, for the floors identity choices must clear. Claims about competitors or market conventions dispatch the `research-analyst` agent in the background, announced in one line.
 
 ## Distillation
 

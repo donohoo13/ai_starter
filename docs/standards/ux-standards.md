@@ -1,5 +1,5 @@
 ---
-paths:
+applies-to:
   - "**/*.{tsx,jsx,vue,svelte,astro,mdx,html,htm,mjml,hbs,css,scss,sass,less}"
 ---
 

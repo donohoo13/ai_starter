@@ -2,6 +2,10 @@
 
 <!-- What changed and why, 2-4 lines. Link the docs/specs/ file if one drove this. -->
 
+## Risk
+
+<!-- High, Medium, or Low, then the evidence: each trunk touch point (shared utility, public interface, schema, config) with its consumer count, and each trunk commit's skeptic verdict. "Low: branch-local code only" is a valid entry. -->
+
 ## Validation
 
 <!-- Commands run and their results: lint, typecheck, tests. -->

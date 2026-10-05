@@ -1,3 +1,5 @@
+# Design principles
+
 ## General Software Design Principles
 
 ### KISS: Keep It Simple, Stupid
@@ -22,6 +24,23 @@ This principle doesn't mean "never think ahead" - it means don't build ahead. De
 ### Separation of Concerns
 
 Different parts of the code handle different responsibilities, and they don't know about each other's internals. The UI layer doesn't contain business logic. The business logic doesn't know how data is stored. The data access layer doesn't format strings for display.
+
+### Deep modules, small interfaces
+
+A module's interface is complexity every caller pays; its implementation is complexity paid once, by whoever maintains it.
+So the best modules are deep: a small interface over a lot of behavior, the way a file `read(path)` hides buffering, encodings, permissions, and devices behind one call.
+A shallow module has an interface nearly as large as the work it does, so it adds a name to learn without taking any work off the caller.
+Its common forms are a function that only forwards its arguments, a class wrapping a single call, and a config object whose every field the caller must set.
+
+Hide decisions, not just code.
+When two modules must change together because both know the same format, ordering, or protocol, that knowledge has leaked across the boundary; move it behind one of them.
+Pull complexity down: when a module can settle a case itself (a sensible default, a retry, a boundary condition), it settles it rather than pushing a flag or an exception onto every caller.
+
+Splitting is not free.
+Each new module adds an interface, so many small pieces that must be understood together cost more than one deeper piece that can be understood alone.
+Split along lines where the parts can be understood and changed independently; merge pieces that share knowledge.
+The small interface is also the test seam: a deep module is tested through it, so its internals can be restructured without touching a test.
+The idea and the vocabulary come from John Ousterhout's _A Philosophy of Software Design_.
 
 ### Law of Demeter
 
@@ -72,6 +91,7 @@ A quick cheat sheet:
 - DRY: reduce duplication, simplify maintenance
 - YAGNI: build for today, not hypothetical futures
 - Separation of Concerns: enable independent testing and changes
+- Deep modules: hide a lot of behavior behind a small interface
 - Law of Demeter: reduce coupling, hide internal structure
 
 ### SOLID Principles
