@@ -107,7 +107,7 @@ Trunk-level improvements are deferred and reported rather than made, while the P
   Its output gains Trunk touch points: every pre-existing shared symbol, public interface, schema, or config the change touches, with its consumer count from LSP find-references.
   Its Consistency lens checks `CLAUDE.md`, `.claude/rules/`, and the `docs/standards/` files whose `applies-to:` matches the diff.
 - Only `builder` and `refiner` carry `Agent`, and they dispatch only `skeptic` and `code-reviewer`; every other agent omits it.
-- `docs-reviewer` and `research-analyst` are unchanged.
+- `docs-reviewer` gains the same no-execute, no-write wording as `code-reviewer`; `research-analyst` is unchanged.
 
 #### Trunk-change protocol
 
