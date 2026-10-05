@@ -10,8 +10,8 @@ The keystone: ceremony scales with size, engineering discipline never does. A on
 - **implement-spec** (`/implement-spec <spec>`): builds a ready spec on a worktree or non-main branch by orchestrating one fresh `builder` agent per slice, verifying each slice's commit and tests and forwarding its notes to the next.
   Runs the full suite, launches the app for a `render-checker` pass when a surface changed, and flips the spec `ready` to `in-progress` to `built`: working and validated, with no QA script and no `done`.
   Never edits source itself, pushes, or opens a PR.
-- **refine** (`/refine [spec or intent]`): makes a working branch right, with or without a spec, and never stops at a gate.
-  Discovers the change from the merge-base and its intent without asking, commits any uncommitted work as a baseline, and dispatches a fresh `refiner`; verifies the suite and that the refiner's test table matches its commits, and runs a `render-checker` pass with the UX floors when a surface changed.
+- **refine** (`/refine [spec or intent] [--base <ref>]`): makes a working branch right, with or without a spec, and never stops at a gate.
+  Discovers the change from the merge-base with the default branch, or with the `--base` ref a stacked branch names, and its intent without asking, commits any uncommitted work as a baseline, and dispatches a fresh `refiner`; verifies the suite and that the refiner's test table matches its commits, and runs a `render-checker` pass with the UX floors when a surface changed.
   Hands over one QA script with the app running, flips a `built` spec to `done` on the user's confirmation, and never pushes or opens a PR.
 - **preflight** (`/preflight [spec or intent]`): proves a finished branch is production ready, then opens the PR.
   Syncs with the default branch without ever rewriting published history, runs the `code-reviewer` agent beside Claude Code's `/code-review`, then the `docs-reviewer` agent, fixes local and verifiable findings one commit each, surfaces trunk and intent issues, and validates lint, types, and the full suite.

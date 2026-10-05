@@ -1,7 +1,7 @@
 ---
 name: refine
 description: Makes a working branch right, then runs the one human QA pass on the final code. Discovers the change and its intent without asking, dispatches a fresh refiner agent that audits it against docs/standards/, pins required behavior with proven tests, and refactors code and tests without weakening them, verifies the result, runs a render pass with the UX floors when a surface changed, and hands over a QA script with the app running; on confirmation flips a built spec to done. Works on any branch, with or without a spec, and never pushes or opens a PR. Use when a build is finished or ad-hoc AI work should be brought up to standard, when a spec sits at status built, or when the user says "refine", "make it right", "clean this up", "bring this up to our standards", or "tidy this branch before review".
-argument-hint: "[optional: a docs/specs/ path or one line of intent; blank to discover]"
+argument-hint: "[optional: a docs/specs/ path or one line of intent, plus --base <ref> on a stacked branch; blank to discover]"
 ---
 
 # Refine
@@ -20,11 +20,13 @@ Beyond that, only something major enough to halt reaches them during the run.
 ## Discover
 
 - Resolve the default branch from `origin/HEAD`, else `git ls-remote --symref origin HEAD`, else a local `main` or `master`.
-  The base is the merge-base of `HEAD` with `origin/<default>`, or with the local default when there is no remote.
+  The base is the merge-base of `HEAD` with the ref the argument names after `--base`, when it names one, else with `origin/<default>`, or with the local default when there is no remote.
+  A branch stacked on another feature branch needs that branch as `--base`, since the merge-base with the default would pull the lower branch's work into scope; nothing detects a stack on its own.
+  A `--base` ref that does not resolve is reported in one line and ends the run.
 - The change is everything between the base and the working tree, committed or not.
   An empty change is reported in one line and ends the run.
-- The intent is the argument, else a `docs/specs/` file the change touches, else inferred from the branch's commits and diff.
-  Announce it in one line, "Refining X, from Y", and never ask.
+- The intent is the rest of the argument, else a `docs/specs/` file the change touches, else inferred from the branch's commits and diff.
+  Announce it in one line, "Refining X, from Y, since <base>", naming the base ref and the merge-base's short sha, and never ask.
 - A spec at `status: built` sets spec mode; anything else, a spec at another status included, is ad-hoc.
 - On the default branch, branch first per `CLAUDE.md`, naming the branch from the intent.
 - Commit any uncommitted work untouched as a baseline, staging each path `git status` lists by explicit path, so the refiner's commits stay separable from the work it was handed and the test-table check stays exact.
