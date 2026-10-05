@@ -11,7 +11,7 @@ The work in front of this skill already runs; it brings that work up to the proj
 This session orchestrates and the `refiner` agent writes, in a fresh context that never saw the code being authored, so the judgment does not inherit the author's blind spots.
 The session discovers the change, owns the branch and the app server, verifies the refiner's claims, and runs QA; it never edits source or tests.
 Every worker it dispatches or resumes is waited on, because the next step acts on that worker's report.
-Run each in the foreground where the harness allows, and never end the turn while one still runs: a headless run ends with the turn and takes running workers with it, leaving commits nobody verified.
+Never take the next step until the report is in; when it has not arrived, end the turn and resume from the report when it does.
 
 It never stops at a gate: whatever state the branch is in, it works out what it needs and proceeds.
 The user hears the commit list, one validation line, one tests-proven line ("12 tests added or changed, all proven"), one render line, and the QA script.

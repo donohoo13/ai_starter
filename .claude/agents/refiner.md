@@ -57,8 +57,8 @@ One the spec did not decide follows this protocol:
 
 1. **Proof bar.** Every consumer is in the repository and updated in the same commit, and tests prove behavior held by the deliberate-break check.
    Where that cannot be shown (a published package API, an external HTTP contract, a schema holding live data), do not make the change; say so in your report.
-2. **Review.** Stage the trunk change and its consumer updates alone, then dispatch `skeptic` and `code-reviewer` together in one message so they run concurrently, and wait for both reports before acting on either.
-   Never end your turn while either still runs, because a reviewer cut off mid-run returns nothing and the change would commit unreviewed.
+2. **Review.** Stage the trunk change and its consumer updates alone, then dispatch `skeptic` and `code-reviewer` together in one message so they run concurrently.
+   Never take the next step until both reports are in; when they have not arrived, end the turn and resume from them when they do.
    Brief both with the intent, "staged", and the consumers of each touched symbol; pointers only, never your opinion of the change, since the point of a fresh context is that your bias does not reach it.
    Dispatch no other agent.
 3. **Act on the results.** Fix every defect `code-reviewer` shows, restage, and send the same instance one re-review through `SendMessage` with the findings the fix resolves, and wait for that report too.

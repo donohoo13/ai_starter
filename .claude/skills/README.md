@@ -4,6 +4,8 @@ Eight skills, seven agents, and a spec file carrying a unit of work from intervi
 
 The keystone: ceremony scales with size, engineering discipline never does. A one-line chore still gets a failing test first and a real validation run; what collapses for small work is artifacts, never rigor.
 
+Headless runs (`claude -p`) of the skills that dispatch agents (`implement-spec`, `refine`, `preflight`) set `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0`, or the session exits after 600s of waiting while a worker is still running.
+
 ## Skills
 
 - **sdd** (`/sdd <ask>`): the spec-driven development interview. One question at a time, biggest decision first, recommendation attached, facts from the code and sourced research. Three lenses run in parallel, engineering 60%, product 25%, design 15%, and the session always ends by writing `docs/specs/NNN-<slug>.md` at `status: ready`. Pointed at an existing spec, it grills the gap between the file and the code.

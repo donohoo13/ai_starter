@@ -11,7 +11,7 @@ This session orchestrates and the `builder` agent writes.
 Each slice is built in a fresh context that sees only the spec, the code, and the notes earlier slices left, so no slice inherits the bias of the conversation that planned it.
 The session runs the gates, talks to the user, flips spec status, owns the app server, dispatches agents, and verifies their claims with `git` and test runs; it never edits source or tests.
 Every worker it dispatches or resumes is waited on, because the next step acts on that worker's report.
-Run each in the foreground where the harness allows, and never end the turn while one still runs: a headless run ends with the turn and takes running workers with it, leaving commits nobody verified.
+Never take the next step until the report is in; when it has not arrived, end the turn and resume from the report when it does.
 A one-slice spec runs the same loop as a ten-slice one, once.
 
 ## Gate
