@@ -12,7 +12,9 @@ In a project created from the template, this file is template residue: delete it
   The payload as of this entry:
   - **Skills** (`.claude/skills/`): `sdd` interviews and writes a spec to `docs/specs/`, `implement-spec` builds it slice by slice behind a human QA gate, `preflight` proves a finished branch through adversarial code and docs review and full validation before opening its PR, `tdd` holds the test-first discipline, `stage-for-commit` hands back a commit for small changes, `curate-context` governs context-file edits, and `brand-init` fills `BRANDING.md` once.
   - **Agents** (`.claude/agents/`): `code-reviewer` and `docs-reviewer` for `preflight`, and `research-analyst` for `sdd`.
-  - **Rules** (`.claude/rules/`): path-scoped floors for UX, frontend styling, HTML tables, transactional email, JavaScript and TypeScript, agent-facing script output, and skill authoring, which caps a skill body at 500 lines.
+  - **Rules** (`.claude/rules/`): skill authoring, a path-scoped rule that caps a skill body at 500 lines.
+    Implementer-critical rules (pnpm only, the Node pin, email templates built to their standard from the first line) are condensed into `CLAUDE.md`.
+  - **Standards** (`docs/standards/`): UX floors, frontend styling, HTML tables, transactional email, JavaScript and TypeScript, agent-facing script output, and design principles, each scoped by `applies-to:` globs and read by path rather than auto-loaded, so standards reach the code at judgment time instead of crowding every implementing session; `rules-frontmatter.battery.mjs` checks both scopes.
   - **Guards**: `guard-main` keeps AI commits and pushes off the default branch, `guard-secret-read` keeps secret files out of commands, and `.claude/settings.json` carries the permission and secrets registry.
   - **Toolchain**: pnpm and Turborepo, with Node and pnpm pinned in `.nvmrc` and `package.json` and read by mise through a version-free `mise.toml`; the `preinstall` guard enforces the pins.
   - **CI**: one `checks` job on every PR and push to `main` running `format:check`, `lint`, `typecheck`, `test`, and `test:scripts`.

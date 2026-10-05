@@ -1,5 +1,5 @@
 ---
-paths:
+applies-to:
   - "email/**/*.{tsx,jsx,html,mjml,hbs}"
   - "emails/**/*.{tsx,jsx,html,mjml,hbs}"
   - "mail/**/*.{tsx,jsx,html,mjml,hbs}"
@@ -14,11 +14,13 @@ paths:
 
 Transactional emails (verification, password reset, email-change confirmation) are customer-facing brand surfaces rendered in the most hostile client environments products touch: Outlook desktop renders HTML through Word's engine (Microsoft's own rendering documentation), Gmail strips and clips markup, and dark-mode clients recolor without permission. These rules govern every email template.
 
-Loads when a session reads a file matching the globs above, which covers every `Edit` because that tool requires a prior read of the file. Two routes reach a matching path without triggering the load: a `Write` creating a new file, which carries no read precondition, and any Bash write (`sed -i`, a `cat >` heredoc, a formatter run in place), which the load mechanism does not observe. `CLAUDE.md` names this file directly so both routes have somewhere to read it from.
+`CLAUDE.md`'s no-em-dash rule applies to all email copy.
+The accessibility floors in [`ux-standards.md`](./ux-standards.md) apply to the rendered message, since that file carries the contrast ratio and the touch-target number this one defers to and states nowhere else.
 
-`CLAUDE.md`'s no-em-dash rule applies to all email copy, and the accessibility floors in [`ux-standards.md`](./ux-standards.md) apply to the rendered message — read that file by path when working an email template whose extension its globs do not cover (`.mjml`, `.hbs`), since it carries the contrast ratio and the touch-target number this file defers to and states nowhere else.
-
-**This file overrides [`frontend-styling.md`](./frontend-styling.md) on every path it matches.** That file's globs are a superset of these, so both load on an `emails/Welcome.tsx`, and they contradict each other by design: it says no `px` for layout and native CSS over tables, while an email client needs nested tables, inline styles, and a `600px` column. Email clients are the reason, so the email rules win here and only here. A project that sends no templated mail deletes this file.
+**On an email path, this file wins over [`frontend-styling.md`](./frontend-styling.md) and [`html-tables.md`](./html-tables.md).**
+They contradict it by design: they say no `px` for layout, no inline styles, and tables for data only, while an email client needs nested layout tables, inline styles, and a `600px` column.
+Email clients are the reason, so the email rules win here and only here.
+A project that sends no templated mail deletes this file.
 
 - **Tables carry layout, inline CSS carries style**: layout is nested tables with `role="presentation"`, never flex/grid — partial support in Gmail and Outlook at best (caniemail.com) — and every load-bearing style is inline. A `<style>` block is progressive enhancement only (media queries, dark mode): Gmail drops the entire block past 8,192 characters or on a single CSS parse error (caniemail.com).
 - **One column, 600px**: content is a single column at `600px` max width, readable at mobile widths without media queries, which Gmail and Outlook support only partially (caniemail.com).

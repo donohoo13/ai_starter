@@ -1,5 +1,5 @@
 ---
-status: ready
+status: in-progress
 ---
 
 # Add a `refine` skill and run the build pipeline through fresh-context agents
@@ -58,7 +58,7 @@ Trunk-level improvements are deferred and reported rather than made, while the P
 
 ### Slices
 
-- [ ] Standards relocate to `docs/standards/`, with `CLAUDE.md`, `curate-context`, and every path reference updated.
+- [x] Standards relocate to `docs/standards/`, with `CLAUDE.md`, `curate-context`, and every path reference updated.
       Done when: `.claude/rules/` holds only `skill-authoring.md` and `template-dev.md`; `docs/standards/` holds the seven files with the frontmatter in Architecture; a `git grep` for the six old rule paths and `DESIGN_PRINCIPLES` finds nothing outside `CHANGELOG.md` and `docs/specs/`; `CLAUDE.md` carries exactly the approved text; `curate-context` measures within the 500-line ceiling; the widened frontmatter battery passes, and fails when an `applies-to:` glob is deliberately unquoted; `pnpm format:check` and `pnpm test:scripts` pass.
 - [ ] `tdd` needs no user.
       Done when: the `tdd` body holds no instruction to confirm with or wait on the user; the Seams sentence, the Shallow anti-pattern, and the refactor rule read as approved in Architecture; the body measures within the 500-line ceiling; gut-check prompts are handed over.

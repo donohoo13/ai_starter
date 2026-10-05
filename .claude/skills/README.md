@@ -13,7 +13,7 @@ The keystone: ceremony scales with size, engineering discipline never does. A on
   Pushes and opens the PR only on the user's yes, gives CI one repair round, and never merges or force-pushes.
 - **tdd**: red before green at pre-agreed public seams, mocks only at true external boundaries, appearance never a test target, and every bug fix opening with a failing repro at the lowest seam that shows the bug. Runs under the hood of `implement-spec` and directly whenever a test can lock something down.
 - **stage-for-commit**: for small changes that needed no spec. Stages exactly this session's files by explicit path, proves the staged set, and hands back a commit message. Never commits, branches, or pushes.
-- **curate-context**: the gate on the prescriptive context files (every `CLAUDE.md` and `CLAUDE.local.md`, `README.md`, `BRANDING.md`, `.claude/rules/`), loaded on any edit to one by its description and the `CLAUDE.md` rule, with no hook behind it. Attributes friction-born candidates, holds an admission bar, routes to the narrowest file, and lands nothing model-invented without approval; zero net growth is the benchmark.
+- **curate-context**: the gate on the prescriptive context files (every `CLAUDE.md` and `CLAUDE.local.md`, `README.md`, `BRANDING.md`, `.claude/rules/`, `docs/standards/`), loaded on any edit to one by its description and the `CLAUDE.md` rule, with no hook behind it. Attributes friction-born candidates, holds an admission bar, routes to the narrowest file, and lands nothing model-invented without approval; zero net growth is the benchmark.
 - **brand-init** (`/brand-init`): one and done. Interviews a new project's brand from the bracketed `BRANDING.md` scaffold to a governing doc, opening on a mood-board gate over `docs/branding/moodboard/`, and offers to delete itself once the doc is filled. Later brand changes are edits to `BRANDING.md`, which every brand or surface decision reads first.
 
 ## Agents
@@ -23,9 +23,21 @@ The keystone: ceremony scales with size, engineering discipline never does. A on
   Neither carries an edit tool, both keep `Bash` for `git` and test runs so read-only holds by instruction, and both report with `file:line` evidence, never fixes.
 - **research-analyst** (`.claude/agents/`): a background evidence fetcher `sdd` dispatches mid-interview to answer one scoped question with sourced, tiered claims while the conversation continues. Read-only; returns evidence, never advice.
 
-## Rules
+## Standards
 
-`.claude/rules/` holds path-scoped conventions that load on their own when a session reads a matching file: `ux-standards.md` (the usability and accessibility floors every surface meets), `frontend-styling.md` (how this project writes styles), `html-tables.md` (the markup and CSS floor for a plain `<table>`), `javascript-typescript.md`, `transactional-email.md` (which overrides the styling file on email paths), `agent-facing-output.md` (the output floors for scripts, hooks, and CLIs an agent runs), and `skill-authoring.md` (the discipline for any change under `.claude/skills/`: the 500-line body ceiling, the description as trigger, and gut-check prompts for a fresh session). A session that opens no source file, such as `sdd` on a surface-bearing ask, reads `ux-standards.md` by path.
+`docs/standards/` holds the conventions a change is brought up to, read by path and never loaded on their own.
+Each file's `applies-to:` globs name the paths it governs, and a file without the key applies to every change:
+
+- `ux-standards.md`: the usability and accessibility floors every surface meets.
+- `frontend-styling.md`: how this project writes styles.
+- `html-tables.md`: the markup and CSS floor for a plain `<table>`.
+- `transactional-email.md`: email templates, winning over the styling and tables files on email paths.
+- `javascript-typescript.md`: tooling, types, and language conventions.
+- `agent-facing-output.md`: the output floors for scripts, hooks, and CLIs an agent runs.
+- `design-principles.md`: KISS, DRY, YAGNI, deep modules behind small interfaces, and SOLID where a class hierarchy calls for it; it carries no key.
+
+A rule every implementer must hold from the first line, because getting it wrong first costs more than a refactor, lives in `CLAUDE.md` instead.
+`.claude/rules/skill-authoring.md` stays a path-scoped rule, loading when a session reads a skill file: the 500-line body ceiling, the description as trigger, and gut-check prompts for a fresh session.
 
 ## Spec lifecycle
 

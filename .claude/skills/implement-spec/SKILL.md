@@ -26,7 +26,7 @@ The design is settled: build what the spec says and never re-decide architecture
 Flip the spec to `status: in-progress` before the first slice; it rides in that slice's commit. List order is build order. Per slice:
 
 1. **Plan**: re-read the slice against Architecture and References, read the code at the touch points, confirm consumers of shared types with LSP find-references. Present files, sequence, test seams, and risks, end with `Proceeding unless you interrupt.`, and keep working in the same turn. A slice that cannot proceed without an answer reports `BLOCKED` and says why.
-2. **Build** with `/tdd`: red before green, one seam at a time. A surface slice holds the floors in `.claude/rules/ux-standards.md`.
+2. **Build** with `/tdd`: red before green, one seam at a time. A surface slice holds the floors in `docs/standards/ux-standards.md`.
 3. **Validate**: the project's own typecheck, lint, format, and the slice's test files, discovered from `CLAUDE.md` and the manifest rather than assumed. Fix until clean. The full suite waits for Land.
 4. **Commit**: verify the branch, stage by explicit path (the slice's files plus the spec with its checkbox ticked), message naming the slice's behavior.
 5. **Audit** after multi-file changes: schemas, constant maps, and imports updated consistently; orphaned code removed or reported, never left.
