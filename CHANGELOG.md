@@ -10,10 +10,17 @@ In a project created from the template, this file is template residue: delete it
 - **What**: the baseline.
   Versioning restarts here; every earlier tag is retired and earlier history lives only in git.
   The payload as of this entry:
-  - **Skills** (`.claude/skills/`): `sdd` interviews and writes a spec to `docs/specs/`, `implement-spec` builds it through one fresh `builder` agent per slice to a working, validated, render-checked `built` state, `preflight` proves a finished branch through adversarial code and docs review and full validation before opening its PR, `tdd` holds the test-first discipline and needs nothing from the user, choosing its own seams and allowing tests to be restructured but never weakened in a refactor, `stage-for-commit` hands back a commit for small changes, `curate-context` governs context-file edits, and `brand-init` fills `BRANDING.md` once.
-  - **Agents** (`.claude/agents/`): `builder` and `render-checker` for `implement-spec`, `code-reviewer` and `docs-reviewer` for `preflight`, and `research-analyst` for `sdd`.
-    Skills that write or judge code orchestrate from the main session and dispatch that work to named agents briefed only from artifacts, so no author or reviewer shares a context.
-    `skeptic` argues whether a trunk change the spec did not decide should exist, beside `code-reviewer`, which also reviews a staged change and lists trunk touch points with consumer counts, so every trunk change faces two independent contexts before it lands.
+  - **Skills** (`.claude/skills/`): the pipeline is `sdd` → `implement-spec` → `refine` → `preflight`, each user-invoked.
+    `sdd` interviews and writes a spec to `docs/specs/`.
+    `implement-spec` builds it through one fresh agent per slice to a working, validated, render-checked `built` state.
+    `refine` makes any branch right against `docs/standards/`, with or without a spec, and runs the one human QA pass on the final code before flipping a spec to `done`.
+    `preflight` proves a finished branch through adversarial code and docs review and full validation before opening its PR.
+    `tdd` holds the test-first discipline and needs nothing from the user, allowing tests to be restructured but never weakened in a refactor.
+    `stage-for-commit` hands back a commit for small changes, `curate-context` governs context-file edits, and `brand-init` fills `BRANDING.md` once.
+  - **Agents** (`.claude/agents/`): skills that write or judge code orchestrate from the main session and dispatch that work to named agents briefed only from artifacts, so no author or reviewer shares a context.
+    `builder` writes one spec slice and `refiner` brings a change up to standard, both with `tdd` preloaded; `render-checker` drives the running app for both orchestrators.
+    A trunk change the spec did not decide is argued by `skeptic`, on whether it should exist, beside `code-reviewer`, which also reviews a staged change and lists trunk touch points with consumer counts.
+    `code-reviewer` and `docs-reviewer` serve `preflight`, and `research-analyst` serves `sdd`.
   - **Rules** (`.claude/rules/`): skill authoring, a path-scoped rule that caps a skill body at 500 lines.
     Implementer-critical rules (pnpm only, the Node pin, email templates built to their standard from the first line) are condensed into `CLAUDE.md`.
   - **Standards** (`docs/standards/`): UX floors, frontend styling, HTML tables, transactional email, JavaScript and TypeScript, agent-facing script output, and design principles, each scoped by `applies-to:` globs and read by path rather than auto-loaded, so standards reach the code at judgment time instead of crowding every implementing session; `rules-frontmatter.battery.mjs` checks both scopes.

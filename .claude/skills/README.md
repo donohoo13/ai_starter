@@ -1,6 +1,6 @@
 # Agent Skills Overview
 
-Seven skills, six agents, and a spec file carrying a unit of work from interview to done. Each skill is self-contained: nothing chains into anything else, and the user decides when to call each one.
+Eight skills, seven agents, and a spec file carrying a unit of work from interview to done. Each skill is self-contained: nothing chains into anything else, and the user decides when to call each one.
 
 The keystone: ceremony scales with size, engineering discipline never does. A one-line chore still gets a failing test first and a real validation run; what collapses for small work is artifacts, never rigor.
 
@@ -10,10 +10,13 @@ The keystone: ceremony scales with size, engineering discipline never does. A on
 - **implement-spec** (`/implement-spec <spec>`): builds a ready spec on a worktree or non-main branch by orchestrating one fresh `builder` agent per slice, verifying each slice's commit and tests and forwarding its notes to the next.
   Runs the full suite, launches the app for a `render-checker` pass when a surface changed, and flips the spec `ready` to `in-progress` to `built`: working and validated, with no QA script and no `done`.
   Never edits source itself, pushes, or opens a PR.
+- **refine** (`/refine [spec or intent]`): makes a working branch right, with or without a spec, and never stops at a gate.
+  Discovers the change from the merge-base and its intent without asking, commits any uncommitted work as a baseline, and dispatches a fresh `refiner`; verifies the suite and that the refiner's test table matches its commits, and runs a `render-checker` pass with the UX floors when a surface changed.
+  Hands over one QA script with the app running, flips a `built` spec to `done` on the user's confirmation, and never pushes or opens a PR.
 - **preflight** (`/preflight [spec or intent]`): proves a finished branch is production ready, then opens the PR.
   Syncs with the default branch without ever rewriting published history, runs the `code-reviewer` and `docs-reviewer` agents, fixes local and verifiable findings one commit each, surfaces trunk and intent issues, and validates lint, types, and the full suite.
   Pushes and opens the PR only on the user's yes, gives CI one repair round, and never merges or force-pushes.
-- **tdd**: red before green at public seams chosen for the critical paths, needing nothing from the user, mocks only at true external boundaries, appearance never a test target, and every bug fix opening with a failing repro at the lowest seam that shows the bug. Preloaded into the `builder` agent, and used directly whenever a test can lock something down.
+- **tdd**: red before green at public seams chosen for the critical paths, needing nothing from the user, mocks only at true external boundaries, appearance never a test target, and every bug fix opening with a failing repro at the lowest seam that shows the bug. Preloaded into the `builder` and `refiner` agents, and used directly whenever a test can lock something down.
 - **stage-for-commit**: for small changes that needed no spec. Stages exactly this session's files by explicit path, proves the staged set, and hands back a commit message. Never commits, branches, or pushes.
 - **curate-context**: the gate on the prescriptive context files (every `CLAUDE.md` and `CLAUDE.local.md`, `README.md`, `BRANDING.md`, `.claude/rules/`, `docs/standards/`), loaded on any edit to one by its description and the `CLAUDE.md` rule, with no hook behind it. Attributes friction-born candidates, holds an admission bar, routes to the narrowest file, and lands nothing model-invented without approval; zero net growth is the benchmark.
 - **brand-init** (`/brand-init`): one and done. Interviews a new project's brand from the bracketed `BRANDING.md` scaffold to a governing doc, opening on a mood-board gate over `docs/branding/moodboard/`, and offers to delete itself once the doc is filled. Later brand changes are edits to `BRANDING.md`, which every brand or surface decision reads first.
@@ -22,6 +25,8 @@ The keystone: ceremony scales with size, engineering discipline never does. A on
 
 - **builder** (`.claude/agents/`): builds one spec slice to a working, validated commit in a fresh context with `tdd` preloaded; `implement-spec` dispatches one per slice and one per repair.
   It carries every tool, makes its own judgment calls, and stops only for a major unforeseen issue or a destructive or outward-facing action; a trunk change the spec did not decide goes through `skeptic` and `code-reviewer` and commits alone.
+- **refiner** (`.claude/agents/`): brings a working change up to the `docs/standards/` files its paths match, with `tdd` preloaded; `refine` dispatches it and resumes it with render findings and QA issues.
+  It audits one standard at a time, pins required behavior at consumption seams, refactors code and tests one concern per commit without weakening a test, and proves every test it touched by deliberately breaking the behavior; trunk changes follow the same protocol as `builder`.
 - **render-checker** (`.claude/agents/`): drives the running app to each state of each touched surface, screenshots it at mobile and desktop widths in every shipped theme, measures floors on the rendered page, and returns pass or fail with evidence.
   It inherits the browser tools with every edit tool and `Agent` disallowed, and never touches the server the orchestrator owns.
 - **code-reviewer** and **docs-reviewer** (`.claude/agents/`): the adversarial pair `preflight` dispatches in fresh contexts.
@@ -33,7 +38,7 @@ The keystone: ceremony scales with size, engineering discipline never does. A on
 
 ## Standards
 
-`docs/standards/` holds the conventions a change is brought up to, read by path and never loaded on their own.
+`docs/standards/` holds the conventions a change is brought up to, read by path by the agents that judge code (`refiner`, `code-reviewer`, and `render-checker` for the UX floors) and never loaded on their own.
 Each file's `applies-to:` globs name the paths it governs, and a file without the key applies to every change:
 
 - `ux-standards.md`: the usability and accessibility floors every surface meets.
@@ -49,6 +54,6 @@ A rule every implementer must hold from the first line, because getting it wrong
 
 ## Spec lifecycle
 
-`docs/specs/NNN-<slug>.md` carries `status: ready` (written by `sdd`), then `in-progress` and `built` (both flipped by `implement-spec`), then `done` once the user confirms QA on the final code.
+`docs/specs/NNN-<slug>.md` carries `status: ready` (written by `sdd`), then `in-progress` and `built` (both flipped by `implement-spec`), then `done` (flipped by `refine` once the user confirms QA on the final code).
 `built` means working and validated, not yet made right; `implement-spec` resumes only `ready` and `in-progress` specs, so a finished build never reads as half done.
 The spec is the tracker: no GitHub issues, one commit per slice as the audit trail. The template lives at `sdd/assets/spec-template.md` and a worked example at `sdd/references/example-spec.md`.
