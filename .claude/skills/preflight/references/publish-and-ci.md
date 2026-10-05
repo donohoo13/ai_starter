@@ -27,7 +27,7 @@ Read before the first push. The exact commands and edge cases behind the Publish
   A new PR's run takes a moment to register, so "no checks reported" gets a short wait and a few retries before it means the repo has no CI, which ends this section.
 - On a failure, list every run for the pushed commit with `gh run list --commit <HEAD sha> --json databaseId,name,conclusion`, and read `gh run view <id> --log-failed` for each whose conclusion is not `success` or `skipped`.
   Filtering by commit keeps an earlier push's failure out, and checking every non-success conclusion catches `timed_out` and `cancelled` runs; without a terminal, `gh run view` needs the id.
-- If the cause is local by the three fix tests in `SKILL.md`, fix it in its own commit, pass the failing command locally, and push once under the stop point's yes.
+- If the cause is local by the three fix tests in `SKILL.md`, fix it in its own commit, pass the failing command locally, and push once.
 - The repair cap is one round.
   A second failure, or one caused outside the diff (secrets, runners, outages), goes to the user with the failing excerpt.
 - Never merge, and never re-run a job to turn it green.

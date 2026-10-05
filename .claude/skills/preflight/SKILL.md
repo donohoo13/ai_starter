@@ -1,6 +1,6 @@
 ---
 name: preflight
-description: Proves a finished feature branch is production ready before anyone reviews it, then opens the PR. Syncs with the default branch, runs independent adversarial code and docs reviews, fixes what is local and verifiable with proof, puts trunk and intent issues in front of the user, validates lint, types, and the full test suite, and on the user's word pushes, opens a clean PR, and gives CI one repair round; never merges or force-pushes. Use when work on a branch is done and the user says "preflight", "is this ready", "get this PR-ready", "review this before I open a PR", or "ship it", or wants a branch validated before review.
+description: Proves a finished feature branch is production ready before anyone reviews it, then opens the PR. Syncs with the default branch, runs independent adversarial code and docs reviews, fixes what is local and verifiable with proof, puts trunk and intent issues in front of the user, validates lint, types, and the full test suite, then pushes, opens a clean PR without waiting for a yes, and gives CI one repair round; never merges or force-pushes. Use when work on a branch is done and the user says "preflight", "is this ready", "get this PR-ready", "review this before I open a PR", or "ship it", or wants a branch validated before review.
 argument-hint: "[a docs/specs/ path or one line of intent; blank to use the spec the branch changed]"
 ---
 
@@ -56,7 +56,8 @@ Every finding is either fixed here with proof or put in front of the user, and n
 
 ## Stop point
 
-Present one report and wait:
+Stop and wait only when the user has something to decide: a surfaced finding awaiting fix, defer, or skip, or a held context-file correction awaiting approval.
+Then present one report:
 
 - The intent and each fix commit with the finding it resolves.
 - Each surfaced finding quoted with `file:line`, scope, and the choice of fix, defer, or skip.
@@ -65,7 +66,7 @@ Present one report and wait:
 
 A fix the user chooses is made, gets one scoped `code-reviewer` pass over its commits, runs Validate, and returns to this report.
 An approved held correction is committed alone, then Validate runs before anything is pushed.
-Nothing leaves the machine without an explicit yes, because a push and a PR are seen by others.
+With nothing left to decide, publish without asking: running preflight is the request for the PR, and the PR body carries everything this report would have said.
 
 ## Publish and CI
 
@@ -74,7 +75,7 @@ Read `references/publish-and-ci.md` before the first push; it holds the exact co
 - With no remote or no `gh`, stop here and hand over the push and PR commands instead of running them.
 - Push without any force flag, and edit an existing PR only when it is `OPEN`.
 - The PR body fills the template's Risk, Validation, and Review from the report and the branch's trunk commits, with no AI attribution.
-- CI gets one repair round, passed locally first and pushed under the stop point's yes; a second failure or a cause outside the diff goes to the user.
+- CI gets one repair round, passed locally first and then pushed; a second failure or a cause outside the diff goes to the user.
 - Never merge, and never re-run a job to turn it green.
 
 Report `READY` (PR link, checks green), `READY_WITH_DEFERRALS` (PR link, what was deferred), or `BLOCKED` (what stopped it, what would clear it).
