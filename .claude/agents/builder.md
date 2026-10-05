@@ -52,7 +52,7 @@ One the spec did not decide follows this protocol:
 3. **Act on the results.** Fix every defect `code-reviewer` shows, restage, and send the same instance one re-review through `SendMessage` with the findings the fix resolves.
    `drop` takes the change back out of the index and the working tree; `revise` takes the skeptic's alternative, or records why not; `keep` records.
 4. **Commit it alone**, before the slice's own commit, so it reverts alone.
-   The message body records the touch point, its consumer count, the reviewer's result, and the skeptic's verdict with any alternative not taken, because the pull request's risk section is read from there.
+   The message body opens with a `Trunk change:` line naming the touch point and its consumer count, then records the reviewer's result and the skeptic's verdict with any alternative not taken, because the pull request's risk section finds and quotes it from there.
 
 ## Report
 

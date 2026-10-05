@@ -10,8 +10,14 @@ Read before the first push. The exact commands and edge cases behind the Publish
 - The title is imperative and under 72 characters.
 - The body follows `.github/PULL_REQUEST_TEMPLATE.md`; with no template, use its headings anyway:
   - **Summary:** what changed and why, linking the spec when one drove it.
+  - **Risk:** a level, then the evidence behind it, so the human reviewer knows where to look.
+    The evidence is every trunk touch point from `code-reviewer`'s review of the full range with its consumer count, then every trunk commit on the branch (`git log --grep='^Trunk change:' <base>..HEAD`) with the skeptic's verdict and any alternative not taken, quoted from its body.
+    The highest level any piece of evidence reaches is the PR's level:
+    - **High:** a schema or migration, an auth or security path, or an interface with consumers outside the repository.
+    - **Medium:** any other trunk touch point.
+    - **Low:** the branch's own code only, said in one line.
   - **Validation:** each command run and its result.
-  - **Review:** fixes made, docs corrected, and findings deferred with their reasons.
+  - **Review:** fixes made, docs corrected, findings deferred with their reasons, and a skipped `/code-review` named.
   - **QA:** what a human actually verified; "not yet human-verified" is an honest entry.
 - No AI attribution anywhere in the title, body, or commits.
 
