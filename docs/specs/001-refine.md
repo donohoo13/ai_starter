@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: built
 ---
 
 # Add a `refine` skill and run the build pipeline through fresh-context agents
@@ -67,7 +67,7 @@ Trunk-level improvements are deferred and reported rather than made, while the P
 - [x] `implement-spec` orchestrates one `builder` per slice and ends at `built`, with `render-checker` and the app lifecycle.
       Done when: `builder.md` and `render-checker.md` exist with the tools, preloads, and briefs in Architecture; the `implement-spec` body dispatches and verifies per slice, forwards notes, launches the app for the render pass, never edits source, hands over no QA script, and flips to `built`; the three deleted lines are gone; `skill-authoring.md` carries the orchestration line; `.claude/skills/README.md` shows the `built` lifecycle; the body measures within the 500-line ceiling; gut-check prompts are handed over.
 - [x] `refine` skill and `refiner` agent.
-      Done when: `.claude/skills/refine/SKILL.md` and `refiner.md` exist and behave as Architecture states; `CLAUDE.md`, `README.md`, and `.claude/skills/README.md` list eight skills and the new agents; the body measures within the 500-line ceiling; gut-check prompts are handed over, including should-trigger prompts and near-miss should-not-trigger prompts against `preflight`, `stage-for-commit`, `/code-review`, and `/simplify`.
+      Done when: `.claude/skills/refine/SKILL.md` and `refiner.md` exist and behave as Architecture states; `CLAUDE.md` lists eight skills, and `README.md` and `.claude/skills/README.md` list eight skills and the new agents; the body measures within the 500-line ceiling; gut-check prompts are handed over, including should-trigger prompts and near-miss should-not-trigger prompts against `preflight`, `stage-for-commit`, `/code-review`, and `/simplify`.
 - [x] `preflight` runs `/code-review` beside `code-reviewer` and writes the PR's Risk section.
       Done when: the Review step runs `/code-review high <base>...HEAD` in parallel with `code-reviewer` and names a skip; `.github/PULL_REQUEST_TEMPLATE.md` carries `## Risk`; `references/publish-and-ci.md` states the Risk composition and levels; held corrections include `docs/standards/`; the body measures within the 500-line ceiling; the new settings battery passes on the shipped settings and fails when a `Skill(code-review)` deny rule is deliberately added; gut-check prompts are handed over.
 
@@ -288,6 +288,7 @@ Applies to any worker making a trunk change (shared utility, public interface, s
 - Tagging or releasing. †
 - A commit-time adversary for branch-local changes; `preflight`'s reviewers cover them.
 - Changing `preflight`'s trunk triage beyond adding the Risk section.
+- Moving preflight's fixes into a named agent: preflight still writes fixes in its main session, which contradicts skill-authoring.md's orchestration line; it needs its own spec. †
 
 ## Rejections
 
