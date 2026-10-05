@@ -1,6 +1,6 @@
 # Agent Skills Overview
 
-Seven skills, three agents, and a spec file carrying a unit of work from interview to done. Each skill is self-contained: nothing chains into anything else, and the user decides when to call each one.
+Seven skills, four agents, and a spec file carrying a unit of work from interview to done. Each skill is self-contained: nothing chains into anything else, and the user decides when to call each one.
 
 The keystone: ceremony scales with size, engineering discipline never does. A one-line chore still gets a failing test first and a real validation run; what collapses for small work is artifacts, never rigor.
 
@@ -19,8 +19,10 @@ The keystone: ceremony scales with size, engineering discipline never does. A on
 ## Agents
 
 - **code-reviewer** and **docs-reviewer** (`.claude/agents/`): the adversarial pair `preflight` dispatches in fresh contexts.
-  The first reviews a diff against its intent and scopes each finding `branch` or `trunk`; the second finds doc statements the diff made false.
+  The first reviews a diff or a staged change against its intent, scopes each finding `branch` or `trunk`, and lists the trunk touch points with their consumer counts; the second finds doc statements the diff made false.
   Neither carries an edit tool, both keep `Bash` for `git` and test runs so read-only holds by instruction, and both report with `file:line` evidence, never fixes.
+- **skeptic** (`.claude/agents/`): argues whether a staged trunk change the spec did not decide should exist at all, returning `keep`, `revise`, or `drop` with the strongest case against it and a costed alternative.
+  A worker making such a change dispatches it beside `code-reviewer`, which owns the defect lens; read-only by the same instruction.
 - **research-analyst** (`.claude/agents/`): a background evidence fetcher `sdd` dispatches mid-interview to answer one scoped question with sourced, tiered claims while the conversation continues. Read-only; returns evidence, never advice.
 
 ## Standards
