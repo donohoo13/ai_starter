@@ -66,6 +66,7 @@ Per slice:
 - Launch in this checkout: a recorded `run-*` project skill under `.claude/skills/` when one exists, otherwise `pnpm dev` as a background task.
 - Read `.logs/dev-server.log` for readiness and the real URL.
   When `pnpm dev` reports a server already running with its pid, reuse that server.
-- Stop only a server this session started (`kill $(cat .logs/dev-server.pid)` for `pnpm dev`), at the end of the skill.
+- At the end of the skill, stop every process this session started: the server (`kill $(cat .logs/dev-server.pid)` for `pnpm dev`) and anything else it launched.
+  Never stop a process it did not start, a reused server included.
   The session owns the server rather than an agent because the server must outlive several checker runs.
 - Tell the user about a launch failure once, with its cause and `/run-skill-generator` as the one-time fix that records a launch recipe for later runs; that run's render pass is skipped and noted.
