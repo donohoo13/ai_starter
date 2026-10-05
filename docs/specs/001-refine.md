@@ -60,7 +60,7 @@ Trunk-level improvements are deferred and reported rather than made, while the P
 
 - [x] Standards relocate to `docs/standards/`, with `CLAUDE.md`, `curate-context`, and every path reference updated.
       Done when: `.claude/rules/` holds only `skill-authoring.md` and `template-dev.md`; `docs/standards/` holds the seven files with the frontmatter in Architecture; a `git grep` for the six old rule paths and `DESIGN_PRINCIPLES` finds nothing outside `CHANGELOG.md` and `docs/specs/`; `CLAUDE.md` carries exactly the approved text; `curate-context` measures within the 500-line ceiling; the widened frontmatter battery passes, and fails when an `applies-to:` glob is deliberately unquoted; `pnpm format:check` and `pnpm test:scripts` pass.
-- [ ] `tdd` needs no user.
+- [x] `tdd` needs no user.
       Done when: the `tdd` body holds no instruction to confirm with or wait on the user; the Seams sentence, the Shallow anti-pattern, and the refactor rule read as approved in Architecture; the body measures within the 500-line ceiling; gut-check prompts are handed over.
 - [ ] Trunk-change review: the new `skeptic` agent and the widened `code-reviewer`.
       Done when: `skeptic.md` exists read-only with its brief schema in the description; `code-reviewer.md` names the staged-diff brief, the Trunk touch points output, and the standards lens; gut-check prompts are handed over that dispatch each agent on a staged trunk change in a scratch branch.

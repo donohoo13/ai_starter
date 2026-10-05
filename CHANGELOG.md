@@ -10,7 +10,7 @@ In a project created from the template, this file is template residue: delete it
 - **What**: the baseline.
   Versioning restarts here; every earlier tag is retired and earlier history lives only in git.
   The payload as of this entry:
-  - **Skills** (`.claude/skills/`): `sdd` interviews and writes a spec to `docs/specs/`, `implement-spec` builds it slice by slice behind a human QA gate, `preflight` proves a finished branch through adversarial code and docs review and full validation before opening its PR, `tdd` holds the test-first discipline, `stage-for-commit` hands back a commit for small changes, `curate-context` governs context-file edits, and `brand-init` fills `BRANDING.md` once.
+  - **Skills** (`.claude/skills/`): `sdd` interviews and writes a spec to `docs/specs/`, `implement-spec` builds it slice by slice behind a human QA gate, `preflight` proves a finished branch through adversarial code and docs review and full validation before opening its PR, `tdd` holds the test-first discipline and needs nothing from the user, choosing its own seams and allowing tests to be restructured but never weakened in a refactor, `stage-for-commit` hands back a commit for small changes, `curate-context` governs context-file edits, and `brand-init` fills `BRANDING.md` once.
   - **Agents** (`.claude/agents/`): `code-reviewer` and `docs-reviewer` for `preflight`, and `research-analyst` for `sdd`.
   - **Rules** (`.claude/rules/`): skill authoring, a path-scoped rule that caps a skill body at 500 lines.
     Implementer-critical rules (pnpm only, the Node pin, email templates built to their standard from the first line) are condensed into `CLAUDE.md`.
