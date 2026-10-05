@@ -27,6 +27,7 @@ Beyond that, only something major enough to halt reaches them during the run.
   An empty change is reported in one line and ends the run.
 - The intent is the rest of the argument, else a `docs/specs/` file the change touches, else inferred from the branch's commits and diff.
   Announce it in one line, "Refining X, from Y, since <base>", naming the base ref and the merge-base's short sha, and never ask.
+  Emit that line as soon as discovery ends, before the baseline commit and the dispatch, so the user can interrupt a wrong read before any work starts.
 - A spec at `status: built` sets spec mode; anything else, a spec at another status included, is ad-hoc.
 - On the default branch, branch first per `CLAUDE.md`, naming the branch from the intent.
 - Commit any uncommitted work untouched as a baseline, staging each path `git status` lists by explicit path, so the refiner's commits stay separable from the work it was handed and the test-table check stays exact.
@@ -57,7 +58,7 @@ Beyond that, only something major enough to halt reaches them during the run.
 - An issue the user finds resumes the refiner with it, a bug opening red-first.
   The suite reruns, the render re-check reruns when a surface changed, and QA returns.
 - On confirmation, spec mode flips the spec to `status: done` and commits the flip alone.
-  Then stop the server if this session started it, and stop.
+  Then stop every process this session started, and stop.
   Never push or open a PR from here.
 
 ## App lifecycle
@@ -65,7 +66,8 @@ Beyond that, only something major enough to halt reaches them during the run.
 - Launch in this checkout: a recorded `run-*` project skill under `.claude/skills/` when one exists, otherwise `pnpm dev` as a background task.
 - Read `.logs/dev-server.log` for readiness and the real URL.
   When `pnpm dev` reports a server already running with its pid, reuse that server.
-- Stop only a server this session started (`kill $(cat .logs/dev-server.pid)` for `pnpm dev`), after QA.
+- After QA, stop every process this session started: the server (`kill $(cat .logs/dev-server.pid)` for `pnpm dev`) and anything else it launched, such as a background command left from trying a QA step.
+  Never stop a process it did not start, a reused server included.
   The session owns the server rather than an agent because the server must outlive several checker runs and the user's QA.
 - Tell the user about a launch failure once, with its cause and `/run-skill-generator` as the one-time fix that records a launch recipe for later runs; that run's render pass is skipped and noted.
 
@@ -73,7 +75,7 @@ Beyond that, only something major enough to halt reaches them during the run.
 
 Before the QA script, report in this order and nothing more:
 
-- The intent line and the commits, the baseline first and trunk commits marked.
+- The intent line again, and the commits, the baseline first and trunk commits marked.
 - One validation line: each command and its result.
 - One tests-proven line: how many test files were added, changed, or deleted, and that each carries its proof.
 - One render line: pass, the failures left with their evidence, or skipped with the reason.
