@@ -1,41 +1,69 @@
 ---
 name: implement-spec
-description: Build a docs/specs/ file slice by slice on a dedicated worktree or non-main branch, planning, testing first, validating, and committing each slice, keeping the spec's status current, and gating done on human QA; never pushes or opens a PR. Use when the user points at a spec file to build, says "implement this spec", "build the spec", or resumes an in-progress spec in a fresh session.
+description: Build a docs/specs/ file on a dedicated worktree or non-main branch by orchestrating one fresh builder agent per slice, verifying each slice's commit and tests, forwarding notes between slices, running the full suite and a render pass on an app the session launches itself, and flipping the spec to built; never edits source itself, pushes, or opens a PR. Use when the user points at a spec file to build, says "implement this spec", "build the spec", or resumes an in-progress spec in a fresh session.
 argument-hint: "[path to a docs/specs/*.md file, or blank to pick from ready specs]"
 ---
 
 # Implement Spec
 
-The design is settled: build what the spec says and never re-decide architecture. A one-slice spec runs the same loop as a ten-slice one, once.
+The design is settled: build what the spec says and never re-decide architecture.
+This session orchestrates and the `builder` agent writes.
+Each slice is built in a fresh context that sees only the spec, the code, and the notes earlier slices left, so no slice inherits the bias of the conversation that planned it.
+The session runs the gates, talks to the user, flips spec status, owns the app server, dispatches agents, and verifies their claims with `git` and test runs; it never edits source or tests.
+A one-slice spec runs the same loop as a ten-slice one, once.
 
 ## Gate
 
 - Read the spec named in the argument; with none, list `docs/specs/` files at `status: ready` or `in-progress` and confirm which to build.
-- Build only a `ready` or `in-progress` spec whose slices each carry a done-when and whose Architecture carries no `TBD`. Otherwise name what is missing, recommend `/sdd` on the file, and stop; an under-specified spec gets its gaps invented silently.
+- Build only a `ready` or `in-progress` spec whose slices each carry a done-when and whose Architecture carries no `TBD`.
+  Otherwise name what is missing, recommend `/sdd` on the file, and stop; an under-specified spec gets its gaps invented silently.
 - A spec that proves wrong against the code is `BLOCKED`: surface it, never redesign silently.
 
 ## Workspace
 
 - Never build on `main` unless specifically dictated by the user, and never switch branches in a shared checkout carelessly; another session may be working there.
-- Derive the branch from the filename, `docs/specs/NNN-<slug>.md` to `<type>/<slug>` with `type` feature, bug, or chore by the spec's nature. Offer one confirm for a dedicated worktree via `scripts/setup/gwt-add.sh --no-open <branch>` entered with `EnterWorktree`; a decline means the user names a non-main branch and the build runs there. A checkout already on the spec's branch is simply continued.
-- Before the tree splits, check `git status` for uncommitted `docs/**`, `CLAUDE.md`, `BRANDING.md`, and `.claude/**` changes, reading the tree rather than session memory. Make one offer to stage exactly those paths and hand back a commit message for the user to commit on `main`; a declined offer leaves them behind by the user's choice. Never stage other dirt, which may be another session's work in flight. The spec file itself must exist on the branch before the first slice.
-- When Architecture says the existing implementation is stripped first, delete those files as the first commit and build from the spec rather than from memory of the old code. A rewrite lands cleaner when the old shape is gone from the tree than when it is patched around, so weigh that call against the spec rather than defaulting to keeping what compiles.
+- Derive the branch from the filename, `docs/specs/NNN-<slug>.md` to `<type>/<slug>` with `type` feature, bug, or chore by the spec's nature.
+  Offer one confirm for a dedicated worktree via `scripts/setup/gwt-add.sh --no-open <branch>` entered with `EnterWorktree`; a decline means the user names a non-main branch and the build runs there.
+  A checkout already on the spec's branch is simply continued.
+- Before the tree splits, check `git status` for uncommitted `docs/**`, `CLAUDE.md`, `BRANDING.md`, and `.claude/**` changes, reading the tree rather than session memory.
+  Make one offer to stage exactly those paths and hand back a commit message for the user to commit on `main`; a declined offer leaves them behind by the user's choice.
+  Never stage other dirt, which may be another session's work in flight.
+  The spec file itself must exist on the branch before the first slice.
+- When Architecture says the existing implementation is stripped first, delete those files as the first commit and build from the spec rather than from memory of the old code.
+  A rewrite lands cleaner when the old shape is gone from the tree than when it is patched around, so weigh that call against the spec rather than defaulting to keeping what compiles.
 
-## Slice loop
+## Slices
 
-Flip the spec to `status: in-progress` before the first slice; it rides in that slice's commit. List order is build order. Per slice:
+Flip the spec to `status: in-progress` before the first dispatch; the first builder's commit carries the flip.
+List order is build order, and a resumed spec starts at its first unticked slice.
+Per slice:
 
-1. **Plan**: re-read the slice against Architecture and References, read the code at the touch points, confirm consumers of shared types with LSP find-references. Present files, sequence, test seams, and risks, end with `Proceeding unless you interrupt.`, and keep working in the same turn. A slice that cannot proceed without an answer reports `BLOCKED` and says why.
-2. **Build** with `/tdd`: red before green, one seam at a time. A surface slice holds the floors in `docs/standards/ux-standards.md`.
-3. **Validate**: the project's own typecheck, lint, format, and the slice's test files, discovered from `CLAUDE.md` and the manifest rather than assumed. Fix until clean. The full suite waits for Land.
-4. **Commit**: verify the branch, stage by explicit path (the slice's files plus the spec with its checkbox ticked), message naming the slice's behavior.
-5. **Audit** after multi-file changes: schemas, constant maps, and imports updated consistently; orphaned code removed or reported, never left.
-
-Report `DONE`, `DONE_WITH_CONCERNS` (continue, note the doubt), or `BLOCKED` (stop, surface, wait).
+1. Dispatch a fresh `builder` with the spec path, the slice's checkbox text, and every note earlier builders reported, verbatim.
+   Nothing else rides in the brief: no plan, no opinion, no summary of this conversation, because whatever the orchestrator adds is the bias the fresh context exists to keep out.
+2. On `BLOCKED`, put the builder's question to the user, then resume the same builder with the answer through `SendMessage` so it keeps its full context.
+   On `DONE_WITH_CONCERNS`, keep the doubt for the final report and continue.
+3. Verify before moving on: every reported commit exists on this branch, the slice's tests pass when this session runs them, and the slice's checkbox is ticked in the committed spec.
+   A claim that fails verification goes back to the same builder through `SendMessage` with what this session found.
+4. Report the slice in one line, its commits and status, and carry its notes into the next brief.
 
 ## Land
 
-- Run the full suite once, its first run; a failure is a real regression to fix and commit.
-- When any slice touched a user-facing surface, offer a render pass: the user starts the app (hand the command with the worktree's absolute path, since a terminal in the main checkout serves `main`), then screenshot each touched surface at mobile and desktop width, in every theme shipped, with the UI tool named in `CLAUDE.md`. Judge against the spec's Design Requirements, `BRANDING.md`, and the `ux-standards.md` floors; fix what fails. A declined pass is noted in the spec so a later reader knows the gap.
-- Hand over a QA script: exact commands, URLs, and actions, each observation mapped to a slice's done-when. Servers are user-run; give instructions, never start one. Stop and wait. Green checks prove the code does what the tests say; only the user confirms it does what they meant, so recommend nothing downstream until then. Issues found go back through the loop, then the suite runs again.
-- On confirmation flip `status: done`, commit the flip, and stop. Never push or open a PR from here.
+- Run the full suite once.
+  A failure goes to a fresh `builder` briefed with the spec path and the failing output; verify its fix commit, then run the suite again.
+- Run the render pass when the branch touches a user-facing surface: a changed path matching the `applies-to:` globs in `docs/standards/ux-standards.md`, or a spec with Design Requirements.
+  Launch the app (below), then dispatch `render-checker` with the URL, the touched surfaces and the states the spec names, the themes the app ships, and the bar: the spec's Design Requirements and `BRANDING.md`.
+  Failures go to a fresh `builder` briefed with the spec path and the findings, followed by one re-check; what still fails after that is reported, not looped on.
+  A skipped pass is noted in the spec beneath its slices, with the reason, so a later reader knows the gap.
+- Flip the spec to `status: built`, commit the flip and any skip note alone, and report: each slice's commits and status, the concerns kept, the suite result, and the render result with its screenshots.
+- Stop there.
+  The build is working and validated but not yet made right, so this skill hands over no QA script and never flips `done`.
+  Never push or open a PR from here.
+
+## App lifecycle
+
+- Launch in this checkout: a recorded `run-*` project skill under `.claude/skills/` when one exists, otherwise `pnpm dev` as a background task.
+- Read `.logs/dev-server.log` for readiness and the real URL.
+  When `pnpm dev` reports a server already running with its pid, reuse that server.
+- Stop only a server this session started (`kill $(cat .logs/dev-server.pid)` for `pnpm dev`), at the end of the skill.
+  The session owns the server rather than an agent because the server must outlive several checker runs.
+- Tell the user about a launch failure once, with its cause and `/run-skill-generator` as the one-time fix that records a launch recipe for later runs; that run's render pass is skipped and noted.
