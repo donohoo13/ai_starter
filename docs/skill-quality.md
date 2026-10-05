@@ -21,7 +21,7 @@ Distilled from the Agent Skills specification (agentskills.io/specification), An
 ## Structure
 
 - Three-level progressive disclosure: metadata (in the listing) → SKILL.md body (loaded on invocation, and it stays for the session) → bundled files (loaded on demand, zero cost until read).
-- Spec: body under 500 lines. House style: ~150 is the comfortable ceiling for a focused skill.
+- Spec: body under 500 lines. House style: 500 is a ceiling, not a target; a body is as long as its job needs.
 - Spec: references exactly one level deep; no reference→reference chains.
 - Table of contents for any reference file past ~100 lines.
 - Multi-domain skills organize by variant (`references/aws.md`, `references/gcp.md`) so a session reads only the branch it needs.

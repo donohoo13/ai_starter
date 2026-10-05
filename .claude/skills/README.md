@@ -25,7 +25,7 @@ The keystone: ceremony scales with size, engineering discipline never does. A on
 
 ## Rules
 
-`.claude/rules/` holds path-scoped conventions that load on their own when a session reads a matching file: `ux-standards.md` (the usability and accessibility floors every surface meets), `frontend-styling.md` (how this project writes styles), `html-tables.md` (the markup and CSS floor for a plain `<table>`), `javascript-typescript.md`, `transactional-email.md` (which overrides the styling file on email paths), `agent-facing-output.md` (the output floors for scripts, hooks, and CLIs an agent runs), and `skill-authoring.md` (the discipline for any change under `.claude/skills/`: the 5000-character body budget, the description as trigger, and gut-check prompts for a fresh session). A session that opens no source file, such as `sdd` on a surface-bearing ask, reads `ux-standards.md` by path.
+`.claude/rules/` holds path-scoped conventions that load on their own when a session reads a matching file: `ux-standards.md` (the usability and accessibility floors every surface meets), `frontend-styling.md` (how this project writes styles), `html-tables.md` (the markup and CSS floor for a plain `<table>`), `javascript-typescript.md`, `transactional-email.md` (which overrides the styling file on email paths), `agent-facing-output.md` (the output floors for scripts, hooks, and CLIs an agent runs), and `skill-authoring.md` (the discipline for any change under `.claude/skills/`: the 500-line body ceiling, the description as trigger, and gut-check prompts for a fresh session). A session that opens no source file, such as `sdd` on a surface-bearing ask, reads `ux-standards.md` by path.
 
 ## Spec lifecycle
 
