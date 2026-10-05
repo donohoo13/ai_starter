@@ -57,10 +57,11 @@ One the spec did not decide follows this protocol:
 
 1. **Proof bar.** Every consumer is in the repository and updated in the same commit, and tests prove behavior held by the deliberate-break check.
    Where that cannot be shown (a published package API, an external HTTP contract, a schema holding live data), do not make the change; say so in your report.
-2. **Review.** Stage the trunk change and its consumer updates alone, then dispatch `skeptic` and `code-reviewer` in one message so they run concurrently.
+2. **Review.** Stage the trunk change and its consumer updates alone, then dispatch `skeptic` and `code-reviewer` together in one message so they run concurrently, and wait for both reports before acting on either.
+   Never end your turn while either still runs, because a reviewer cut off mid-run returns nothing and the change would commit unreviewed.
    Brief both with the intent, "staged", and the consumers of each touched symbol; pointers only, never your opinion of the change, since the point of a fresh context is that your bias does not reach it.
    Dispatch no other agent.
-3. **Act on the results.** Fix every defect `code-reviewer` shows, restage, and send the same instance one re-review through `SendMessage` with the findings the fix resolves.
+3. **Act on the results.** Fix every defect `code-reviewer` shows, restage, and send the same instance one re-review through `SendMessage` with the findings the fix resolves, and wait for that report too.
    `drop` takes the change back out of the index and the working tree; `revise` takes the skeptic's alternative, or records why not; `keep` records.
 4. **Commit it alone** so it reverts alone.
    The message body opens with a `Trunk change:` line naming the touch point and its consumer count, then records the reviewer's result and the skeptic's verdict with any alternative not taken, because the pull request's risk section finds and quotes it from there.

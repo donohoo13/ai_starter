@@ -10,6 +10,8 @@ The design is settled: build what the spec says and never re-decide architecture
 This session orchestrates and the `builder` agent writes.
 Each slice is built in a fresh context that sees only the spec, the code, and the notes earlier slices left, so no slice inherits the bias of the conversation that planned it.
 The session runs the gates, talks to the user, flips spec status, owns the app server, dispatches agents, and verifies their claims with `git` and test runs; it never edits source or tests.
+Every worker it dispatches or resumes is waited on, because the next step acts on that worker's report.
+Run each in the foreground where the harness allows, and never end the turn while one still runs: a headless run ends with the turn and takes running workers with it, leaving commits nobody verified.
 A one-slice spec runs the same loop as a ten-slice one, once.
 
 ## Gate
@@ -38,7 +40,7 @@ Flip the spec to `status: in-progress` before the first dispatch; the first buil
 List order is build order, and a resumed spec starts at its first unticked slice.
 Per slice:
 
-1. Dispatch a fresh `builder` with the spec path, the slice's checkbox text, and every note earlier builders reported, verbatim.
+1. Dispatch a fresh `builder` with the spec path, the slice's checkbox text, and every note earlier builders reported, verbatim, then wait for its report.
    Nothing else rides in the brief: no plan, no opinion, no summary of this conversation, because whatever the orchestrator adds is the bias the fresh context exists to keep out.
 2. On `BLOCKED`, put the builder's question to the user, then resume the same builder with the answer through `SendMessage` so it keeps its full context.
    On `DONE_WITH_CONCERNS`, keep the doubt for the final report and continue.

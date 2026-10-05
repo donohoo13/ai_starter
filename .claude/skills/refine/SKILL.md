@@ -10,6 +10,8 @@ Make it work, then make it right.
 The work in front of this skill already runs; it brings that work up to the project's standards, strengthens its tests with proof, and puts the final code in front of the user once.
 This session orchestrates and the `refiner` agent writes, in a fresh context that never saw the code being authored, so the judgment does not inherit the author's blind spots.
 The session discovers the change, owns the branch and the app server, verifies the refiner's claims, and runs QA; it never edits source or tests.
+Every worker it dispatches or resumes is waited on, because the next step acts on that worker's report.
+Run each in the foreground where the harness allows, and never end the turn while one still runs: a headless run ends with the turn and takes running workers with it, leaving commits nobody verified.
 
 It never stops at a gate: whatever state the branch is in, it works out what it needs and proceeds.
 The user hears the commit list, one validation line, one tests-proven line ("12 tests added or changed, all proven"), one render line, and the QA script.
@@ -30,7 +32,7 @@ Beyond that, only something major enough to halt reaches them during the run.
 
 ## Refine
 
-1. Dispatch a fresh `refiner` with the base, the baseline commit, the intent (the spec path or the one line), and the mode.
+1. Dispatch a fresh `refiner` with the base, the baseline commit, the intent (the spec path or the one line), and the mode, then wait for its report.
    Nothing else rides in the brief, because whatever the orchestrator adds is the bias the fresh context exists to keep out.
 2. On `BLOCKED`, put the refiner's question to the user, then resume the same refiner with the answer through `SendMessage` so it keeps its full context.
 3. Verify the report.
