@@ -5,7 +5,7 @@ Each entry carries three parts: **what** changed, **why**, and **adaptation note
 A release is a git tag (`vX.Y.Z`) on `main` matching the entry heading.
 In a project created from the template, this file is template residue: delete it.
 
-## v0.1.0 — unreleased
+## v0.1.0 — 2026-10-06
 
 - **What**: the baseline.
   Versioning restarts here; every earlier tag is retired and earlier history lives only in git.
