@@ -4,13 +4,13 @@ Opinionated AI-first starter template: a Claude Code process suite on a pnpm + T
 
 ## What Ships
 
-- **AI process suite** ([`.claude/`](./.claude/)) — eight self-contained skills (`sdd` writes a spec through a three-lens interview, `implement-spec` builds it to a working state, `refine` brings any branch up to the standards and runs human QA, `preflight` reviews and validates a finished branch before opening its PR, `tdd` under any build, `stage-for-commit` for small changes, `curate-context` for context-file edits, `brand-init` run once to fill the brand doc), seven agents (`builder` and `refiner` that write code, `render-checker` that drives the running app, `skeptic`, `code-reviewer`, and `docs-reviewer` that argue and review, and `research-analyst` for the spec interview), guard hooks, and the permission/secrets registry; the human-readable map is [`.claude/skills/README.md`](./.claude/skills/README.md).
+- **AI process suite** ([`.claude/`](./.claude/)) — ten self-contained skills (`sdd` writes a spec through a three-lens interview, `implement-spec` builds it to a working state, `refine` brings any branch up to the standards and runs human QA, `preflight` reviews and validates a finished branch before opening its PR, `tdd` under any build, `stage-for-commit` for small changes, `curate-context` for context-file edits, `brand-init` run once to fill the brand doc, `template-sync` and `template-feedback` to pull template releases in and report findings back), seven agents (`builder` and `refiner` that write code, `render-checker` that drives the running app, `skeptic`, `code-reviewer`, and `docs-reviewer` that argue and review, and `research-analyst` for the spec interview), guard hooks, and the permission/secrets registry; the human-readable map is [`.claude/skills/README.md`](./.claude/skills/README.md).
 - **Context files** ([`CLAUDE.md`](./CLAUDE.md), [`BRANDING.md`](./BRANDING.md)) — the rules every AI session holds and a brand skeleton filled once by `/brand-init`, plus the skill-authoring discipline in [`.claude/rules/`](./.claude/rules/), which loads when a session reads a skill file.
 - **Standards** ([`docs/standards/`](./docs/standards/)) — UX floors, frontend styling, HTML tables, transactional email, JavaScript and TypeScript, agent-facing script output, and design principles, each scoped by its `applies-to:` globs and read by the agents that judge code rather than loaded on its own.
 - **Monorepo skeleton** — `apps/*` and `packages/*` pnpm workspaces with a Turborepo task graph (`turbo build` / `lint` / `test` / `typecheck`), Prettier + husky pre-commit, and pnpm-only installs enforced at `preinstall`. `pnpm dev` runs `turbo dev` once per checkout and mirrors its output to `.logs/dev-server.log`, so `tail -f .logs/dev-server.log` follows a server an AI session started and `kill $(cat .logs/dev-server.pid)` stops it; a second start reports the running pid instead of competing for ports. No example app: the suite ships process, not product code.
 - **Setup scripts** ([`scripts/setup/`](./scripts/setup/)) — `doctor.sh` (warn-only LSP binary check, wired into `prepare`), `check-install.mjs` (pnpm-only + Node-major preinstall guard against `.nvmrc`), `gwt-add.sh`/`gwt-remove.sh` (git worktree helpers for parallel AI branches).
 - **MCP config** ([`.mcp.json`](./.mcp.json)) — browser-verification servers plus boilerplate stanzas for common services, all launched via `pnpm dlx`.
-- **Update channel** ([`CHANGELOG.md`](./CHANGELOG.md)) — versioned releases, each a tagged entry describing what changed and how to adapt it.
+- **Update channel** ([`CHANGELOG.md`](./CHANGELOG.md), [`.ai-starter.yaml`](./.ai-starter.yaml)) — versioned releases, each a tagged entry describing what changed and how to adapt it, and a lineage file recording the release a project last synced to.
 
 ## Using the Template
 
@@ -26,7 +26,10 @@ First-run network note: the initial `pnpm install` always downloads the pinned N
 
 ## Receiving Template Updates
 
-Projects share no git history with the template, so updates are pulled by hand, never pushed. Each release is a `CHANGELOG.md` entry (what, why, adaptation notes) plus a matching `vX.Y.Z` tag; read the entries newer than the version you started from and apply what fits. Skipping a release is fine.
+Projects share no git history with the template, so updates are pulled, never pushed.
+Each release is a `CHANGELOG.md` entry (what, why, adaptation notes) plus a matching `vX.Y.Z` tag, and `.ai-starter.yaml` records the template repository and the release a project last synced to; keep that file, since it is the base every sync compares against.
+Run `/template-sync` in a project to compare its files against the template at that release and the newer one, then approve updates and merges change by change; skipping a release is fine.
+Run `/template-feedback` to report a template defect back to this repository as an issue, verified against the latest release first.
 
 ## Maintaining This Repo
 

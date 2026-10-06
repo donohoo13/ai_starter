@@ -1,0 +1,3 @@
+# The template this project came from and the release it last synced to; template-sync reads and updates it.
+template: donohoo13/ai_starter
+version: 0.1.0
