@@ -1,6 +1,6 @@
 # Agent Skills Overview
 
-Eight skills, seven agents, and a spec file carrying a unit of work from interview to done. Each skill is self-contained: nothing chains into anything else, and the user decides when to call each one.
+Ten skills, seven agents, and a spec file carrying a unit of work from interview to done. Each skill is self-contained: nothing chains into anything else, and the user decides when to call each one.
 
 The keystone: ceremony scales with size, engineering discipline never does. A one-line chore still gets a failing test first and a real validation run; what collapses for small work is artifacts, never rigor.
 
@@ -22,6 +22,11 @@ Headless runs (`claude -p`) of the skills that dispatch agents (`implement-spec`
 - **stage-for-commit**: for small changes that needed no spec. Stages exactly this session's files by explicit path, proves the staged set, and hands back a commit message. Never commits, branches, or pushes.
 - **curate-context**: the gate on the prescriptive context files (every `CLAUDE.md` and `CLAUDE.local.md`, `README.md`, `BRANDING.md`, `.claude/rules/`, `docs/standards/`), loaded on any edit to one by its description and the `CLAUDE.md` rule, with no hook behind it. Attributes friction-born candidates, holds an admission bar, routes to the narrowest file, and lands nothing model-invented without approval; zero net growth is the benchmark.
 - **brand-init** (`/brand-init`): one and done. Interviews a new project's brand from the bracketed `BRANDING.md` scaffold to a governing doc, opening on a mood-board gate over `docs/branding/moodboard/`, and offers to delete itself once the doc is filled. Later brand changes are edits to `BRANDING.md`, which every brand or surface decision reads first.
+- **template-sync** (`/template-sync [version]`): pulls a newer template release into a project created from it.
+  Uses the release recorded in `.ai-starter.yaml` as the common ancestor and the target release as the change, so a file the template did not change is never touched and a file the project changed is three-way merged, never overwritten.
+  Applies clean updates and merges on the user's approval, hands every conflict to the user, validates, commits, and records the new version; never pushes.
+- **template-feedback** (`/template-feedback [finding]`): reports a template defect as an issue on the template's repository.
+  Separates template defects from project edits, verifies the finding against the latest release, checks for duplicates, scrubs anything private, and files only on the user's yes; a security vulnerability is never filed publicly.
 
 ## Agents
 
