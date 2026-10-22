@@ -1,10 +1,10 @@
 # Agent Skills Overview
 
-Ten skills, seven agents, and a spec file carrying a unit of work from interview to done. Each skill is self-contained: nothing chains into anything else, and the user decides when to call each one.
+Eleven skills, eight agents, and a spec file carrying a unit of work from interview to done. Each skill is self-contained: nothing chains into anything else, and the user decides when to call each one.
 
 The keystone: ceremony scales with size, engineering discipline never does. A one-line chore still gets a failing test first and a real validation run; what collapses for small work is artifacts, never rigor.
 
-Headless runs (`claude -p`) of the skills that dispatch agents (`implement-spec`, `refine`, `preflight`) set `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0`, or the session exits after 600s of waiting while a worker is still running.
+Headless runs (`claude -p`) of the skills that dispatch agents (`implement-spec`, `refine`, `review`, `preflight`) set `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0`, or the session exits after 600s of waiting while a worker is still running.
 
 ## Skills
 
@@ -18,7 +18,10 @@ Headless runs (`claude -p`) of the skills that dispatch agents (`implement-spec`
 - **refine** (`/refine [spec or intent] [--base <ref>]`): makes a working branch right, with or without a spec, and never stops at a gate.
   Discovers the change from the merge-base with the default branch, or with the `--base` ref a stacked branch names, and its intent without asking, commits any uncommitted work as a baseline, and dispatches a fresh `refiner`; verifies the suite and that the refiner's test table matches its commits, and runs a `render-checker` pass with the UX floors when a surface changed.
   Hands over one QA script with the app running, flips a `built` spec to `done` on the user's confirmation, and never pushes or opens a PR.
-- **preflight** (`/preflight [spec or intent]`): proves a finished branch is production ready, then opens the PR.
+- **review** (`/review [effort] [--max-findings n] [base]`): two independent reviews of a built branch, reported once.
+  Runs Claude Code's `/code-review` for correctness beside the `standards-reviewer` agent for legibility and usability, triages every finding with evidence for any it rejects, and stops for the user to pick what gets fixed.
+  A picked fix is made test-first, validated, staged, and handed back with a commit message; never commits, pushes, or opens a PR.
+- **preflight** (beta, `/preflight [spec or intent]`): the autonomous alternative to `review`, kept beside it while the two are compared; proves a finished branch is production ready, then opens the PR.
   Syncs with the default branch without ever rewriting published history, runs the `code-reviewer` agent beside Claude Code's `/code-review`, then the `docs-reviewer` agent, fixes local and verifiable findings one commit each, surfaces trunk and intent issues, and validates lint, types, and the full suite.
   Pushes and opens the PR without asking once nothing is left for the user to decide, with a Risk section naming a level and the trunk touch points and skeptic verdicts behind it, gives CI one repair round, and never merges or force-pushes.
 - **tdd**: red before green at public seams chosen for the critical paths, needing nothing from the user, mocks only at true external boundaries, appearance never a test target, and every bug fix opening with a failing repro at the lowest seam that shows the bug. Preloaded into the `builder` and `refiner` agents, and used directly whenever a test can lock something down.
@@ -42,13 +45,15 @@ Headless runs (`claude -p`) of the skills that dispatch agents (`implement-spec`
 - **code-reviewer** and **docs-reviewer** (`.claude/agents/`): the adversarial pair `preflight` dispatches in fresh contexts.
   The first reviews a diff or a staged change against its intent, scopes each finding `branch` or `trunk`, and lists the trunk touch points with their consumer counts; the second finds doc statements the diff made false.
   Neither carries an edit tool, both keep `Bash` for `git` and test runs so read-only holds by instruction, and both report with `file:line` evidence, never fixes.
+- **standards-reviewer** (`.claude/agents/`): the legibility and usability reviewer `review` dispatches beside `/code-review`.
+  It judges a branch diff only against `CLAUDE.md` and the `docs/standards/` files its paths match, leaves correctness to the other reviewer, and reports findings that quote the standards line each fails, plus what the change does well; read-only by the same instruction.
 - **skeptic** (`.claude/agents/`): argues whether a staged trunk change the spec did not decide should exist at all, returning `keep`, `revise`, or `drop` with the strongest case against it and a costed alternative.
   A worker making such a change dispatches it beside `code-reviewer`, which owns the defect lens; read-only by the same instruction.
 - **research-analyst** (`.claude/agents/`): a background evidence fetcher `sdd` dispatches mid-interview to answer one scoped question with sourced, tiered claims while the conversation continues. Read-only; returns evidence, never advice.
 
 ## Standards
 
-`docs/standards/` holds the conventions a change is brought up to, read by path by the agents that judge code (`refiner`, `code-reviewer`, and `render-checker` for the UX floors) and never loaded on their own.
+`docs/standards/` holds the conventions a change is brought up to, read by path by the agents that judge code (`refiner`, `code-reviewer`, `standards-reviewer`, and `render-checker` for the UX floors) and never loaded on their own.
 Each file's `applies-to:` globs name the paths it governs, and a file without the key applies to every change:
 
 - `ux-standards.md`: the usability and accessibility floors every surface meets.
@@ -57,6 +62,7 @@ Each file's `applies-to:` globs name the paths it governs, and a file without th
 - `transactional-email.md`: email templates, winning over the styling and tables files on email paths.
 - `javascript-typescript.md`: tooling, types, and language conventions.
 - `agent-facing-output.md`: the output floors for scripts, hooks, and CLIs an agent runs.
+- `code-legibility.md`: names, function size, control flow, and tests that read as specifications, whatever the language; it carries no key.
 - `design-principles.md`: KISS, DRY, YAGNI, deep modules behind small interfaces, and SOLID where a class hierarchy calls for it; it carries no key.
 
 A rule every implementer must hold from the first line, because getting it wrong first costs more than a refactor, lives in `CLAUDE.md` instead.
