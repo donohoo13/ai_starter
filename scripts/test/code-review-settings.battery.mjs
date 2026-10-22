@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Asserts .claude/settings.json leaves Claude Code's bundled /code-review
-// invocable by the model, since preflight runs it beside code-reviewer.
+// invocable by the model, since review and preflight both run it.
 // Three settings block it: a deny rule matching the Skill tool for
 // code-review, `disableBundledSkills`, and any `skillOverrides` entry for it.
 // The self-cases run first so a green check on the shipped file means the
@@ -116,7 +116,7 @@ check(
 console.log("");
 if (failures > 0) {
   console.log(
-    `${failures} failed; preflight runs /code-review, so remove what blocks it from ${SETTINGS_PATH} and rerun: pnpm exec node scripts/test/code-review-settings.battery.mjs`,
+    `${failures} failed; review and preflight run /code-review, so remove what blocks it from ${SETTINGS_PATH} and rerun: pnpm exec node scripts/test/code-review-settings.battery.mjs`,
   );
   process.exit(1);
 }

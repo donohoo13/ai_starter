@@ -6,9 +6,9 @@ status: ready
 
 <The task at hand in a sentence or two.>
 
-† marks a decision the user drove, in the ask or under interview.
-
 ## Product Requirements
+
+<When no product question applies: one line saying why, and nothing below.>
 
 ### Problem
 
@@ -20,7 +20,7 @@ status: ready
 
 ## Design Requirements
 
-<Present only when the change touches a user-facing surface. Open with the one job the surface serves.>
+<When the change touches no user-facing surface: one line saying so, and nothing below. Otherwise open with the one job the surface serves.>
 
 ### Controls
 
@@ -36,24 +36,25 @@ status: ready
 
 ### Slices
 
-- [ ] <Slice: the end-to-end behavior it delivers.> Done when: <the observable check>. <† only when the user drove it>
+- [ ] <Slice: the end-to-end behavior it delivers.> Done when: <the observable check>.
 
 ### Architecture
 
 - <Interfaces and contracts, schema and API shapes, chosen patterns and frameworks, and the trade-off behind each.>
+- Blast radius: <the shared code touched and every caller affected, or "none shared">.
 - Existing implementation: <kept | extended | stripped first, naming what dies>.
 
 ## Evidence
 
 - <The research or measured fact behind a decision, and the decision it settles.>
 
-## References
-
-- `<path>`: <why the implementer wants it in context early>
-
 ### Sources
 
 - <URL or document>: <what it establishes>
+
+## Touch Map
+
+- `<path>`: <role in the change, current shape, risk>.
 
 ## Out of Scope
 

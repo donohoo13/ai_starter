@@ -4,11 +4,11 @@ Opinionated AI-first starter template: a Claude Code process suite on a pnpm + T
 
 ## What Ships
 
-- **AI process suite** ([`.claude/`](./.claude/)) — ten self-contained skills (`sdd` writes a spec through a three-lens interview, `implement-spec` builds it to a working state, `refine` brings any branch up to the standards and runs human QA, `preflight` reviews and validates a finished branch before opening its PR, `tdd` under any build, `stage-for-commit` for small changes, `curate-context` for context-file edits, `brand-init` run once to fill the brand doc, `template-sync` and `template-feedback` to pull template releases in and report findings back), seven agents (`builder` and `refiner` that write code, `render-checker` that drives the running app, `skeptic`, `code-reviewer`, and `docs-reviewer` that argue and review, and `research-analyst` for the spec interview), guard hooks, and the permission/secrets registry; the human-readable map is [`.claude/skills/README.md`](./.claude/skills/README.md).
+- **AI process suite** ([`.claude/`](./.claude/)) — eleven self-contained skills (`sdd` writes a spec through a reconnaissance and a product, engineering, then design interview, `implement-spec` builds it to a working state, `refine` brings any branch up to the standards and runs human QA, `review` reports correctness and standards findings for the user to pick fixes, `preflight` (beta) reviews and validates a finished branch before opening its PR, `tdd` under any build, `stage-for-commit` for small changes, `curate-context` for context-file edits, `brand-init` run once to fill the brand doc, `template-sync` and `template-feedback` to pull template releases in and report findings back), eight agents (`builder` and `refiner` that write code, `render-checker` that drives the running app, `skeptic`, `code-reviewer`, `docs-reviewer`, and `standards-reviewer` that argue and review, and `research-analyst` for the spec interview), guard hooks, and the permission/secrets registry; the human-readable map is [`.claude/skills/README.md`](./.claude/skills/README.md).
 - **Context files** ([`CLAUDE.md`](./CLAUDE.md), [`BRANDING.md`](./BRANDING.md)) — the rules every AI session holds and a brand skeleton filled once by `/brand-init`, plus the skill-authoring discipline in [`.claude/rules/`](./.claude/rules/), which loads when a session reads a skill file.
-- **Standards** ([`docs/standards/`](./docs/standards/)) — UX floors, frontend styling, HTML tables, transactional email, JavaScript and TypeScript, agent-facing script output, and design principles, each scoped by its `applies-to:` globs and read by the agents that judge code rather than loaded on its own.
+- **Standards** ([`docs/standards/`](./docs/standards/)) — UX floors, frontend styling, HTML tables, transactional email, JavaScript and TypeScript, agent-facing script output, code legibility, and design principles, each scoped by its `applies-to:` globs and read by the agents that judge code rather than loaded on its own.
 - **Monorepo skeleton** — `apps/*` and `packages/*` pnpm workspaces with a Turborepo task graph (`turbo build` / `lint` / `test` / `typecheck`), Prettier + husky pre-commit, and pnpm-only installs enforced at `preinstall`. `pnpm dev` runs `turbo dev` once per checkout and mirrors its output to `.logs/dev-server.log`, so `tail -f .logs/dev-server.log` follows a server an AI session started and `kill $(cat .logs/dev-server.pid)` stops it; a second start reports the running pid instead of competing for ports. No example app: the suite ships process, not product code.
-- **Setup scripts** ([`scripts/setup/`](./scripts/setup/)) — `doctor.sh` (warn-only LSP binary check, wired into `prepare`), `check-install.mjs` (pnpm-only + Node-major preinstall guard against `.nvmrc`), `gwt-add.sh`/`gwt-remove.sh` (git worktree helpers for parallel AI branches).
+- **Setup scripts** ([`scripts/setup/`](./scripts/setup/)) — `doctor.sh` (warn-only LSP binary check, wired into `prepare`), `check-install.mjs` (pnpm-only + Node-major preinstall guard against `.nvmrc`), `gwt-add.sh`/`gwt-remove.sh` (git worktree helpers for parallel AI branches), and the opt-in macOS kit under `machine/` (see [Setting Up a Mac](#setting-up-a-mac)).
 - **MCP config** ([`.mcp.json`](./.mcp.json)) — browser-verification servers plus boilerplate stanzas for common services, all launched via `pnpm dlx`.
 - **Update channel** ([`CHANGELOG.md`](./CHANGELOG.md), [`.ai-starter.yaml`](./.ai-starter.yaml)) — versioned releases, each a tagged entry describing what changed and how to adapt it, and a lineage file recording the release a project last synced to.
 
@@ -30,6 +30,24 @@ Projects share no git history with the template, so updates are pulled, never pu
 Each release is a `CHANGELOG.md` entry (what, why, adaptation notes) plus a matching `vX.Y.Z` tag, and `.ai-starter.yaml` records the template repository and the release a project last synced to; keep that file, since it is the base every sync compares against.
 Run `/template-sync` in a project to compare its files against the template at that release and the newer one, then approve updates and merges change by change; skipping a release is fine.
 Run `/template-feedback` to report a template defect back to this repository as an issue, verified against the latest release first.
+
+## Setting Up a Mac
+
+`scripts/setup/machine/` is an opt-in macOS kit that carries shell, git, mise, Zed, Chrome, and Claude Code preferences from machine to machine.
+It needs [Homebrew](https://brew.sh); run it on each machine, and again after changing the kit:
+
+```bash
+scripts/setup/machine/install.sh
+```
+
+It installs the kit's `Brewfile`, runs `mise install`, applies Chrome's recommended policies (`chrome-policies.sh --reset` removes them), and layers every config under the machine's own, so local settings keep winning:
+
+- Kit-owned files are refreshed on every run: `~/.config/zsh/ai-starter.zsh`, `~/.config/git/ai-starter.gitconfig`, `~/.config/mise/conf.d/ai-starter.toml`, and `~/.claude/rules/ai-starter.md`, the personal working agreement Claude Code loads in every project.
+- The machine's own files only gain a missing line: a `source` line at the end of `~/.zshrc`, an include in `~/.config/git/config` that `~/.gitconfig` still overrides, and the global ignores in `~/.config/git/ignore`.
+- Zed's `settings.json` and `keymap.json` are copied only when the machine has none.
+
+Identity stays per machine in `~/.gitconfig`: `user.name` and `user.email`, plus `user.signingkey`, `commit.gpgsign`, and `tag.gpgsign` for 1Password SSH signing, which the kit's git config already points at.
+Full output goes to `.logs/machine-install.log`.
 
 ## Maintaining This Repo
 

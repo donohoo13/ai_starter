@@ -30,6 +30,7 @@ The full company perspective lives in [docs/company/company-overview.md](./docs/
 - Start every bug fix by reproducing the bug the way a user hits it, and confirm the reproduction fails for the reported reason before changing code.
 - Write a comment only when it prevents a dangerous action, or caches a fact that costs multiple discovery jumps through files or symbols to reconstruct — or that no file in the repo can answer at all — stated in one line.
 - Do not leave dead or orphaned code in the codebase.
+- Never hand-edit files marked as generated (a "do not edit" header, codegen output); change the source and regenerate.
 - Start dev servers only through `pnpm dev` run as a background task, never a framework binary directly: it exits early with the running pid when a server is already up and mirrors output to `.logs/dev-server.log`, the file to read for server logs.
 
 #### Python
@@ -63,7 +64,9 @@ The full company perspective lives in [docs/company/company-overview.md](./docs/
 
 ## Skills
 
-- Ten skills, each self-contained and user-invoked: `sdd` interviews and writes a spec to `docs/specs/`, `implement-spec` builds one to `built`, `refine` brings any branch up to the standards in `docs/standards/` and runs human QA, `preflight` proves a finished branch through adversarial code and docs review and full validation before opening its PR, `tdd` is the test-first discipline under any build, `stage-for-commit` hands back a commit for small changes that needed no spec, `curate-context` governs context-file edits, `brand-init` fills `BRANDING.md` once on a new project, and `template-sync` and `template-feedback` pull newer template releases in through `.ai-starter.yaml` and report template defects back. Nothing chains into anything else; the user decides when to call each one. The map is [the skills README](.claude/skills/README.md).
+- Eleven skills, each self-contained and user-invoked: `sdd` interviews and writes a spec to `docs/specs/`, `implement-spec` builds one to `built`, `refine` brings any branch up to the standards in `docs/standards/` and runs human QA, `review` runs `/code-review` beside the `standards-reviewer` agent and reports for the user to pick fixes, `preflight` (beta) proves a finished branch through adversarial code and docs review and full validation before opening its PR, `tdd` is the test-first discipline under any build, `stage-for-commit` hands back a commit for small changes that needed no spec, `curate-context` governs context-file edits, `brand-init` fills `BRANDING.md` once on a new project, and `template-sync` and `template-feedback` pull newer template releases in through `.ai-starter.yaml` and report template defects back.
+  Nothing chains into anything else; the user decides when to call each one.
+  The map is [the skills README](.claude/skills/README.md).
 - Any create, edit, rename, or delete under `.claude/skills/` follows [`.claude/rules/skill-authoring.md`](.claude/rules/skill-authoring.md), which caps every body at 500 lines excluding frontmatter; it loads on its own when a skill file is read, so a session creating a skill or deleting one through Bash reads it by path first.
 - Any edit to a `CLAUDE.md`, `CLAUDE.local.md`, `README.md`, `BRANDING.md`, `.claude/rules/`, or `docs/standards/` file loads `curate-context` first; no hook enforces this, so this rule and the skill's description are the whole mechanism.
 

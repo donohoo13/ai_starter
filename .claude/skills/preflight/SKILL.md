@@ -1,6 +1,6 @@
 ---
 name: preflight
-description: Proves a finished feature branch is production ready before anyone reviews it, then opens the PR. Syncs with the default branch, runs independent adversarial code and docs reviews, fixes what is local and verifiable with proof, puts trunk and intent issues in front of the user, validates lint, types, and the full test suite, then pushes, opens a clean PR without waiting for a yes, and gives CI one repair round; never merges or force-pushes. Use when work on a branch is done and the user says "preflight", "is this ready", "get this PR-ready", "review this before I open a PR", or "ship it", or wants a branch validated before review.
+description: Beta, kept beside the review skill as the autonomous alternative. Proves a finished feature branch is production ready before anyone reviews it, then opens the PR. Syncs with the default branch, runs independent adversarial code and docs reviews, fixes what is local and verifiable with proof, puts trunk and intent issues in front of the user, validates lint, types, and the full test suite, then pushes, opens a clean PR without waiting for a yes, and gives CI one repair round; never merges or force-pushes. Use when work on a branch is done and the user says "preflight", "is this ready", "get this PR-ready", or "ship it", or wants a branch validated and its PR opened in one run.
 argument-hint: "[a docs/specs/ path or one line of intent; blank to use the spec the branch changed]"
 ---
 

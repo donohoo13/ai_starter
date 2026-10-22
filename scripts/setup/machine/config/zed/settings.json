@@ -1,0 +1,23 @@
+{
+  "base_keymap": "VSCode",
+  "theme": {
+    "mode": "dark",
+    "light": "Ayu Light",
+    "dark": "Gruvbox Dark"
+  },
+  "icon_theme": {
+    "mode": "dark",
+    "light": "Zed (Default)",
+    "dark": "JetBrains New UI Icons (Dark)"
+  },
+  "ui_font_size": 16,
+  "buffer_font_size": 15,
+  "diff_view_style": "unified",
+  "git": {
+    "diff_base": "head"
+  },
+  "cli_default_open_behavior": "new_window",
+  "session": {
+    "trust_all_worktrees": true
+  }
+}

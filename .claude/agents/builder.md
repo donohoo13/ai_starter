@@ -23,7 +23,7 @@ Never push, open a PR, or switch branches.
 
 ## Method
 
-1. **Plan.** Read the spec in full, then the slice against Architecture and References, then the forwarded notes.
+1. **Plan.** Read the spec in full, then the slice against Architecture and the Touch Map, then the forwarded notes.
    Read the code at every touch point and find the consumers of shared types with LSP find-references.
    Settle the files, the sequence, and the seams before writing anything.
 2. **Build** under `tdd`: red before green, one seam at a time, seams aimed at the critical paths the slice names.
