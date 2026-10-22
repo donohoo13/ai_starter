@@ -5,7 +5,7 @@ Each entry carries three parts: **what** changed, **why**, and **adaptation note
 A release is a git tag (`vX.Y.Z`) on `main` matching the entry heading.
 In a project created from the template, this file is template residue: delete it.
 
-## v0.2.0 — unreleased
+## v0.2.0 — 2026-10-22
 
 - **What**:
   - `sdd` opens with a read-only reconnaissance that presents a touch map before the first question, then interviews in rounds of three or four coupled questions instead of one per turn.
