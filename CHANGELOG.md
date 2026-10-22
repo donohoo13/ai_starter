@@ -15,13 +15,16 @@ In a project created from the template, this file is template residue: delete it
   - New `review` skill and `standards-reviewer` agent: `/code-review` for correctness beside a legibility and usability review against `CLAUDE.md` and the matching `docs/standards/` files, reported once, with fixes made only on the user's pick and the commit left to the user.
     `preflight` stays, labeled beta, and drops its "review this before I open a PR" trigger so plain review requests route to `review`.
   - New `docs/standards/code-legibility.md`, a keyless standard for names, function size, control flow, and tests as documentation, read by every agent that judges code.
-- **Why**: the interview changes and the review skill come from running the suite daily on a second machine.
+  - New opt-in macOS kit under `scripts/setup/machine/`: `install.sh` with a Brewfile and zsh, git, mise, Zed, and Chrome configs, plus a personal working agreement installed to `~/.claude/rules/`, covered by `machine-install.battery.mjs`.
+- **Why**: the interview changes, the review skill, and the working agreement come from running the suite daily on a second machine.
   A code-first reconnaissance and grouped questions grounded interviews in facts and cut the context switching between answers, and ordered lenses read better than weighted parallel ones.
   `review` and `preflight` ship side by side so the report-then-wait review and the autonomous one can be compared on real branches.
+  The machine kit carries one Mac's setup to the next through the same release channel as the rest of the payload.
 - **Adaptation notes**:
   - Rename `## References` to `## Touch Map` in any `ready` or `in-progress` spec, since `builder` now plans against the Touch Map; `†` marks in older specs are plain text that nothing reads.
   - `code-legibility.md` carries no `applies-to:` key, so `refiner` and `code-reviewer` now hold every change to it as well; give it globs to narrow it, or delete it to opt out.
   - A project that edited `preflight`'s description merges on its first line; a project that removed `preflight` skips that file.
+  - The machine kit never runs on its own, and `claude/rules/ai-starter.md` holds personal preferences: delete `scripts/setup/machine/` in a repository others share.
 
 ## v0.1.0 — 2026-10-06
 

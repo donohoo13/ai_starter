@@ -1,0 +1,15 @@
+# shell
+brew "starship"
+brew "zsh-autosuggestions"
+brew "zsh-syntax-highlighting"
+brew "fzf"
+brew "eza"
+brew "bat"
+brew "ripgrep"
+brew "fd"
+brew "jq"
+brew "git-delta"
+# dev
+brew "git"
+brew "gh"
+brew "mise"
