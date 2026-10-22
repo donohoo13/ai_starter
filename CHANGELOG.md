@@ -5,6 +5,18 @@ Each entry carries three parts: **what** changed, **why**, and **adaptation note
 A release is a git tag (`vX.Y.Z`) on `main` matching the entry heading.
 In a project created from the template, this file is template residue: delete it.
 
+## v0.2.0 — unreleased
+
+- **What**:
+  - `sdd` opens with a read-only reconnaissance that presents a touch map before the first question, then interviews in rounds of three or four coupled questions instead of one per turn.
+    Its lenses run in order, product, engineering, then design, in place of the weighted parallel lenses, and every lens is accounted for: Product and Design keep a one-line disposition when they do not apply.
+    The spec template drops the `†` user-driven marker, adds a blast-radius line to Architecture, renames `References` to `Touch Map` with each path's role, current shape, and risk, and moves `Sources` under `Evidence`.
+    `implement-spec` and `refine` run the render pass for a spec whose Design Requirements name a surface rather than a one-line disposition, and `builder` plans against the Touch Map.
+- **Why**: the interview changes come from running the suite daily on a second machine.
+  A code-first reconnaissance and grouped questions grounded interviews in facts and cut the context switching between answers, and ordered lenses read better than weighted parallel ones.
+- **Adaptation notes**:
+  - Rename `## References` to `## Touch Map` in any `ready` or `in-progress` spec, since `builder` now plans against the Touch Map; `†` marks in older specs are plain text that nothing reads.
+
 ## v0.1.0 — 2026-10-06
 
 - **What**: the baseline.

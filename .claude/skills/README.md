@@ -8,7 +8,10 @@ Headless runs (`claude -p`) of the skills that dispatch agents (`implement-spec`
 
 ## Skills
 
-- **sdd** (`/sdd <ask>`): the spec-driven development interview. One question at a time, biggest decision first, recommendation attached, facts from the code and sourced research. Three lenses run in parallel, engineering 60%, product 25%, design 15%, and the session always ends by writing `docs/specs/NNN-<slug>.md` at `status: ready`. Pointed at an existing spec, it grills the gap between the file and the code.
+- **sdd** (`/sdd <ask>`): the spec-driven development interview.
+  Opens with a read-only reconnaissance that presents a touch map of the files and symbols the change will touch, then interviews in rounds of three or four coupled questions, the most load-bearing first, each with a recommendation attached.
+  Lenses run in order, product, engineering, then design, and a lens that does not apply still gets a one-line disposition; the session always ends by writing `docs/specs/NNN-<slug>.md` at `status: ready`, with a blast-radius line in Architecture and the touch map carried into the spec.
+  Pointed at an existing spec, it grills the gap between the file and the code.
 - **implement-spec** (`/implement-spec <spec>`): builds a ready spec on a worktree or non-main branch by orchestrating one fresh `builder` agent per slice, verifying each slice's commit and tests and forwarding its notes to the next.
   Runs the full suite, launches the app for a `render-checker` pass when a surface changed, and flips the spec `ready` to `in-progress` to `built`: working and validated, with no QA script and no `done`.
   Never edits source itself, pushes, or opens a PR.

@@ -45,7 +45,7 @@ Beyond that, only something major enough to halt reaches them during the run.
 
 ## Render
 
-- Run the render pass when the change touches a user-facing surface: a changed path matching the `applies-to:` globs in `docs/standards/ux-standards.md`, or a spec with Design Requirements.
+- Run the render pass when the change touches a user-facing surface: a changed path matching the `applies-to:` globs in `docs/standards/ux-standards.md`, or a spec whose Design Requirements name a surface rather than a one-line disposition.
 - Launch the app (below), then dispatch `render-checker` with the URL, the touched surfaces and the states to reach, the themes the app ships, and the bar: the spec's Design Requirements and `BRANDING.md` when there is a spec, `BRANDING.md` otherwise, plus the `docs/standards/ux-standards.md` floors measured on the rendered page.
 - Failures resume the refiner with the findings through `SendMessage`, the suite reruns, then one re-check; what still fails after that is reported, not looped on.
 - A skipped pass is said in the render line with its reason.
