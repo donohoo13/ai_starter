@@ -16,10 +16,12 @@ In a project created from the template, this file is template residue: delete it
     `preflight` stays, labeled beta, and drops its "review this before I open a PR" trigger so plain review requests route to `review`.
   - New `docs/standards/code-legibility.md`, a keyless standard for names, function size, control flow, and tests as documentation, read by every agent that judges code.
   - New opt-in macOS kit under `scripts/setup/machine/`: `install.sh` with a Brewfile and zsh, git, mise, Zed, and Chrome configs, plus a personal working agreement installed to `~/.claude/rules/`, covered by `machine-install.battery.mjs`.
-- **Why**: the interview changes, the review skill, and the working agreement come from running the suite daily on a second machine.
+  - `CLAUDE.md`'s Development section gains one rule: never hand-edit a file marked as generated; change its source and regenerate.
+- **Why**: the interview changes, the review skill, the working agreement, and the generated-files rule come from running the suite daily on a second machine.
   A code-first reconnaissance and grouped questions grounded interviews in facts and cut the context switching between answers, and ordered lenses read better than weighted parallel ones.
   `review` and `preflight` ship side by side so the report-then-wait review and the autonomous one can be compared on real branches.
   The machine kit carries one Mac's setup to the next through the same release channel as the rest of the payload.
+  A hand edit to a generated file is lost silently at the next regeneration, so that rule has to hold while code is written, not when it is reviewed.
 - **Adaptation notes**:
   - Rename `## References` to `## Touch Map` in any `ready` or `in-progress` spec, since `builder` now plans against the Touch Map; `†` marks in older specs are plain text that nothing reads.
   - `code-legibility.md` carries no `applies-to:` key, so `refiner` and `code-reviewer` now hold every change to it as well; give it globs to narrow it, or delete it to opt out.

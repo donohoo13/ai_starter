@@ -30,6 +30,7 @@ The full company perspective lives in [docs/company/company-overview.md](./docs/
 - Start every bug fix by reproducing the bug the way a user hits it, and confirm the reproduction fails for the reported reason before changing code.
 - Write a comment only when it prevents a dangerous action, or caches a fact that costs multiple discovery jumps through files or symbols to reconstruct — or that no file in the repo can answer at all — stated in one line.
 - Do not leave dead or orphaned code in the codebase.
+- Never hand-edit files marked as generated (a "do not edit" header, codegen output); change the source and regenerate.
 - Start dev servers only through `pnpm dev` run as a background task, never a framework binary directly: it exits early with the running pid when a server is already up and mirrors output to `.logs/dev-server.log`, the file to read for server logs.
 
 #### Python
