@@ -286,7 +286,7 @@ components:
 
 <!--
 AUTHORING — delete this comment once the file is filled.
-- Bracketed placeholders mark undecided axes; the one-time `brand-init` skill fills them.
+- Bracketed placeholders mark undecided axes; the one-time `design-init` skill fills them.
 - A line earns its place by changing what an agent renders.
   Narrative, positioning and messaging pillars live in docs/company/company-overview.md.
 - Each value lives in exactly one place: front matter where the spec has a slot (colors, typography, rounded, spacing, components); otherwise the section's own table (breakpoints, elevation, motion).

@@ -15,20 +15,22 @@ In a project created from the template, this file is template residue: delete it
     `curate-context` holds an edit to a filled `DESIGN.md` until that lint reports no errors.
   - The design doc is now the source of truth for token values and the app's theme CSS mirrors it, the reverse of before; `frontend-styling.md` says so.
   - Positioning and messaging pillars leave the design doc for `docs/company/company-overview.md`; audience, primary job, and promise stay as the Overview's product context.
-  - `brand-init` walks the new structure, reads the mood board from `docs/design/moodboard/` instead of `docs/branding/moodboard/`, and runs the lint until it is clean before offering to delete itself.
-  - `CLAUDE.md`, `README.md`, the skills, and the agents name `DESIGN.md` wherever they named `BRANDING.md`.
+  - `brand-init` is renamed `design-init`, after the file it fills.
+    It walks the new structure, reads the mood board from `docs/design/moodboard/` instead of `docs/branding/moodboard/`, and runs the lint until it is clean before offering to delete itself.
+  - `CLAUDE.md`, `README.md`, the skills, and the agents name `DESIGN.md` and `design-init` wherever they named `BRANDING.md` and `brand-init`.
 - **Why**: the restructure gets better results from design sessions.
   Role-named tokens and component bindings give a building session exact values to compose from instead of prose to interpret, and the linter catches broken references and contrast failures before a surface ships.
-  `DESIGN.md` is the filename the format's spec and tooling use.
+  `DESIGN.md` is the filename the format's spec and tooling use, and the skill that fills it now carries the same name.
 - **Adaptation notes**:
   - A filled `BRANDING.md` arrives in `template-sync` as a conflict beside a new `DESIGN.md`, since the contents differ too much to register as a rename.
     Port its decisions into the new sections: values into the front matter, positioning and messaging pillars into `docs/company/company-overview.md`, anti-goals into Do's and Don'ts.
     Then run the lint and delete `BRANDING.md`.
-    A project that deleted `brand-init` after filling its brand doc can restore it from this release to run the interview against the new scaffold.
+  - A project that still has an unedited `brand-init` ends up with `design-init` in its place; an edited one surfaces as a conflict.
+    A project that deleted `brand-init` after filling its brand doc sees `design-init` as a new skill: take it to run the interview against the new scaffold, or skip it and port by hand.
   - The devDependency adds about 90 packages to the install; a project that ships no UI drops it with `pnpm remove @google/design.md`.
   - Move an existing `docs/branding/moodboard/` to `docs/design/moodboard/`, along with any `.gitignore` line for it.
   - Theme CSS whose token values differ from `DESIGN.md` is now the drift: reconcile it to the file, for instance by generating it with `pnpm exec designmd export --format css-tailwind DESIGN.md`.
-  - Project-owned files that name `BRANDING.md` (nested `CLAUDE.md` files, project rules, specs in progress) need the same rename; `git grep BRANDING` finds them.
+  - Project-owned files that name `BRANDING.md` or `brand-init` (nested `CLAUDE.md` files, project rules, specs in progress) need the same rename; `git grep -E 'BRANDING|brand-init'` finds them.
 
 ## v0.2.0 — 2026-10-22
 

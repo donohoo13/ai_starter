@@ -1,6 +1,6 @@
 # Brand research: the locked evidence base
 
-Sourced findings behind `brand-init`'s method and the steering grammar of `DESIGN.md`, gathered 2026-07-27 via a research-analyst pass. This file exists so no future session re-runs the research or re-litigates the structural decisions; edit it when better evidence lands, and carry the evidence grade with every claim.
+Sourced findings behind `design-init`'s method and the steering grammar of `DESIGN.md`, gathered 2026-07-27 via a research-analyst pass. This file exists so no future session re-runs the research or re-litigates the structural decisions; edit it when better evidence lands, and carry the evidence grade with every claim.
 
 Evidence grades: **studied** (a published study or primary vendor documentation), **practitioner** (agency/vendor writing, consensus but unmeasured), **thin** (single source, uncorroborated).
 
@@ -18,7 +18,7 @@ Evidence grades: **studied** (a published study or primary vendor documentation)
 
 - NN/g warns that boards loaded with product screenshots collapse into competitive-reference boards and prematurely focus on concrete outcomes; boards stay at mood/tone/color/texture altitude (NN/g, "Mood Boards in UX"), **studied** (primary practitioner source). This is the anti-imitation rule in the curation guidance.
 - The style-tile lineage (Samantha Warren, 2012; still the taught method) treats the mood board as deliberately vague scaffolding distilled into progressively concrete artifacts, **practitioner**, decade-plus adoption. This is the distill-and-set-aside method the gate implements.
-- NN/g's competing framing treats mood boards as persistent references consulted throughout, **studied**; the literature never reconciles the two. `brand-init` follows the style-tile reading because its runtime consumer generates code and copy, which distilled text steers, not images; the board persists in `docs/design/moodboard/` only as provenance, and the finished doc never references it.
+- NN/g's competing framing treats mood boards as persistent references consulted throughout, **studied**; the literature never reconciles the two. `design-init` follows the style-tile reading because its runtime consumer generates code and copy, which distilled text steers, not images; the board persists in `docs/design/moodboard/` only as provenance, and the finished doc never references it.
 - Shipped-product references (Mobbin, real apps) translate to working products; Dribbble's polished unshipped mockups are harder to translate, **thin**. Hence the split: Dribbble for mood, shipped products for Reference Anchors.
 - Committed images of others' work are copyrighted; a private repo holding them for internal reference is common practice, a public repo is redistribution; public repos gitignore `docs/design/moodboard/` so the board stays local at the path the gate checks.
 

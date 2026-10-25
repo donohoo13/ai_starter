@@ -1,12 +1,12 @@
 ---
-name: brand-init
-description: One-time brand initialization. Interviews the user from the bracketed DESIGN.md scaffold, written in Google's design.md format, to a governing document, product context, visual thesis, personality, and shipped-product anchors, identity tokens (colors by role, typography, radius, themes, logo) in lint-checked front matter, anchored steering sections, component rules, voice, and do's and don'ts, opening on a mood-board gate over docs/design/moodboard/. Use once, on a new project whose DESIGN.md is still placeholder-bracketed, when the user says "set up the brand", "set up the design system", "fill in DESIGN.md", "derive the brand", or "run brand-init". Later brand changes are ordinary edits to the doc, not a re-run.
+name: design-init
+description: One-time brand and design-system initialization. Interviews the user from the bracketed DESIGN.md scaffold, written in Google's design.md format, to a governing document, product context, visual thesis, personality, and shipped-product anchors, identity tokens (colors by role, typography, radius, themes, logo) in lint-checked front matter, anchored steering sections, component rules, voice, and do's and don'ts, opening on a mood-board gate over docs/design/moodboard/. Use once, on a new project whose DESIGN.md is still placeholder-bracketed, when the user says "set up the brand", "set up the design system", "fill in DESIGN.md", "derive the brand", or "run design-init". Later brand changes are ordinary edits to the doc, not a re-run.
 argument-hint: "[optional: the product or brand direction to derive from]"
 ---
 
-# Brand Init
+# Design Init
 
-The one-time brand derivation.
+The one-time brand and design-system derivation.
 Brand decisions made as side effects of building one surface (a palette picked for a dashboard, a voice invented for one error message) are exactly the drift `DESIGN.md` prevents; settling the identity once means every later surface inherits it.
 Read `references/brand-research.md` before the first question: it carries the evidence base and the rationale behind the doc's structure, so neither gets re-derived in session.
 
@@ -52,4 +52,4 @@ Fill `DESIGN.md` in the order below; its binding note and authoring comment carr
 
 Write the filled `DESIGN.md` in strict present tense with absolutes and no bracket left standing.
 Run `pnpm exec designmd lint DESIGN.md` and resolve its findings until the authoring comment's done bar holds.
-Then delete the authoring comment, as it directs, and offer to delete `.claude/skills/brand-init/`: the doc is now the record, and later brand changes are edits to it.
+Then delete the authoring comment, as it directs, and offer to delete `.claude/skills/design-init/`: the doc is now the record, and later brand changes are edits to it.
