@@ -38,9 +38,10 @@ if (existing) {
 }
 
 mkdirSync(dirname(logPath), { recursive: true });
-const log = createWriteStream(logPath);
 const turboArgs = ["dev", ...process.argv.slice(2)];
-log.write(`# turbo ${turboArgs.join(" ")} started ${new Date().toISOString()}\n`);
+// Truncate synchronously: the pidfile below announces this run, so the log must already be this run's.
+writeFileSync(logPath, `# turbo ${turboArgs.join(" ")} started ${new Date().toISOString()}\n`);
+const log = createWriteStream(logPath, { flags: "a" });
 
 const server = spawn("turbo", turboArgs, { cwd: repoRoot, stdio: ["inherit", "pipe", "pipe"] });
 
