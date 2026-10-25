@@ -51,5 +51,5 @@ Fill `DESIGN.md` in the order below; its binding note and authoring comment carr
 ## Exit
 
 Write the filled `DESIGN.md` in strict present tense with absolutes and no bracket left standing.
-Hand the user `! pnpm dlx @google/design.md lint DESIGN.md` to run, since AI sessions cannot run `pnpm dlx`, and resolve its findings until the authoring comment's done bar holds.
+Run `pnpm exec designmd lint DESIGN.md` and resolve its findings until the authoring comment's done bar holds.
 Then delete the authoring comment, as it directs, and offer to delete `.claude/skills/brand-init/`: the doc is now the record, and later brand changes are edits to it.

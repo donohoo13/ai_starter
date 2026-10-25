@@ -281,7 +281,7 @@ components:
 > Identity sections (Colors, Typography, Shapes, Logo) are absolute and never reinterpreted per surface.
 > Steering sections direct judgment, and every adjective in them is anchored to a shipped product or a visible consequence.
 > Every restriction names its sanctioned alternative.
-> Code mirrors this file (`pnpm dlx @google/design.md export --format css-tailwind DESIGN.md`); where code and file disagree, the file wins and the drift is a bug.
+> Code mirrors this file (`pnpm exec designmd export --format css-tailwind DESIGN.md`); where code and file disagree, the file wins and the drift is a bug.
 > In monorepos, `apps/<app>/DESIGN.md` overrides this file section by section.
 
 <!--
@@ -294,8 +294,8 @@ AUTHORING — delete this comment once the file is filled.
 - Canonical sections keep spec order: Overview, Colors, Typography, Layout, Elevation & Depth, Shapes, Components, Do's and Don'ts.
   Extension sections (Hierarchy & Emphasis, Motion, Imagery & Iconography, Data Visualization, Voice & Copy) are preserved by the spec.
   To drop a canonical section on purpose, list it under `omitted:` in the front matter.
-- Done = `pnpm dlx @google/design.md lint DESIGN.md` reports 0 errors, no contrast warnings, and orphaned-token warnings only for -dark colors.
-  Before changing a shipped file, `pnpm dlx @google/design.md diff` the old and new versions.
+- Done = `pnpm exec designmd lint DESIGN.md` reports 0 errors, no contrast warnings, and orphaned-token warnings only for -dark colors.
+  Before changing a shipped file, `pnpm exec designmd diff` the old and new versions.
 - Target: front matter complete, prose ≤ ~400 lines.
 -->
 

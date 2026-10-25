@@ -68,6 +68,6 @@ Maintainer notes ride free in HTML comments, which Claude Code strips before inj
 ## Present, then apply
 
 State the exact text, target file and heading, and net line count; strengthen an existing line before appending a sibling; name rejected candidates with their ground.
-An edit to `DESIGN.md`'s front-matter tokens or identity sections first reports its blast radius: the call sites and surfaces a grep of the token finds, or that the grep could not run.
+An edit to `DESIGN.md`'s front-matter tokens or identity sections first reports its blast radius: the call sites and surfaces a grep of the token finds, or that the grep could not run; an edit to a filled `DESIGN.md` lands only once `pnpm exec designmd lint DESIGN.md` reports no errors.
 Insert approved text under its heading; a near-duplicate strengthens the existing bullet, a contradiction halts for the user to pick the survivor, and a decayed target file is flagged for its own restatement pass.
 Reread the edit as a session with no memory of today; a line that changes nothing it does gets cut.
