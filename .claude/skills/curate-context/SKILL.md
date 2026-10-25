@@ -1,12 +1,12 @@
 ---
 name: curate-context
-description: Curation discipline for the prescriptive context files, every CLAUDE.md and CLAUDE.local.md at any depth (the user-global ~/.claude/CLAUDE.md included), README.md, BRANDING.md, the rules under .claude/rules/, and the coding standards under docs/standards/. Use whenever a session is about to create or edit one of these files, whatever brought the edit, a convention to record, a doc correction, or an edit arriving mid-task with nobody naming this skill; the file path is the trigger. Also the distillation path, when the user says "codify", "capture this convention", "add this to CLAUDE.md", or "we should document this". No model-invented content lands unseen.
+description: Curation discipline for the prescriptive context files, every CLAUDE.md and CLAUDE.local.md at any depth (the user-global ~/.claude/CLAUDE.md included), README.md, DESIGN.md, the rules under .claude/rules/, and the coding standards under docs/standards/. Use whenever a session is about to create or edit one of these files, whatever brought the edit, a convention to record, a doc correction, or an edit arriving mid-task with nobody naming this skill; the file path is the trigger. Also the distillation path, when the user says "codify", "capture this convention", "add this to CLAUDE.md", or "we should document this". No model-invented content lands unseen.
 argument-hint: "[optional: the edit or lesson to consider]"
 ---
 
 # Curate Context
 
-The discipline for the files that steer future sessions: every `CLAUDE.md` and `CLAUDE.local.md` (root, nested, `~/.claude/CLAUDE.md`), every `README.md`, `.claude/rules/`, `docs/standards/`, and `BRANDING.md`.
+The discipline for the files that steer future sessions: every `CLAUDE.md` and `CLAUDE.local.md` (root, nested, `~/.claude/CLAUDE.md`), every `README.md`, `.claude/rules/`, `docs/standards/`, and `DESIGN.md`.
 Every edit to one loads this skill first; only this description and the `CLAUDE.md` rule enforce that.
 `.claude/skills/` follows `.claude/rules/skill-authoring.md`.
 
@@ -50,7 +50,7 @@ The test is who executes the rule.
 An imperative rule aimed at the AI goes to the nearest enclosing `CLAUDE.md`; a procedure a human performs (setup, auth flows, running things) to the nearest `README.md`, even when the AI discovered it, because the model cannot perform it.
 A coding convention routes by when it must hold: a rule every implementer must hold, because getting it wrong first costs more than a refactor, goes to `CLAUDE.md` as one line, and a convention applied afterwards goes to the matching `docs/standards/` file, which is read when code is judged rather than while it is written.
 A stack-imposed styling convention goes to `docs/standards/frontend-styling.md`, and a universal usability floor to `docs/standards/ux-standards.md`, with its source.
-A choice another project could make differently (palette, type, density, voice) goes to `BRANDING.md`.
+A choice another project could make differently (palette, type, density, voice) goes to `DESIGN.md`.
 A nested `CLAUDE.md` or a `paths:` rules file loads only when a matching file is read, so a rule that must hold during `Write` and Bash writes takes a guaranteed placement or is named from one.
 A collaboration preference is the user's, offered for `~/.claude/CLAUDE.md`; a personal uncommitted preference goes to `CLAUDE.local.md`.
 
@@ -68,6 +68,6 @@ Maintainer notes ride free in HTML comments, which Claude Code strips before inj
 ## Present, then apply
 
 State the exact text, target file and heading, and net line count; strengthen an existing line before appending a sibling; name rejected candidates with their ground.
-An edit to `BRANDING.md`'s identity sections first reports its blast radius: the call sites and surfaces a grep of the token finds, or that the grep could not run.
+An edit to `DESIGN.md`'s front-matter tokens or identity sections first reports its blast radius: the call sites and surfaces a grep of the token finds, or that the grep could not run; an edit to a filled `DESIGN.md` lands only once `pnpm exec designmd lint DESIGN.md` reports no errors.
 Insert approved text under its heading; a near-duplicate strengthens the existing bullet, a contradiction halts for the user to pick the survivor, and a decayed target file is flagged for its own restatement pass.
 Reread the edit as a session with no memory of today; a line that changes nothing it does gets cut.

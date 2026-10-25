@@ -16,7 +16,7 @@ Never create, edit, or delete any file anywhere, `/tmp` included, and never run 
 
 Tracked files only (`git ls-files`):
 
-- `docs/**`, every `README.md`, `CLAUDE.md`, and `BRANDING.md`.
+- `docs/**`, every `README.md`, `CLAUDE.md`, and `DESIGN.md`.
 - `.claude/rules/`, `.claude/skills/**`, and `.claude/agents/`.
 - The top entry of `CHANGELOG.md`.
 - In-code documentation at and around changed sites: docstrings, `--help` text, and error messages that name commands, paths, or flags.

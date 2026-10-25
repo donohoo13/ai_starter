@@ -5,6 +5,33 @@ Each entry carries three parts: **what** changed, **why**, and **adaptation note
 A release is a git tag (`vX.Y.Z`) on `main` matching the entry heading.
 In a project created from the template, this file is template residue: delete it.
 
+## v0.3.0 — unreleased
+
+- **What**:
+  - `BRANDING.md` is replaced by `DESIGN.md`, a scaffold in Google's [design.md](https://github.com/google-labs-code/design.md) format.
+    Token values move into YAML front matter: colors named by role, each with its `on-` pair, typography roles, radius and spacing scales, and component bindings for a base UI kit, all checked by `pnpm exec designmd lint DESIGN.md` and exportable to Tailwind or DTCG tokens.
+    The prose keeps the spec's section order (Overview, Colors, Typography, Layout, Elevation & Depth, Shapes, Components, Do's and Don'ts) and adds Hierarchy & Emphasis, Motion, Imagery & Iconography, Data Visualization, and Voice & Copy as extension sections; Anti-Goals merge into Do's and Don'ts, where every Don't names its Do.
+  - `@google/design.md` is a root devDependency, pinned exactly because its spec and CLI are still alpha, so sessions run the linter through `pnpm exec designmd` instead of handing the user a `pnpm dlx` command.
+    `curate-context` holds an edit to a filled `DESIGN.md` until that lint reports no errors.
+  - The design doc is now the source of truth for token values and the app's theme CSS mirrors it, the reverse of before; `frontend-styling.md` says so.
+  - Positioning and messaging pillars leave the design doc for `docs/company/company-overview.md`; audience, primary job, and promise stay as the Overview's product context.
+  - `brand-init` is renamed `design-init`, after the file it fills.
+    It walks the new structure, reads the mood board from `docs/design/moodboard/` instead of `docs/branding/moodboard/`, and runs the lint until it is clean before offering to delete itself.
+  - `CLAUDE.md`, `README.md`, the skills, and the agents name `DESIGN.md` and `design-init` wherever they named `BRANDING.md` and `brand-init`.
+- **Why**: the restructure gets better results from design sessions.
+  Role-named tokens and component bindings give a building session exact values to compose from instead of prose to interpret, and the linter catches broken references and contrast failures before a surface ships.
+  `DESIGN.md` is the filename the format's spec and tooling use, and the skill that fills it now carries the same name.
+- **Adaptation notes**:
+  - A filled `BRANDING.md` arrives in `template-sync` as a conflict beside a new `DESIGN.md`, since the contents differ too much to register as a rename.
+    Port its decisions into the new sections: values into the front matter, positioning and messaging pillars into `docs/company/company-overview.md`, anti-goals into Do's and Don'ts.
+    Then run the lint and delete `BRANDING.md`.
+  - A project that still has an unedited `brand-init` ends up with `design-init` in its place; an edited one surfaces as a conflict.
+    A project that deleted `brand-init` after filling its brand doc sees `design-init` as a new skill: take it to run the interview against the new scaffold, or skip it and port by hand.
+  - The devDependency adds about 90 packages to the install; a project that ships no UI drops it with `pnpm remove @google/design.md`.
+  - Move an existing `docs/branding/moodboard/` to `docs/design/moodboard/`, along with any `.gitignore` line for it.
+  - Theme CSS whose token values differ from `DESIGN.md` is now the drift: reconcile it to the file, for instance by generating it with `pnpm exec designmd export --format css-tailwind DESIGN.md`.
+  - Project-owned files that name `BRANDING.md` or `brand-init` (nested `CLAUDE.md` files, project rules, specs in progress) need the same rename; `git grep -E 'BRANDING|brand-init'` finds them.
+
 ## v0.2.0 — 2026-10-22
 
 - **What**:

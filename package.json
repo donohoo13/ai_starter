@@ -1,6 +1,6 @@
 {
   "name": "ai_starter",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Opinionated AI-first starter template: Claude Code process suite on a pnpm + Turborepo monorepo skeleton",
   "private": true,
   "license": "ISC",
@@ -28,6 +28,7 @@
     "test:scripts": "for f in scripts/test/*.battery.mjs; do [ -e \"$f\" ] || continue; node \"$f\" || exit 1; done"
   },
   "devDependencies": {
+    "@google/design.md": "0.4.0",
     "husky": "9.1.7",
     "prettier": "^3.8.4",
     "turbo": "^2.5.0"

@@ -12,7 +12,7 @@ Narrative company context for this project: what the company does, who it serves
 
 ## Product
 
-[what this product is from the company's perspective — positioning, differentiation, and how it makes money]
+[what this product is from the company's perspective — positioning, differentiation, messaging pillars, and how it makes money]
 
 ## Where This Project Fits
 
