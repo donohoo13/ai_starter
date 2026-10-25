@@ -3,7 +3,9 @@
 // Copies the script into a sandbox and puts a fake `turbo` first on PATH, so
 // the real start, already-running, shutdown, and stale-pidfile paths run
 // against a real child process without a workspace. The fake execs into
-// `sleep`, so the pid it reports is the pid the wrapper records.
+// `sleep`, so the pid it reports is the pid the wrapper records. Every wrapper
+// runs with its async I/O delayed, so an ordering that only holds on a fast
+// machine fails here every time instead of flaking in CI.
 // Run: pnpm exec node scripts/test/node-dev-server.battery.mjs
 import { spawn, spawnSync } from "node:child_process";
 import {
@@ -36,7 +38,15 @@ writeFileSync(
   '#!/usr/bin/env bash\necho "fake turbo $*"\necho "fake stderr" >&2\nexec sleep 30\n',
 );
 chmodSync(fakeTurbo, 0o755);
-const env = { ...process.env, PATH: `${join(sandbox, "bin")}:${process.env.PATH}` };
+const slowIo = join(sandbox, "bin", "slow-io.cjs");
+// Holds libuv's only worker thread so the wrapper's async file I/O lands late, as on a loaded CI runner.
+writeFileSync(slowIo, 'require("node:crypto").pbkdf2("x", "y", 300000, 64, "sha512", () => {});\n');
+const env = {
+  ...process.env,
+  PATH: `${join(sandbox, "bin")}:${process.env.PATH}`,
+  UV_THREADPOOL_SIZE: "1",
+  NODE_OPTIONS: `--require ${slowIo}`,
+};
 
 let failures = 0;
 function report(name, passed, detail) {

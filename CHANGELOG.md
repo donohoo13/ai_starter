@@ -18,9 +18,15 @@ In a project created from the template, this file is template residue: delete it
   - `brand-init` is renamed `design-init`, after the file it fills.
     It walks the new structure, reads the mood board from `docs/design/moodboard/` instead of `docs/branding/moodboard/`, and runs the lint until it is clean before offering to delete itself.
   - `CLAUDE.md`, `README.md`, the skills, and the agents name `DESIGN.md` and `design-init` wherever they named `BRANDING.md` and `brand-init`.
-- **Why**: the restructure gets better results from design sessions.
+  - `pnpm dev` clears `.logs/dev-server.log` before it records the new server's pid, so the log beside a fresh pid is always that run's.
+    `node-dev-server.battery.mjs` delays the wrapper's async file I/O, so an ordering that only holds on a fast machine fails every run instead of some CI runs.
+  - `check-install.mjs` keeps its pnpm-only gate and its pin-agreement check, and drops the wrong-Node check and the pnpm 10-and-older `engineStrict` deadlock check; its battery shrinks to match.
+  - `code-review-settings.battery.mjs` is removed.
+- **Why**: the design restructure gets better results from design sessions.
   Role-named tokens and component bindings give a building session exact values to compose from instead of prose to interpret, and the linter catches broken references and contrast failures before a surface ships.
   `DESIGN.md` is the filename the format's spec and tooling use, and the skill that fills it now carries the same name.
+  `pnpm dev` wrote its pidfile before the previous log was cleared, so a reader acting on the new pid could read the last server's output, and the dev-server battery failed intermittently on slow runners.
+  The dropped install checks duplicated what mise and pnpm 11's `devEngines` runtime already guarantee, and the code-review settings battery guarded against settings no project adds.
 - **Adaptation notes**:
   - A filled `BRANDING.md` arrives in `template-sync` as a conflict beside a new `DESIGN.md`, since the contents differ too much to register as a rename.
     Port its decisions into the new sections: values into the front matter, positioning and messaging pillars into `docs/company/company-overview.md`, anti-goals into Do's and Don'ts.
@@ -31,6 +37,10 @@ In a project created from the template, this file is template residue: delete it
   - Move an existing `docs/branding/moodboard/` to `docs/design/moodboard/`, along with any `.gitignore` line for it.
   - Theme CSS whose token values differ from `DESIGN.md` is now the drift: reconcile it to the file, for instance by generating it with `pnpm exec designmd export --format css-tailwind DESIGN.md`.
   - Project-owned files that name `BRANDING.md` or `brand-init` (nested `CLAUDE.md` files, project rules, specs in progress) need the same rename; `git grep -E 'BRANDING|brand-init'` finds them.
+  - A project that edited `scripts/dev/node-dev-server.mjs` merges on the three lines that open the log.
+  - A project still on pnpm 10 or older loses the preinstall stop on an `engineStrict` and `devEngines` pairing: turn `engineStrict` off, or get onto the `packageManager` pin with `mise install`.
+  - A project that deleted its `devEngines` block and skips mise no longer gets a hard stop on the wrong Node; `doctor.sh` still warns on drift during `prepare`.
+  - A project that adds `Skill` denies, `disableBundledSkills`, or `skillOverrides` to `.claude/settings.json` has nothing left to flag a block on `/code-review`, which `review` and `preflight` run; confirm it still runs after such an edit.
 
 ## v0.2.0 — 2026-10-22
 
