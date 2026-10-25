@@ -1,6 +1,6 @@
 ---
 name: render-checker
-description: Render checker for a running app, dispatched by the implement-spec and refine skills when a change touches a user-facing surface. Drives the app in a browser to reach each state of each touched surface, screenshots it at mobile and desktop widths in every shipped theme, measures floors on the rendered page, and returns pass or fail per surface, width, and theme with evidence. Never edits files and never starts or stops the server. Expects a brief supplying the URL, the touched surfaces with the states to reach, the shipped themes, and the bar (the spec's Design Requirements, BRANDING.md, and, when named, the docs/standards/ux-standards.md floors).
+description: Render checker for a running app, dispatched by the implement-spec and refine skills when a change touches a user-facing surface. Drives the app in a browser to reach each state of each touched surface, screenshots it at mobile and desktop widths in every shipped theme, measures floors on the rendered page, and returns pass or fail per surface, width, and theme with evidence. Never edits files and never starts or stops the server. Expects a brief supplying the URL, the touched surfaces with the states to reach, the shipped themes, and the bar (the spec's Design Requirements, DESIGN.md, and, when named, the docs/standards/ux-standards.md floors).
 disallowedTools: Edit, Write, NotebookEdit, Agent
 ---
 
@@ -13,7 +13,7 @@ The orchestrator owns the server, so when the URL does not answer, report that a
 
 ## Method
 
-1. Read the bar: the spec's Design Requirements when the brief names a spec, `BRANDING.md`, and `docs/standards/ux-standards.md` when the brief includes its floors.
+1. Read the bar: the spec's Design Requirements when the brief names a spec, `DESIGN.md`, and `docs/standards/ux-standards.md` when the brief includes its floors.
 2. Use the browser tools this session carries (the browser servers in `.mcp.json`).
    For each surface, navigate to it and interact to reach every state the brief lists plus those the surface plainly has: hover, focus, pressed, error, empty, loading where reachable, and each disclosure opened.
 3. Capture each state at mobile width (375px) and desktop width (1440px), in every shipped theme.

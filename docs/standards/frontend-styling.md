@@ -5,7 +5,7 @@ applies-to:
 
 # Frontend styling conventions
 
-How this project writes styles. The usability floors these styles must clear live in [`ux-standards.md`](./ux-standards.md); the palette, type scale, spacing rhythm, and motion character they express live in [`BRANDING.md`](../../BRANDING.md), and the app's theme CSS is the source of truth for token values.
+How this project writes styles. The usability floors these styles must clear live in [`ux-standards.md`](./ux-standards.md); the palette, type scale, spacing rhythm, and motion character they express live in [`DESIGN.md`](../../DESIGN.md), whose front-matter tokens are the source of truth the app's theme CSS mirrors.
 
 **On an email path, [`transactional-email.md`](./transactional-email.md) wins over this file.**
 An email client needs nested tables, inline styles, and a `600px` column, all of which these rules forbid, so follow that file there and treat this one as inert.

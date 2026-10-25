@@ -34,7 +34,7 @@ Read-only, before the first question, so the interview opens on facts rather tha
 - Lenses run in order, and all three are accounted for; a lens that does not apply still gets a one-line disposition in the spec.
   Product first: who has the problem, what they do today, what done looks like to them, what is deliberately out.
   Engineering second: contracts, test seams, blast radius, and what happens to the existing implementation.
-  Design last and brief: the one job the surface serves, what ranks first, which control carries each value, what sits behind disclosure, held to the floors in `docs/standards/ux-standards.md` and the identity in `BRANDING.md`, both read by path.
+  Design last and brief: the one job the surface serves, what ranks first, which control carries each value, what sits behind disclosure, held to the floors in `docs/standards/ux-standards.md` and the identity in `DESIGN.md`, both read by path.
 - Decisions are the user's.
   Put each to them and wait.
   When the code or the research supports your recommendation, hold it under pushback and restate the case; drop it only for a new fact or an explicit move-on.

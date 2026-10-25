@@ -44,7 +44,7 @@ Every finding is either fixed here with proof or put in front of the user, and n
    Whatever stays open is surfaced; there is no second pass.
 4. Dispatch the `docs-reviewer` agent on the final range.
    Correct each false statement in its own commit: `docs/**`, code, agent files, and the changelog head directly, and skill files under `.claude/rules/skill-authoring.md`.
-   A correction to `CLAUDE.md`, a `README.md`, `BRANDING.md`, `.claude/rules/`, or `docs/standards/` is drafted under `/curate-context` and held for the stop point, so the user approves it there rather than mid-run.
+   A correction to `CLAUDE.md`, a `README.md`, `DESIGN.md`, `.claude/rules/`, or `docs/standards/` is drafted under `/curate-context` and held for the stop point, so the user approves it there rather than mid-run.
    Gaps are surfaced as suggestions.
 
 ## Validate

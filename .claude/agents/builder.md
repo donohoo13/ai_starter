@@ -27,7 +27,7 @@ Never push, open a PR, or switch branches.
    Read the code at every touch point and find the consumers of shared types with LSP find-references.
    Settle the files, the sequence, and the seams before writing anything.
 2. **Build** under `tdd`: red before green, one seam at a time, seams aimed at the critical paths the slice names.
-   A surface slice builds to the spec's Design Requirements and `BRANDING.md`.
+   A surface slice builds to the spec's Design Requirements and `DESIGN.md`.
 3. **Validate** with the project's typecheck, lint, format, and the slice's test files, discovered from `CLAUDE.md` and the manifest rather than assumed.
    Fix until clean, and leave the full suite to the orchestrator.
 4. **Commit.** Confirm you are on the branch you started on and that it is not the default branch.

@@ -27,7 +27,7 @@ A one-slice spec runs the same loop as a ten-slice one, once.
 - Derive the branch from the filename, `docs/specs/NNN-<slug>.md` to `<type>/<slug>` with `type` feature, bug, or chore by the spec's nature.
   Offer one confirm for a dedicated worktree via `scripts/setup/gwt-add.sh --no-open <branch>` entered with `EnterWorktree`; a decline means the user names a non-main branch and the build runs there.
   A checkout already on the spec's branch is simply continued.
-- Before the tree splits, check `git status` for uncommitted `docs/**`, `CLAUDE.md`, `BRANDING.md`, and `.claude/**` changes, reading the tree rather than session memory.
+- Before the tree splits, check `git status` for uncommitted `docs/**`, `CLAUDE.md`, `DESIGN.md`, and `.claude/**` changes, reading the tree rather than session memory.
   Make one offer to stage exactly those paths and hand back a commit message for the user to commit on `main`; a declined offer leaves them behind by the user's choice.
   Never stage other dirt, which may be another session's work in flight.
   The spec file itself must exist on the branch before the first slice.
@@ -53,7 +53,7 @@ Per slice:
 - Run the full suite once.
   A failure goes to a fresh `builder` briefed with the spec path and the failing output; verify its fix commit, then run the suite again.
 - Run the render pass when the branch touches a user-facing surface: a changed path matching the `applies-to:` globs in `docs/standards/ux-standards.md`, or a spec whose Design Requirements name a surface rather than a one-line disposition.
-  Launch the app (below), then dispatch `render-checker` with the URL, the touched surfaces and the states the spec names, the themes the app ships, and the bar: the spec's Design Requirements and `BRANDING.md`.
+  Launch the app (below), then dispatch `render-checker` with the URL, the touched surfaces and the states the spec names, the themes the app ships, and the bar: the spec's Design Requirements and `DESIGN.md`.
   Failures go to a fresh `builder` briefed with the spec path and the findings, followed by one re-check; what still fails after that is reported, not looped on.
   A skipped pass is noted in the spec beneath its slices, with the reason, so a later reader knows the gap.
 - Flip the spec to `status: built`, commit the flip and any skip note alone, and report: each slice's commits and status, the concerns kept, the suite result, and the render result with its screenshots.

@@ -46,7 +46,7 @@ For every other changed path, compare the project's copy with the base (`git -C 
 - **Renamed**: apply the move when the project's copy equals the base; otherwise it is a conflict.
 - **Project-deleted**: modified by the template, but the project removed the file the base shipped. Skip it, since restoring what the project deleted is the user's call.
 
-`CLAUDE.md`, `.claude/settings.json`, `BRANDING.md`, and `package.json` mix template and project content, so they always get a full diff and their own approval, even when the merge is clean.
+`CLAUDE.md`, `.claude/settings.json`, `DESIGN.md`, and `package.json` mix template and project content, so they always get a full diff and their own approval, even when the merge is clean.
 
 ## Plan
 
