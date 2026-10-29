@@ -52,7 +52,7 @@ The full company perspective lives in [docs/company/company-overview.md](./docs/
 - Use CLI tools (like `gh` for GitHub) for PR, issue, and remote repository management; fall back to raw git only when no CLI covers the operation.
 - Commit only from a non-main branch: check `git branch --show-current` before every commit and branch first when on `main`.
 - Branches are named `<type>/<kebab-slug>` (`type`: `feature` | `bug` | `chore`).
-- `implement-spec` builds run in a dedicated git worktree — `scripts/setup/gwt-add.sh --no-open <branch>` creates it, the native `EnterWorktree` tool relocates the session into it — so the main checkout stays on `main`; declining the skill's one confirm falls back to a plain feature branch. Post-merge cleanup is `scripts/setup/gwt-remove.sh <branch>` from the main checkout.
+- `sdd-implement` creates the spec's feature branch, in a dedicated git worktree when this checkout should stay on `main`: `scripts/setup/gwt-add.sh --no-open <branch>` creates it and the native `EnterWorktree` tool relocates the session into it. Post-merge cleanup is `scripts/setup/gwt-remove.sh <branch>` from the main checkout.
 
 ### Markdown
 
@@ -64,8 +64,8 @@ The full company perspective lives in [docs/company/company-overview.md](./docs/
 
 ## Skills
 
-- Eleven skills, each self-contained and user-invoked: `sdd` interviews and writes a spec to `docs/specs/`, `implement-spec` builds one to `built`, `refine` brings any branch up to the standards in `docs/standards/` and runs human QA, `review` runs `/code-review` beside the `standards-reviewer` agent and reports for the user to pick fixes, `preflight` (beta) proves a finished branch through adversarial code and docs review and full validation before opening its PR, `tdd` is the test-first discipline under any build, `stage-for-commit` hands back a commit for small changes that needed no spec, `curate-context` governs context-file edits, `design-init` fills `DESIGN.md` once on a new project, and `template-sync` and `template-feedback` pull newer template releases in through `.ai-starter.yaml` and report template defects back.
-  Nothing chains into anything else; the user decides when to call each one.
+- Twelve skills, each self-contained and user-invoked: the spec-driven development chain `sdd-outline`, `sdd-plan`, `sdd-task`, `sdd-implement` and `sdd-review`, which follow `.claude/sdd/spec-driven-development.md` by section, keep state with `.claude/sdd/bin/sdd` and commit their artifacts under `docs/sdd/<slug>/`; `tdd` is the test-first discipline under any build and as a one-shot; `refine` brings any branch up to the standards in `docs/standards/` and runs human QA; `stage-for-commit` hands back a commit for small changes that needed no spec; `curate-context` governs context-file edits; `design-init` fills `DESIGN.md` once on a new project; and `template-sync` and `template-feedback` pull newer template releases in through `.ai-starter.yaml` and report template defects back.
+  Nothing starts another skill; each SDD phase names the next as the handoff, and the user decides when to call it.
   The map is [the skills README](.claude/skills/README.md).
 - Any create, edit, rename, or delete under `.claude/skills/` follows [`.claude/rules/skill-authoring.md`](.claude/rules/skill-authoring.md), which caps every body at 500 lines excluding frontmatter; it loads on its own when a skill file is read, so a session creating a skill or deleting one through Bash reads it by path first.
 - Any edit to a `CLAUDE.md`, `CLAUDE.local.md`, `README.md`, `DESIGN.md`, `.claude/rules/`, or `docs/standards/` file loads `curate-context` first; no hook enforces this, so this rule and the skill's description are the whole mechanism.

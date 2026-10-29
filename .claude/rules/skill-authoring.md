@@ -22,7 +22,9 @@ Mine the session before interviewing: the conversation that triggered the change
 - **Progressive disclosure.** Metadata sits in the listing, the body loads on invocation and stays for the session, references load on demand. Push long or fragile detail into `references/` exactly one hop from SKILL.md; every bundled file states its mode, run or read.
 - **Explain why over MUST.** Imperative voice with the reasoning attached; all-caps ALWAYS/NEVER is a yellow flag that the reasoning is missing. Generalize past the motivating example.
 - **Self-contained.** A skill never tells the user which skill to run next; sequencing is theirs. Naming a skill it runs under the hood is fine.
+  The `sdd-*` skills are the one exception: each ends by naming the next phase as the handoff, and still never starts it.
 - **Code work runs in agents.** A skill whose work writes or judges code dispatches it to a named agent in `.claude/agents/` and keeps its gates and every user interaction in the body, since a subagent cannot ask the user.
+  `sdd-implement` is the exception: it runs `tdd` in the session so the user's gates sit between tasks, and keeps every gate in its body for the same reason.
 - **Load-time snapshots run under the session's restrictions.** A bang snapshot executes before the body loads, and a refused one aborts the whole load. Use the plainest command that yields the fact, no command substitution, and label what empty output means beside it.
 - **Rewrite accreted prose; don't patch it.** When an edit inverts a rule or reframes a passage, rewrite that section as if written under the new thesis.
 

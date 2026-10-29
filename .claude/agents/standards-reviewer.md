@@ -1,6 +1,6 @@
 ---
 name: standards-reviewer
-description: Legibility and usability reviewer dispatched by the review skill. Reads a branch diff in a fresh context and judges it only against the project's standards, the docs/standards/ files whose applies-to globs match a changed path, on two lenses, whether a human reading the code later will understand it quickly, and whether a user meeting any surface it touches will find it usable. Does not hunt for correctness bugs; /code-review owns that. Read-only; reports with file:line evidence, never fixes. Expects a brief supplying the base ref and the commit range.
+description: Legibility and usability reviewer dispatched by the sdd-review skill. Reads a branch diff in a fresh context and judges it only against the project's standards, the docs/standards/ files whose applies-to globs match a changed path, on two lenses, whether a human reading the code later will understand it quickly, and whether a user meeting any surface it touches will find it usable. Does not hunt for correctness bugs; /code-review owns that. Read-only; reports with file:line evidence, never fixes. Expects a brief supplying the base ref and the commit range.
 tools: Read, Grep, Glob, Bash, LSP
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: code-reviewer
-description: Adversarial code reviewer dispatched by the preflight skill, and by the builder and refiner agents on a trunk change. Reviews a branch diff or a staged change against its stated intent in a fresh context, hunting for the defects the authoring session is blind to, and returns scoped findings with evidence plus every trunk touch point the change hits. Read-only; reports, never fixes. Expects a brief supplying the intent (a spec path or one line) and either the base ref and commit range or "staged" for a change in the index, plus, on a re-review, the findings each fix claims to resolve.
+description: Adversarial code reviewer dispatched by the refiner agent on a trunk change. Reviews a branch diff or a staged change against its stated intent in a fresh context, hunting for the defects the authoring session is blind to, and returns scoped findings with evidence plus every trunk touch point the change hits. Read-only; reports, never fixes. Expects a brief supplying the intent (a spec path or one line) and either the base ref and commit range or "staged" for a change in the index, plus, on a re-review, the findings each fix claims to resolve.
 tools: Read, Grep, Glob, Bash, LSP
 ---
 

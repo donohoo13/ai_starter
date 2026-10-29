@@ -1,5 +1,7 @@
 # When to Mock
 
+Read as reference from `SKILL.md`; nothing here runs.
+
 Mock at **system boundaries** only:
 
 - External APIs (payment, email, etc.)

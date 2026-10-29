@@ -33,7 +33,7 @@ Every decision about a file comes from comparing those two with the project's co
 
 ## Classify
 
-Leave out paths a project is meant to own or delete: `CHANGELOG.md`, `README.md`, `.claude/rules/template-dev.md`, `docs/specs/`, `docs/notes/`, and `pnpm-lock.yaml`, which is regenerated rather than copied.
+Leave out paths a project is meant to own or delete: `CHANGELOG.md`, `README.md`, `.claude/rules/template-dev.md`, `docs/sdd/`, `docs/specs/`, `docs/notes/`, and `pnpm-lock.yaml`, which is regenerated rather than copied.
 `.ai-starter.yaml` is written last, by sync itself.
 
 For every other changed path, compare the project's copy with the base (`git -C <tmp> show v<version>:<path>`):

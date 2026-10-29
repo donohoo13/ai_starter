@@ -1,30 +1,40 @@
 # Agent Skills Overview
 
-Eleven skills, eight agents, and a spec file carrying a unit of work from interview to done. Each skill is self-contained: nothing chains into anything else, and the user decides when to call each one.
+Twelve skills, six agents, a document and a helper carrying a unit of work from idea to an accepted pre-PR review.
+Each skill is self-contained: nothing starts another, and the user decides when to call each one.
+The five SDD skills end by naming the next phase as the handoff, and still never start it.
 
-The keystone: ceremony scales with size, engineering discipline never does. A one-line chore still gets a failing test first and a real validation run; what collapses for small work is artifacts, never rigor.
+The keystone: ceremony scales with size, engineering discipline never does.
+A one-line chore still gets a failing test first and a real validation run; what collapses for small work is artifacts, never rigor.
 
-Headless runs (`claude -p`) of the skills that dispatch agents (`implement-spec`, `refine`, `review`, `preflight`) set `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0`, or the session exits after 600s of waiting while a worker is still running.
+Headless runs (`claude -p`) of the skills that dispatch agents (`sdd-outline`, `sdd-plan`, `sdd-review`, `refine`) set `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0`, or the session exits after 600s of waiting while a worker is still running.
 
-## Skills
+## Spec-driven development
 
-- **sdd** (`/sdd <ask>`): the spec-driven development interview.
-  Opens with a read-only reconnaissance that presents a touch map of the files and symbols the change will touch, then interviews in rounds of three or four coupled questions, the most load-bearing first, each with a recommendation attached.
-  Lenses run in order, product, engineering, then design, and a lens that does not apply still gets a one-line disposition; the session always ends by writing `docs/specs/NNN-<slug>.md` at `status: ready`, with a blast-radius line in Architecture and the touch map carried into the spec.
-  Pointed at an existing spec, it grills the gap between the file and the code.
-- **implement-spec** (`/implement-spec <spec>`): builds a ready spec on a worktree or non-main branch by orchestrating one fresh `builder` agent per slice, verifying each slice's commit and tests and forwarding its notes to the next.
-  Runs the full suite, launches the app for a `render-checker` pass when a surface changed, and flips the spec `ready` to `in-progress` to `built`: working and validated, with no QA script and no `done`.
-  Never edits source itself, pushes, or opens a PR.
+`.claude/sdd/spec-driven-development.md` is the source of truth for the five phases.
+The `sdd-*` skills point into it by section and never restate its rules, and `.claude/sdd/bin/sdd` keeps the state (approvals with content hashes, staleness down the chain, structural lint, templates generated from the appendices) so no skill tracks it by hand.
+Working files live in `docs/sdd/<slug>/` and are committed on the feature branch at each gate, so the pull request carries the spec, plan, tasks and review beside the code.
+[`.claude/sdd/README.md`](../sdd/README.md) explains the helper and how to change the document.
+
+- **sdd-outline** (`/sdd-outline [slug] [brief]`): phase 1, an idea to an approved `spec.md`.
+  Sizes the change first and sends trivial or small work to `tdd` instead, grounds in the code read-only, interviews in batches of coupled questions with a recommendation each, drafts numbered requirements with acceptance criteria, runs an adversarial review in a fresh subagent, and gates on the user's approval.
+- **sdd-plan** (`/sdd-plan [slug]`): phase 2, an approved spec to an approved `plan.md`.
+  Researches with sources (`research-analyst` for a question that would stall the conversation), presents each significant decision as options with a recommendation, names the seam each slice's tests run at in the vocabulary `tdd` discovers for the repo, checks the plan against `CLAUDE.md` and `docs/standards/`, and fills the traceability table.
+- **sdd-task** (`/sdd-task [slug]`): phase 3, an approved plan to an approved `tasks.md`.
+  One observable behavior per task with its requirements, seam, files and done-when check, grouped into slices that each end in a close-out; a requirement the user verifies another way is recorded under Verified elsewhere, inside the content hash.
+- **sdd-implement** (`/sdd-implement [slug]`): phase 4, the tasks built one at a time, each through `tdd` in the session.
+  Closes every slice with the full suite, staging by explicit path with the progress log included and a proposed commit, keeps `tasks.md` current so a fresh session resumes at the right item, and offers the worktree helpers when the main checkout should stay on the default branch.
+- **sdd-review** (`/sdd-review [slug] [effort] [--max-findings n] [base]`): phase 5, and the pre-PR review of any branch.
+  With a spec: evidence from the suite, spec conformance in a fresh subagent, Claude Code's `/code-review` for correctness beside `standards-reviewer` for legibility and usability, one `review.md` report, fixes on the user's pick, and a PR description draft once the user confirms the intent; without a spec, the two reviews and the same report in the conversation.
+  Never pushes or opens the PR.
+- **tdd**: red before green at public seams chosen for the critical paths, discovering the repo's commands and test shapes from its own files first, mocks only at true external boundaries, appearance never a test target, and every bug fix opening with a failing repro at the lowest seam that shows it.
+  Run by `sdd-implement` per task and by `sdd-review` per fix, preloaded into `refiner`, and used directly whenever a test can lock something down.
+
+## Other skills
+
 - **refine** (`/refine [spec or intent] [--base <ref>]`): makes a working branch right, with or without a spec, and never stops at a gate.
   Discovers the change from the merge-base with the default branch, or with the `--base` ref a stacked branch names, and its intent without asking, commits any uncommitted work as a baseline, and dispatches a fresh `refiner`; verifies the suite and that the refiner's test table matches its commits, and runs a `render-checker` pass with the UX floors when a surface changed.
-  Hands over one QA script with the app running, flips a `built` spec to `done` on the user's confirmation, and never pushes or opens a PR.
-- **review** (`/review [effort] [--max-findings n] [base]`): two independent reviews of a built branch, reported once.
-  Runs Claude Code's `/code-review` for correctness beside the `standards-reviewer` agent for legibility and usability, triages every finding with evidence for any it rejects, and stops for the user to pick what gets fixed.
-  A picked fix is made test-first, validated, staged, and handed back with a commit message; never commits, pushes, or opens a PR.
-- **preflight** (beta, `/preflight [spec or intent]`): the autonomous alternative to `review`, kept beside it while the two are compared; proves a finished branch is production ready, then opens the PR.
-  Syncs with the default branch without ever rewriting published history, runs the `code-reviewer` agent beside Claude Code's `/code-review`, then the `docs-reviewer` agent, fixes local and verifiable findings one commit each, surfaces trunk and intent issues, and validates lint, types, and the full suite.
-  Pushes and opens the PR without asking once nothing is left for the user to decide, with a Risk section naming a level and the trunk touch points and skeptic verdicts behind it, gives CI one repair round, and never merges or force-pushes.
-- **tdd**: red before green at public seams chosen for the critical paths, needing nothing from the user, mocks only at true external boundaries, appearance never a test target, and every bug fix opening with a failing repro at the lowest seam that shows the bug. Preloaded into the `builder` and `refiner` agents, and used directly whenever a test can lock something down.
+  Hands over one QA script with the app running, and never pushes or opens a PR; it fits between `sdd-implement` and `sdd-review` when a built branch should be brought up to the standards first.
 - **stage-for-commit**: for small changes that needed no spec. Stages exactly this session's files by explicit path, proves the staged set, and hands back a commit message. Never commits, branches, or pushes.
 - **curate-context**: the gate on the prescriptive context files (every `CLAUDE.md` and `CLAUDE.local.md`, `README.md`, `DESIGN.md`, `.claude/rules/`, `docs/standards/`), loaded on any edit to one by its description and the `CLAUDE.md` rule, with no hook behind it. Attributes friction-born candidates, holds an admission bar, routes to the narrowest file, and lands nothing model-invented without approval; zero net growth is the benchmark.
 - **design-init** (`/design-init`): one and done. Interviews a new project's brand from the bracketed `DESIGN.md` scaffold to a governing doc, opening on a mood-board gate over `docs/design/moodboard/`, and offers to delete itself once the doc is filled and `pnpm exec designmd lint DESIGN.md` is clean. Later brand changes are edits to `DESIGN.md`, which every brand or surface decision reads first.
@@ -36,20 +46,17 @@ Headless runs (`claude -p`) of the skills that dispatch agents (`implement-spec`
 
 ## Agents
 
-- **builder** (`.claude/agents/`): builds one spec slice to a working, validated commit in a fresh context with `tdd` preloaded; `implement-spec` dispatches one per slice and one per repair.
-  It carries every tool, makes its own judgment calls, and stops only for a major unforeseen issue or a destructive or outward-facing action; a trunk change the spec did not decide goes through `skeptic` and `code-reviewer` and commits alone.
 - **refiner** (`.claude/agents/`): brings a working change up to the `docs/standards/` files its paths match, with `tdd` preloaded; `refine` dispatches it and resumes it with render findings and QA issues.
-  It audits one standard at a time, pins required behavior at consumption seams, refactors code and tests one concern per commit without weakening a test, and proves every test it touched by deliberately breaking the behavior; trunk changes follow the same protocol as `builder`.
+  It audits one standard at a time, pins required behavior at consumption seams, refactors code and tests one concern per commit without weakening a test, and proves every test it touched by deliberately breaking the behavior; a trunk change the spec did not decide goes through `skeptic` and `code-reviewer` and commits alone.
 - **render-checker** (`.claude/agents/`): drives the running app to each state of each touched surface, screenshots it at mobile and desktop widths in every shipped theme, measures floors on the rendered page, and returns pass or fail with evidence.
   It inherits the browser tools with every edit tool and `Agent` disallowed, and never touches the server the orchestrator owns.
-- **code-reviewer** and **docs-reviewer** (`.claude/agents/`): the adversarial pair `preflight` dispatches in fresh contexts.
-  The first reviews a diff or a staged change against its intent, scopes each finding `branch` or `trunk`, and lists the trunk touch points with their consumer counts; the second finds doc statements the diff made false.
-  Neither carries an edit tool, both keep `Bash` for `git` and test runs so read-only holds by instruction, and both report with `file:line` evidence, never fixes.
-- **standards-reviewer** (`.claude/agents/`): the legibility and usability reviewer `review` dispatches beside `/code-review`.
+- **code-reviewer** (`.claude/agents/`): the defect lens on a staged trunk change the spec did not decide; `refiner` dispatches it beside `skeptic` and sends it one re-review of the fixes.
+  It carries no edit tool and keeps `Bash` for `git` and test runs so read-only holds by instruction, and reports with `file:line` evidence, never fixes.
+- **standards-reviewer** (`.claude/agents/`): the legibility and usability reviewer `sdd-review` dispatches beside `/code-review`.
   It judges a branch diff only against `CLAUDE.md` and the `docs/standards/` files its paths match, leaves correctness to the other reviewer, and reports findings that quote the standards line each fails, plus what the change does well; read-only by the same instruction.
 - **skeptic** (`.claude/agents/`): argues whether a staged trunk change the spec did not decide should exist at all, returning `keep`, `revise`, or `drop` with the strongest case against it and a costed alternative.
-  A worker making such a change dispatches it beside `code-reviewer`, which owns the defect lens; read-only by the same instruction.
-- **research-analyst** (`.claude/agents/`): a background evidence fetcher `sdd` dispatches mid-interview to answer one scoped question with sourced, tiered claims while the conversation continues. Read-only; returns evidence, never advice.
+  `refiner` dispatches it beside `code-reviewer`, which owns the defect lens; read-only by the same instruction.
+- **research-analyst** (`.claude/agents/`): a background evidence fetcher `sdd-plan` dispatches to answer one scoped question with sourced, tiered claims while the conversation continues, using Context7 IDs the brief pins. Read-only; returns evidence, never advice.
 
 ## Standards
 
@@ -68,8 +75,8 @@ Each file's `applies-to:` globs name the paths it governs, and a file without th
 A rule every implementer must hold from the first line, because getting it wrong first costs more than a refactor, lives in `CLAUDE.md` instead.
 `.claude/rules/skill-authoring.md` stays a path-scoped rule, loading when a session reads a skill file: the 500-line body ceiling, the description as trigger, and gut-check prompts for a fresh session.
 
-## Spec lifecycle
+## SDD lifecycle
 
-`docs/specs/NNN-<slug>.md` carries `status: ready` (written by `sdd`), then `in-progress` and `built` (both flipped by `implement-spec`), then `done` (flipped by `refine` once the user confirms QA on the final code).
-`built` means working and validated, not yet made right; `implement-spec` resumes only `ready` and `in-progress` specs, so a finished build never reads as half done.
-The spec is the tracker: no GitHub issues, one commit per slice as the audit trail. The template lives at `sdd/assets/spec-template.md` and a worked example at `sdd/references/example-spec.md`.
+`docs/sdd/<slug>/` holds `spec.md`, `plan.md` and `tasks.md`, each `draft` until the user approves it (`approved`, with its content hash recorded), `tasks.md` moving to `in-progress` and `done` under `sdd-implement`, and `review.md` moving from `open` to `accepted` under `sdd-review`.
+An approved artifact edited afterwards counts as changed and everything downstream as stale, and `.claude/sdd/bin/sdd status` names the phase and the skill to run.
+The folder is the tracker: no GitHub issues, one commit per slice as the audit trail, and each artifact committed beside the code at the gate that approved it.

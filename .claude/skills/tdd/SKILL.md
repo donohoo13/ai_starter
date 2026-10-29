@@ -1,63 +1,90 @@
 ---
 name: tdd
-description: Test-driven development discipline, the red then green loop, seam selection, and the anti-patterns that make tests worth keeping. Use when implementing any feature or bug fix a test can lock down, even when nobody says test-first, and whenever the user asks to build test-first, mentions "red-green-refactor", or wants integration tests.
+description: Test-driven development discipline for any repo. The red then green loop, choosing the seam the repo already tests at, and the anti-patterns that make tests worth keeping. Discovers a repo's test commands and test shapes from its own files before the first test. Works as a one-shot inside any prompt. Use when implementing any feature or bug fix a test can lock down, even when nobody says test-first, and whenever the user says "red-green", "test first", "tdd", or asks which kind of test to write for a change.
+argument-hint: "[the behavior, bug or task to build test-first]"
 ---
 
-# Test-Driven Development
+# TDD
 
-TDD is the red then green loop.
+Red then green.
 This skill is what makes the loop produce tests worth keeping.
+
+## Before the first test
+
+Read [references/discover.md](references/discover.md) once per repository and session.
+It finds the commands, the frameworks, where tests live, one living example of each test type and how collaborators are doubled, and has you summarize them before the first test.
+Skip it only when those facts are already in context, from `CLAUDE.md` or an earlier run in the same session.
+Never invent a command: one that does not exist proves nothing, and a wrong one can mutate state.
+
+## Unit of work
+
+When the caller names the unit of work, follow it; for example, when the caller says it runs the full suite at the end, skip that run and report the bounded checks you did run.
+Otherwise the whole request is the unit of work: the full suite runs once at its end.
 
 ## What a good test is
 
-Tests verify behavior through public interfaces, never implementation details.
-A good test reads like a specification ("user can checkout with valid cart") and survives refactors because it does not care about internal structure.
-Examples live in `tests.md` and mocking guidance in `mocking.md`, siblings of this file, read as reference.
+Behavior through a public interface, never implementation detail.
+It reads like a specification ("rejects a checkout with an empty cart") and survives a refactor that changes no behavior.
+Expected values are independent literals, never recomputed the way the code computes them.
+[references/tests.md](references/tests.md) shows good and bad tests side by side; read it when a test under your hands starts to look like the bad column.
 
 ## Seams
 
-A seam is the public boundary you test at.
-Tests live at seams, never against internals.
-Choose the seams before writing any test, aimed at the critical paths the spec or the intent names.
+A seam is the boundary you test at.
+Name the seams a change will test at before the first test, so effort lands on the critical paths instead of every edge.
+Choose by what the code depends on, and by what the repo already does for that kind of code, since the repo's established seam wins over the purist one:
 
-Choose the seam by what the code depends on:
-
-- **In-process** (pure computation, in-memory state): test through the module's interface. No adapter, no mock.
-- **Local-substitutable** (Postgres via PGLite, an in-memory filesystem): run the stand-in in the suite and test through the interface.
-- **Remote but owned** (your own services over a network): a port at the seam, a real transport adapter in production, an in-memory one in tests.
-- **True external** (Stripe, Twilio): inject a port and mock only here, at the outermost edge. Never mock internal collaborators.
+- In-process (pure computation, in-memory state): through the module interface, no doubles.
+- Local-substitutable (a database with a local stand-in, the file system): run the stand-in in the suite and test through the interface; a real test database or temp directory beats a mock.
+- Remote but owned (your own services over a network): a port at the seam, a real transport adapter in production, an in-memory one in tests.
+- True external (payments, email, third-party APIs): inject a port and mock only here, at the outermost edge, never deeper.
+  [references/mocking.md](references/mocking.md) shows how to shape that edge so the mock stays simple.
+- Collaborators the repo already doubles at a layer: double them the same way, through the same helper the discovery found.
 
 UI seams split.
-Layout, appearance, and composition are never test targets, because jsdom computes no layout, so such a test can neither see nor protect how a surface looks.
-View logic (state, view-model math, derived values) tests through its module interface; behavioral contracts test at the component seam the way a user exercises them: clicking save submits the right payload, the error message renders, the hidden section stays hidden until toggled.
-When the loop touches an existing test file, appearance-shaped assertions there (inline styles, look-classes, snapshots, geometry) are removed in the same change, re-expressed at the behavior seam when they smuggle a real guarantee; roles, accessible names, and `aria-*` assertions stay.
-Report every removal.
+Appearance and layout are never test targets, because jsdom and native test renderers compute no layout.
+Behavior is: pressing this calls that with this payload, the error renders, the hidden section stays hidden until toggled.
+View logic (state, derived values) tests through its module interface; behavioral contracts test at the component seam the way a user exercises them.
+Climb to a browser test only when the browser is the thing under test.
+
+A caller that names the seam decides it: test there, and say so in the report when the repo's established seam for that code disagrees.
 
 ## Bug fixes
 
-A bug fix opens with a failing test that reproduces the report.
-Write it at the lowest seam that actually exhibits the bug, then confirm it fails for the reported reason and not an incidental one; a test that fails for the wrong reason proves nothing about the fix.
-Climb to an end-to-end test only when no lower seam can show the bug, since every layer added makes the repro slower and flakier.
+Open with a failing test that reproduces the report at the lowest seam that shows it, and confirm it fails for the reported reason, not an incidental one.
+Climb to a browser test only when nothing lower can show the bug, since every layer added makes the repro slower and flakier.
 
 ## Anti-patterns
 
-- **Implementation-coupled**: mocks internal collaborators, tests private methods, or verifies through a side channel such as querying the database.
-  The tell: the test breaks on a refactor that changed no behavior.
-- **Tautological**: the assertion recomputes the expected value the way the code does, so it passes by construction.
-  Expected values come from an independent source: a known-good literal, a worked example, the spec.
+- **Implementation-coupled**: asserting call counts or order on internal collaborators, testing private methods, verifying through a side channel such as querying the database.
+  The tell: a refactor with no behavior change breaks it.
+- **Tautological**: the expected value is recomputed the way the code computes it, so it passes by construction.
 - **Shallow**: the test asserts existence, or that a call did not throw, instead of an outcome.
   It passes against an implementation that returns the wrong thing.
-- **Horizontal slicing**: all tests first, then all implementation.
+- **Appearance-pinned**: snapshots, style classes, inline styles, geometry.
+  Roles, labels, test IDs, and `aria-*` assertions stay.
+  When the loop touches an existing test file, appearance assertions there are removed in the same change and re-expressed at the behavior seam when they carried a real guarantee; report every removal.
+- **Horizontal**: all tests first, then all code.
   Bulk tests verify imagined behavior.
-  Work in vertical slices instead: one test, one implementation, repeat.
+  One test, one implementation, repeat.
+- **Duration waits**: wait on a condition the test can observe.
+  An `act(...)` warning is a failure, fixed by awaiting the trigger inside `act`, never silenced.
 
 ## Rules of the loop
 
-- **Red before green.** Write the failing test first, then only enough code to pass it.
-  Never anticipate future tests or add speculative features.
-- **One slice at a time.** One seam, one test, one minimal implementation per cycle.
-- **Run a bounded neighborhood.** Each cycle runs the tests covering the seam plus its direct consumers and lints only the touched files; the full suite runs once at the end of the unit of work, catching interactions single-file runs cannot see.
-  A full suite per cycle is slow enough that the loop stops being run.
-- **Refactoring is not part of the loop.** Land it as a separate tidy step after green, never between red and green.
-  Tests may be restructured, moved, or rewritten alongside the code, but never weakened to make a refactor pass: no changed expected value, loosened matcher, dropped assertion, or skip.
-  The refactor step exists to prove the behavior held, and a weakened test proves nothing.
+- Red before green: the failing test first, then only enough code to pass it, nothing speculative.
+- One seam, one test, one minimal implementation per cycle.
+- Bounded neighborhood: each cycle runs the touched test files and lints the touched files; the full suite runs once at the end of the unit of work, where single-file runs cannot see interactions.
+- Refactoring is not part of the loop: a separate tidy after green, and only inside the code the task already touches, never the surrounding old code.
+  Tests may move or be restructured with the code, but never weakened to make a refactor pass: no changed expected value, loosened matcher, dropped assertion, or skip.
+
+## Report back
+
+End with this report, so a caller can record the evidence:
+
+- **Tests written**: each test by file and name, with the behavior it locks down.
+- **Red**: the failing output that proved each test failed first, and that it failed for the right reason.
+- **Green**: the passing output for the bounded checks, and for the full suite when this unit of work ran it.
+- **Files touched**: every file created or changed.
+- **Appearance assertions removed**: each one, and where its guarantee now lives, or "none".
+- **Pre-existing failures**: any failure that existed before the change, shown by stash, rerun and compare, or "none".
