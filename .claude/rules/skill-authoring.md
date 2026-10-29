@@ -15,7 +15,7 @@ Mine the session before interviewing: the conversation that triggered the change
 
 ## Rules
 
-- **The body runs at most 500 lines**, frontmatter excluded, measured before landing.
+- **The body runs at most 5000 tokens**, frontmatter excluded, measured before landing.
   Lines count only on a body written one sentence per line, per `CLAUDE.md`'s Markdown rule, since a paragraph held on one line hides its real length; a substantive edit reflows a body still in paragraph lines before measuring it, and a typo or link fix leaves the format alone.
   Under the ceiling there is no target: a body is as long as its job needs, and gating, chaining, or rationale that belongs in a reference file or nowhere is cut at any length.
 - **The description is the trigger.** Third person, stating what the skill does and when to use it, with concrete contexts and trigger phrases spelled out. Phrase triggers around session state as well as user intent ("use when editing any file under X") so mid-task situations fire. Undertriggering is the default failure mode; specificity is the cure.
