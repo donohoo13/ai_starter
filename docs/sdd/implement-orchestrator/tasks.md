@@ -1,7 +1,7 @@
 ---
 title: Implement orchestrator tasks
 slug: implement-orchestrator
-status: approved
+status: in-progress
 updated: 2026-11-02
 based_on: a3a4636ee56d
 approved_hash: d21c47a34aa8
