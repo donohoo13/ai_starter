@@ -1,3 +1,3 @@
-# The template this project came from and the release it last synced to; template-sync reads and updates it.
+# The template this project came from and the release it last took changes from; update the version after taking a newer release.
 template: donohoo13/ai_starter
 version: 0.3.0

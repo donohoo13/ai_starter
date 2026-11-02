@@ -16,7 +16,7 @@ approved_hash:
   - Seam: <from the plan>
   - Files: <paths>
   - Done when: <command or check that passes or fails>
-- [ ] T002 [P] <one observable behavior>
+- [ ] T002 <one observable behavior>
   - Requirements: FR-002
   - Seam: <from the plan>
   - Files: <paths>

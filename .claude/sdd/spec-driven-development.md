@@ -536,7 +536,7 @@ It works like a unit test for the spec.
 ### Task shape
 
 ```
-- [ ] T012 [P] Reject registration when the email format is invalid
+- [ ] T012 Reject registration when the email format is invalid
   - Requirements: FR-003
   - Seam: request test on POST /registrations
   - Files: src/auth/registration.ts, tests/auth/registration.test.ts
@@ -556,8 +556,6 @@ It works like a unit test for the spec.
   Within a slice, build foundations before the things that depend on them.
 - **Slice close:** end every slice with a close-out item covering the full suite, staging and the orchestrator's commit (Appendix C).
 - **Seam:** every task names its seam, taken from the plan.
-- **Parallel work:** mark a task `[P]` only if it shares no files and no dependencies with the other parallel tasks.
-  Never assign the same file to two agents at once.
 - **Coverage:** every functional requirement has at least one task, and every task traces to a requirement that is still in force.
   A non-functional requirement or invariant needs a task too, unless the user decides it is verified another way; record that decision under Verified elsewhere (Appendix C) with the ID, how it is verified and who decided.
   `sdd lint` reports an uncovered requirement as an error, and the section sits inside the content hash, so changing an entry after approval counts as a change.
@@ -1010,7 +1008,7 @@ approved_hash:
   - Seam: <from the plan>
   - Files: <paths>
   - Done when: <command or check that passes or fails>
-- [ ] T002 [P] <one observable behavior>
+- [ ] T002 <one observable behavior>
   - Requirements: FR-002
   - Seam: <from the plan>
   - Files: <paths>

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Asserts the structural rules of the skill and agent suite that prose alone cannot hold, such as which agent a skill preloads and which skill may dispatch an agent.
 
+import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -133,10 +134,47 @@ function checkNoOrphanAgents() {
   }
 }
 
+const REMOVED_NAMES = [
+  "refiner",
+  "code-reviewer",
+  "template-sync",
+  "template-feedback",
+  "implement-spec",
+  "run-skill-generator",
+];
+const REMOVED_ENGLISH_WORDS = ["refine", "builder"];
+
+function removedNamePattern() {
+  const edge = "([^[:alnum:]_-]|$)";
+  const anywhere = `(^|[^[:alnum:]_-])(${REMOVED_NAMES.join("|")})${edge}`;
+  const asName = `[\`/*](${REMOVED_ENGLISH_WORDS.join("|")})([\`*\\] ]|$)`;
+  return `${anywhere}|${asName}`;
+}
+
+function checkNoRemovedNames() {
+  // Spec folders and the changelog record history, so naming a removed skill there is correct.
+  const excluded = [":!docs/sdd", ":!CHANGELOG.md", ":!scripts/test/process-suite.battery.mjs"];
+  let matches = "";
+  try {
+    matches = execFileSync("git", ["grep", "-nE", removedNamePattern(), "--", ".", ...excluded], {
+      encoding: "utf8",
+    });
+  } catch (error) {
+    if (error.status !== 1) throw error;
+  }
+  const lines = matches.split("\n").filter(Boolean);
+  check(
+    "no tracked file names a removed skill or agent",
+    lines.length === 0,
+    `${lines.length} found:\n  ${lines.join("\n  ")}`,
+  );
+}
+
 checkImplementer();
 checkRenderCheckIsUserOnly();
 checkRenderCheckerHasOneDispatcher();
 checkNoOrphanAgents();
+checkNoRemovedNames();
 
 console.log("");
 if (failures > 0) {

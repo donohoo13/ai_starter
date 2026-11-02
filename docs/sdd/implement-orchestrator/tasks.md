@@ -159,36 +159,41 @@ approved_hash: e2f23863cfe8
 
 ## P4: Docs reflect the repository
 
-- [ ] T021 The `sdd` helper no longer parses or lints a parallel marker, and the document, template and `sdd-task` no longer offer one
+- [x] T021 The `sdd` helper no longer parses or lints a parallel marker, and the document, template and `sdd-task` no longer offer one
   - Requirements: FR-029
   - Seam: the helper's `unittest` suite
   - Files: .claude/sdd/bin/sdd, .claude/sdd/tests/test_lint_tasks.py, .claude/sdd/tests/test_status.py, .claude/sdd/tests/helpers.py, .claude/sdd/spec-driven-development.md, .claude/sdd/templates/tasks.md, .claude/skills/sdd-task/SKILL.md
   - Done when: `node scripts/test/sdd-helper.battery.mjs` passes, including a new test that two tasks sharing a file and depending on each other lint clean, which failed before the change
-- [ ] T022 No tracked file outside `docs/sdd/` and released changelog entries names a removed skill or agent, and no doc states a skill or agent count
+  - Evidence: new test red ("T002 is [P] but depends on T001 in the same slice", 2 errors), green after removing TASK_TEXT's group and lint_parallel; sdd-helper battery 3/3; `[P]` count across doc, templates and helper 0
+- [x] T022 No tracked file outside `docs/sdd/` and released changelog entries names a removed skill or agent, and no doc states a skill or agent count
   - Requirements: FR-028, FR-034
   - Seam: the battery
   - Files: scripts/test/process-suite.battery.mjs, CLAUDE.md, README.md, .claude/skills/README.md, .claude/sdd/README.md, .ai-starter.yaml, scripts/test/ai-starter-version.battery.mjs
   - Depends on: T021
   - Done when: `node scripts/test/process-suite.battery.mjs` passes its removed-name check, after failing on `CLAUDE.md`, and `CLAUDE.md` states the 5000-token budget
-- [ ] T023 The unreleased v0.3.0 changelog entry describes this change and nothing in it contradicts the repository
+  - Evidence: red with 20 matches incl. CLAUDE.md:67; green `ok no tracked file names a removed skill or agent` after the sweep (also .claude/rules/template-dev.md); CLAUDE.md:70 says 5000 tokens; count grep finds none
+- [x] T023 The unreleased v0.3.0 changelog entry describes this change and nothing in it contradicts the repository
   - Requirements: FR-033
   - Seam: read by the conformance pass
   - Files: CHANGELOG.md
   - Depends on: T022
   - Done when: the v0.3.0 entry has what, why and adaptation notes for this change, and `node scripts/test/process-suite.battery.mjs` still passes
-- [ ] T024 Every changed skill body measures under the token budget
+  - Evidence: v0.3.0 gains 7 What bullets, 3 Why lines and 4 adaptation notes; stale refine, skill-authoring, template-sync and sync-worded lines rewritten; process-suite battery passes
+- [x] T024 Every changed skill body measures under the token budget
   - Requirements: NFR-001
   - Seam: measurement
   - Files: .claude/skills/sdd-implement/SKILL.md, .claude/skills/render-check/SKILL.md, .claude/skills/sdd-task/SKILL.md
   - Depends on: T023
   - Done when: for each file, the body's `wc -c` divided by 4 is under 4500, with each figure recorded in the Evidence line
-- [ ] T025 The gut-check prompts for `sdd-implement`, `implementer` and `render-check` are written for a fresh session
+  - Evidence: body chars/4: sdd-implement 9741/4 ≈ 2435, render-check 3080/4 ≈ 770, sdd-task 4421/4 ≈ 1105, all under 4500
+- [x] T025 The gut-check prompts for `sdd-implement`, `implementer` and `render-check` are written for a fresh session
   - Requirements: FR-001, FR-022, FR-026
   - Seam: read by the owner
   - Files: docs/sdd/implement-orchestrator/gut-check.md
   - Depends on: T024
   - Done when: the file holds two or three task prompts with expected behavior per skill, and should-trigger and near-miss should-not-trigger prompts for each changed description
-- [ ] P4 close: full suite green, changes staged by explicit path, commit message proposed, user committed
+  - Evidence: gut-check.md has 3 sdd-implement and 2 render-check task prompts, 1 implementer report check, 5 should-trigger and 4+3 near-miss prompts, 6 "Passes when" expectations
+- [x] P4 close: full suite green, changes staged by explicit path, commit message proposed, user committed
 
 ## Verified elsewhere
 
@@ -197,3 +202,5 @@ approved_hash: e2f23863cfe8
 ## Follow-ups (out of scope)
 
 - The pre-commit hook runs `prettier --write` after `sdd approve` records a hash, so an approved artifact reads as changed; the gate skills or the helper should format before hashing.
+- FR-028 says only released changelog entries may name removed skills, but FR-033 requires the unreleased entry to name `refine` in its adaptation notes; the owner chose to exclude `CHANGELOG.md` from the removed-name check, so FR-028's exclusion wording should say so.
+- `.claude/rules/template-dev.md` still describes the template's release process around `.ai-starter.yaml`; with `template-sync` gone, whether that file and `ai-starter-version.battery.mjs` still earn their place is the owner's call.

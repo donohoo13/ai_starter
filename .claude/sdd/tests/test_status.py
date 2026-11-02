@@ -85,7 +85,7 @@ class StatusPhaseTests(SddCase):
         self.assertEqual(data["phase"], "4. Implement")
         self.assertFalse(data["artifacts"]["tasks"]["changed"])
         self.assertEqual(data["tasks"]["done"], 1)
-        self.assertEqual(data["tasks"]["next"], "T002 [P] Render a placeholder when a attachment file is missing")
+        self.assertEqual(data["tasks"]["next"], "T002 Render a placeholder when a attachment file is missing")
         code, out, err = self.run_sdd("status", SLUG)
         self.assertIn("1/2 done", out)
         self.assertIn("next: T002", out)
