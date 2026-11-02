@@ -19,6 +19,9 @@ In a project created from the template, this file is template residue: delete it
   - The `[P]` task marker leaves `tasks.md`, its template, `sdd-task` and the helper's lint.
   - `scripts/test/process-suite.battery.mjs` fails CI when the implementer's frontmatter drifts, a skill other than `render-check` names `render-checker`, an agent has no skill naming it, or a tracked file outside `docs/sdd/` and this changelog names a removed skill or agent.
   - `template-sync` and `template-feedback` are removed; a project takes a release by diffing against its `.ai-starter.yaml` base by hand.
+  - The `guard-main` and `guard-secret-read` Claude Code hooks, their `settings.json` registrations and `guard-main.battery.mjs` are removed.
+    `.husky/pre-commit` now refuses a commit on the default branch (read from `origin/HEAD`, else `main`) and a new `.husky/pre-push` refuses a push to it, letting tags through; `husky-guard.battery.mjs` runs both against a throwaway repo.
+    `settings.json` denies `--no-verify` and `HUSKY=0`, and its `Read(...)` deny rules keep covering secret files.
   - The skill body budget in `.claude/rules/skill-authoring.md` is 5000 tokens instead of 500 lines, and `CLAUDE.md` and the READMEs list skills and agents by name without a count.
   - `tdd` is rebuilt around a discovery reference that finds a repo's test commands and test shapes from its own files, keeps the mocking and good-versus-bad-test references, and adds a report-back contract so the `implementer` records evidence per task.
   - `research-analyst` is dispatched by `sdd-plan` and takes pinned Context7 library IDs; `standards-reviewer` is dispatched by `sdd-review` with the base ref and the commit range.
@@ -47,6 +50,7 @@ In a project created from the template, this file is template residue: delete it
   Building in the session that invoked `sdd-implement` carried the whole build in one context and checked each slice in the context that wrote it; a fresh agent per slice builds from the approved artifacts alone, and an orchestrator that did not write the code verifies it before committing.
   `refine` rewrote finished code to the standards `sdd-review` then judged again, so standards now hold inside each slice and the review is the single pass; render passes are slow and token-heavy, so only the user starts one.
   The `[P]` marker had no consumer once slices build one at a time, and the battery keeps the suite's structural rules from drifting the way the skill counts did.
+  A git hook guards every commit and push, from any author or tool, where the Claude Code hooks guarded only Claude's Bash calls and parsed shell text to do it.
 - **Adaptation notes**:
   - A `docs/specs/*.md` spec in flight finishes under the old skills before taking this release, or is outlined again with `sdd-outline` into `docs/sdd/<slug>/`; nothing migrates it.
   - A project that edited `sdd-implement` reapplies its edits to the orchestrator, or to `implementer` when they concerned how a task is built.
@@ -54,6 +58,7 @@ In a project created from the template, this file is template residue: delete it
   - A `tasks.md` in flight that marks tasks `[P]` still lints; the marker is now plain title text, so drop it.
   - A project that wants a different build model or effort edits `model:` in `.claude/agents/implementer.md`, or names the effort when it starts `sdd-implement`.
   - A project deletes `sdd`, `implement-spec`, `review` and `preflight`, first carrying any edits it made to them into the `sdd-*` skills.
+  - A project deletes `.claude/hooks/` and the `hooks` block in `.claude/settings.json`, adds `.husky/pre-push`, and adds the default-branch check at the top of its own `.husky/pre-commit`; a project whose pre-commit runs lint-staged keeps that line below the check.
   - CI runners need `python3` for the new battery; a project without Python deletes `scripts/test/sdd-helper.battery.mjs` and runs `python3 -m unittest discover -s .claude/sdd/tests` by hand.
   - Project-owned files that name the removed skills (nested `CLAUDE.md` files, project rules) need the same rename; `git grep -E 'implement-spec|preflight|/review'` finds them.
   - A filled `BRANDING.md` shows up beside a new `DESIGN.md` when this release is diffed, since the contents differ too much to register as a rename.

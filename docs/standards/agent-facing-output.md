@@ -1,13 +1,13 @@
 ---
 applies-to:
   - "scripts/**"
-  - ".claude/hooks/**"
+  - ".husky/**"
 ---
 
 # Agent-facing output
 
 Scripts, hooks, and CLIs here are read by an agent more often than a person, and every line they print costs context on every call.
-These floors are distilled from [AXI, the Agent eXperience Interface](https://axi.md/); `scripts/dev/node-dev-server.mjs` and `.claude/hooks/guard-main.mjs` are living examples.
+These floors are distilled from [AXI, the Agent eXperience Interface](https://axi.md/); `scripts/dev/node-dev-server.mjs` is a living example.
 
 - Every run ends in a definitive outcome line, including the empty and no-op cases ("0 matches", "already running (pid 4121)"), because silence reads as either success or a hang.
 - A failure or block states what happened, why, and the exact next command, so the agent's next turn is the fix rather than an investigation.
