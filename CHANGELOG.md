@@ -21,7 +21,7 @@ In a project created from the template, this file is template residue: delete it
   - `template-sync` and `template-feedback` are removed; a project takes a release by diffing against its `.ai-starter.yaml` base by hand.
   - The `guard-main` and `guard-secret-read` Claude Code hooks, their `settings.json` registrations and `guard-main.battery.mjs` are removed.
     `.husky/pre-commit` now refuses a commit on the default branch (read from `origin/HEAD`, else `main`) and a new `.husky/pre-push` refuses a push to it, letting tags through; `husky-guard.battery.mjs` runs both against a throwaway repo.
-    `settings.json` denies `--no-verify` and `HUSKY=0`, and its `Read(...)` deny rules keep covering secret files.
+    The `Read(...)` deny rules in `settings.json` keep covering secret files.
   - The skill body budget in `.claude/rules/skill-authoring.md` is 5000 tokens instead of 500 lines, and `CLAUDE.md` and the READMEs list skills and agents by name without a count.
   - `tdd` is rebuilt around a discovery reference that finds a repo's test commands and test shapes from its own files, keeps the mocking and good-versus-bad-test references, and adds a report-back contract so the `implementer` records evidence per task.
   - `research-analyst` is dispatched by `sdd-plan` and takes pinned Context7 library IDs; `standards-reviewer` is dispatched by `sdd-review` with the base ref and the commit range.
