@@ -1,7 +1,7 @@
 ---
 title: Implement orchestrator tasks
 slug: implement-orchestrator
-status: approved
+status: in-progress
 updated: 2026-11-02
 based_on: 1f38a952fdb6
 approved_hash: e2f23863cfe8
@@ -11,83 +11,96 @@ approved_hash: e2f23863cfe8
 
 ## P1: Orchestrated slice build
 
-- [ ] T001 The implementer agent exists, preloads `tdd` and pins `opus`, and a battery guards both
+- [x] T001 The implementer agent exists, preloads `tdd` and pins `opus`, and a battery guards both
   - Requirements: FR-004
   - Seam: the new battery, run by `pnpm test:scripts`
   - Files: scripts/test/process-suite.battery.mjs, .claude/agents/implementer.md
   - Done when: `node scripts/test/process-suite.battery.mjs` passes, after failing on the missing `implementer.md`
-- [ ] T002 The implementer builds each task of its slice through `tdd`, self-checks its diff against the matching standards, and edits `tasks.md` only in its own boxes, Evidence lines and Follow-ups
+  - Evidence: red `FAIL .claude/agents/implementer.md exists with frontmatter`; green 3 ok (exists, preloads tdd, pins model opus), prettier clean
+- [x] T002 The implementer builds each task of its slice through `tdd`, self-checks its diff against the matching standards, and edits `tasks.md` only in its own boxes, Evidence lines and Follow-ups
   - Requirements: FR-004, FR-005, FR-006
   - Seam: read by the conformance pass
   - Files: .claude/agents/implementer.md
   - Depends on: T001
   - Done when: `grep -c 'applies-to' .claude/agents/implementer.md` is at least 1 and the method names the task as the behavior, the task's seam, the Done-when check, the no-key rule, and forbids commit, push and branch switch
-- [ ] T003 The implementer stops on the five conditions and decides only how-it-is-built gaps itself
+  - Evidence: grep counts applies-to 1, behavior/seam/Done-when 2, no-key rule 1, commit/push/switch ban 1; Build a slice, Check against the standards and Boundaries sections read against FR-004 to FR-006
+- [x] T003 The implementer stops on the five conditions and decides only how-it-is-built gaps itself
   - Requirements: FR-007, FR-008
   - Seam: read by the conformance pass
   - Files: .claude/agents/implementer.md
   - Depends on: T001
   - Done when: the stop section lists exactly the five FR-007 conditions, names the "Ask first" source, exempts spec-decided trunk changes, and states FR-008's decide-and-report rule
-- [ ] T004 The implementer applies the proof bar and builds an approved trunk change first, ending in `TRUNK_READY`
+  - Evidence: When to stop holds 5 bullets; "Ask first" source (CLAUDE.md, else SDD section 6) 1, spec-decided trunk exemption 1, judgment-call rule 1
+- [x] T004 The implementer applies the proof bar and builds an approved trunk change first, ending in `TRUNK_READY`
   - Requirements: FR-013, FR-014
   - Seam: read by the conformance pass
   - Files: .claude/agents/implementer.md
   - Depends on: T003
   - Done when: `grep -c 'TRUNK_READY' .claude/agents/implementer.md` is at least 1 and the trunk section states the proof bar and the re-`BLOCKED` path
-- [ ] T005 The implementer ends with the report contract
+  - Evidence: `grep -c TRUNK_READY` 2; Trunk changes section states the proof bar (in-repo consumers; no published API, external contract or live-data schema), build-first, and BLOCKED again on failure
+- [x] T005 The implementer ends with the report contract
   - Requirements: FR-009
   - Seam: read by the conformance pass
   - Files: .claude/agents/implementer.md
   - Depends on: T004
   - Done when: the report section lists the four statuses and the five fields of FR-009 and forbids advice in notes
-- [ ] T006 The orchestrator dispatches one implementer per slice with a pointer-only brief at effort high, and writes only what FR-002 allows
+  - Evidence: Report section has 5 bold fields, the status line lists DONE, DONE_WITH_CONCERNS, BLOCKED and TRUNK_READY, and notes say "never advice"
+- [x] T006 The orchestrator dispatches one implementer per slice with a pointer-only brief at effort high, and writes only what FR-002 allows
   - Requirements: FR-001, FR-002, FR-003, INV-001
   - Seam: read by the conformance pass
   - Files: .claude/skills/sdd-implement/SKILL.md
   - Depends on: T005
   - Done when: `grep -c 'Skill tool' .claude/skills/sdd-implement/SKILL.md` is 0, the skill names `implementer`, `effort: high` with the per-run override, the four brief inputs, and the FR-002 write list
-- [ ] T007 The orchestrator handles `BLOCKED` by asking the user and resuming the same agent, dispatching `skeptic` first for a trunk change, and `skeptic` reads its brief instead of the index
+  - Evidence: `grep -c 'Skill tool'` 0; implementer 7, effort-high-with-override 1, four-input brief 1, "What this session writes" lists 4 writes
+- [x] T007 The orchestrator handles `BLOCKED` by asking the user and resuming the same agent, dispatching `skeptic` first for a trunk change, and `skeptic` reads its brief instead of the index
   - Requirements: FR-010, FR-011, FR-012
   - Seam: read by the conformance pass
   - Files: .claude/skills/sdd-implement/SKILL.md, .claude/agents/skeptic.md
   - Depends on: T006
   - Done when: `grep -cE 'diff --cached|refiner|code-reviewer' .claude/agents/skeptic.md` is 0 and the skill states the `SendMessage` resume and the fresh-dispatch fallback
-- [ ] T008 The orchestrator commits a verified trunk change alone and resumes the agent
+  - Evidence: skeptic stale-reference grep 0; skill SendMessage 3, fresh-dispatch fallback 1, skeptic dispatched before the user is asked 1
+- [x] T008 The orchestrator commits a verified trunk change alone and resumes the agent
   - Requirements: FR-015
   - Seam: read by the conformance pass
   - Files: .claude/skills/sdd-implement/SKILL.md
   - Depends on: T007
   - Done when: the skill runs the full suite on `TRUNK_READY`, commits with a body opening `Trunk change:`, and resumes the same agent
-- [ ] T009 The orchestrator verifies every slice with five checks, separates pre-existing failures in a temporary worktree, and allows one retry
+  - Evidence: Trunk commit section has the full suite 1, the `Trunk change: <touch point>` body 1, the same-agent resume 1
+- [x] T009 The orchestrator verifies every slice with five checks, separates pre-existing failures in a temporary worktree, and allows one retry
   - Requirements: FR-016, FR-017, FR-018
   - Seam: read by the conformance pass
   - Files: .claude/skills/sdd-implement/SKILL.md
   - Depends on: T008
   - Done when: `grep -c 'git worktree' .claude/skills/sdd-implement/SKILL.md` is at least 1 and the verify step lists the five FR-016 checks and the single resume
-- [ ] T010 The orchestrator ticks the close-out and commits the slice without asking, refusing the default branch
+  - Evidence: `grep -c 'git worktree'` 1; Verify lists 5 numbered checks; resume-once 1, second failure stops without a commit
+- [x] T010 The orchestrator ticks the close-out and commits the slice without asking, refusing the default branch
   - Requirements: FR-019, INV-002
   - Seam: read by the conformance pass
   - Files: .claude/skills/sdd-implement/SKILL.md
   - Depends on: T009
   - Done when: the commit step ticks the close-out before committing, forbids `git add -A` and `git add .`, refuses the default branch, never pushes, and records judgment calls in the body
-- [ ] T011 The orchestrator resumes at the first unchecked close-out, routes a fully closed list to QA, and never discards uncommitted work
+  - Evidence: Slice commit has close-out-first 1, add -A/. ban 1, default-branch refusal 1, Never push 1, judgment calls in body 1
+- [x] T011 The orchestrator resumes at the first unchecked close-out, routes a fully closed list to QA, and never discards uncommitted work
   - Requirements: FR-020, FR-021, INV-005
   - Seam: read by the conformance pass
   - Files: .claude/skills/sdd-implement/SKILL.md
   - Depends on: T010
   - Done when: the start section states both resume points and the two options for uncommitted work, with no discard step
-- [ ] T012 Skill-authoring no longer exempts `sdd-implement` from code work in agents
+  - Evidence: Start has first-unchecked-close-out 1, all-closed-and-in-progress route 1 (to Finish until T014 adds QA), two options 1, no-discard 1
+- [x] T012 Skill-authoring no longer exempts `sdd-implement` from code work in agents
   - Requirements: FR-030
   - Seam: read by the conformance pass
   - Files: .claude/rules/skill-authoring.md
   - Done when: `grep -c 'sdd-implement' .claude/rules/skill-authoring.md` is 0
-- [ ] T013 The SDD document gives slice commits to the orchestrator and describes the orchestrated build in section 10
+  - Evidence: `grep -c 'sdd-implement' .claude/rules/skill-authoring.md` 0; rules-frontmatter battery passes
+- [x] T013 The SDD document gives slice commits to the orchestrator and describes the orchestrated build in section 10
   - Requirements: FR-031, FR-032, INV-001
   - Seam: `sdd templates sync --check` and `sdd check-refs` through `sdd-helper.battery.mjs`
   - Files: .claude/sdd/spec-driven-development.md
   - Depends on: T011
   - Done when: `node scripts/test/sdd-helper.battery.mjs` passes and no line in sections 1, 2, 4, 10, 11 or 15 says the user commits slice work or recommends a fresh session between slices
-- [ ] P1 close: full suite green, changes staged by explicit path, commit message proposed, user committed
+  - Evidence: sdd-helper battery 3/3 (unit tests, templates in sync, 46 refs 0 mismatched); scan of sections 1-4, 10-11, 15 finds only gate-artifact commit lines; section 9 rule and Appendix C close-out also updated, tasks template regenerated
+- [x] P1 close: full suite green, changes staged by explicit path, commit message proposed, user committed
 
 ## P2: End-of-run QA and report
 

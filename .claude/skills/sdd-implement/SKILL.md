@@ -1,32 +1,50 @@
 ---
 name: sdd-implement
-description: Build an approved tasks.md one task at a time, each through the tdd skill. Close every slice with the full suite, staging by explicit path and a proposed commit, and keep tasks.md current so a fresh session can resume. Use when the user says "implement the tasks", "build the spec", "sdd implement", "resume implementation", or tasks are approved and ready to build. Phase 4 of spec-driven development, section 10 of .claude/sdd/spec-driven-development.md.
+description: Orchestrate the build of an approved tasks.md, one slice at a time, each by a fresh implementer agent. Dispatch the slice with a pointer-only brief, bring the agent's blocking questions to the user, verify its work independently, and commit each verified slice, keeping tasks.md current so a later session can resume. Use when the user says "implement the tasks", "build the spec", "sdd implement", "resume implementation", or tasks are approved and ready to build. Phase 4 of spec-driven development, section 10 of .claude/sdd/spec-driven-development.md.
 argument-hint: "[slug]"
 allowed-tools: Bash(.claude/sdd/bin/sdd *)
 ---
 
 # SDD Implement (phase 4)
 
-Build the tasks one at a time, each through `tdd`, and hand the user one commit per slice.
+This session orchestrates and `implementer` agents build, each slice in a fresh context that never saw the planning conversation, so the build follows the approved artifacts rather than this session's memory of how they came about.
 The rules live in section 10 (Implement) of `.claude/sdd/spec-driven-development.md`; this file is only the procedure.
 Where the two differ, the document wins.
 
 Arguments: `$ARGUMENTS`, an optional slug.
 
+## What this session writes
+
+Only these, so that every line of code and test comes from an agent whose work this session then checks:
+
+- `tasks.md`'s `status` field and each slice's close-out box.
+- The spec's `branch` field.
+- Git staging and commits.
+- The processes it starts and stops.
+
+Every other file, code, tests, docs and the task boxes and Evidence lines included, is written by an `implementer`.
+When something needs changing, dispatch or resume an agent for it.
+
+Every agent this session dispatches or resumes is waited on, because the next step acts on its report.
+Never take the next step until the report is in; when it has not arrived, end the turn and resume from the report when it does.
+
 ## Preconditions
 
 - `.claude/sdd/bin/sdd status <slug> --json` reports `phase` `4. Implement`: tasks approved or in progress, unchanged since approval and not stale.
 - Anything else: stop, tell the user the phase and the skill `status` names, and do no other phase's work.
-- This skill resumes at the first unchecked item.
-  A fresh session needs nothing but `docs/sdd/<slug>/`.
 
 ## Start (section 4 (The workflow), start protocol)
 
 1. Read sections 1–5 of the document once per session, then section 10 (Implement).
 2. Resolve the slug: the argument, else `.claude/sdd/bin/sdd find`, else list the folders it prints and ask.
 3. Run `.claude/sdd/bin/sdd status <slug> --json` and check the preconditions.
-   Note `tasks.next`.
-4. Load the project context (section 6 (Project principles and context)), the commands `CLAUDE.md` names, or the ones the `tdd` discovery in `.claude/skills/tdd/references/discover.md` finds for this repo, and `tasks.md`. Load the plan and spec per task, not whole.
+4. Load the project context (section 6 (Project principles and context)), the full-suite commands `CLAUDE.md` names or the `tdd` discovery in `.claude/skills/tdd/references/discover.md` finds, and `tasks.md`.
+   Load no more of the spec and plan than a question in front of you needs; the agents load their own.
+5. **Find the resume point.**
+   The next slice is the first whose close-out box is unchecked.
+   When every close-out box is checked and `tasks.md` is still `in-progress`, go to Finish.
+6. **Uncommitted changes** found now are listed for the user with two options: hand them to a fresh `implementer` to continue the resume slice, or set them aside by hand before you go on.
+   Never stash, reset or discard them yourself, since they may hold work nobody else has.
 
 ## Steps (section 10 (Implement), Steps)
 
@@ -35,45 +53,69 @@ Arguments: `$ARGUMENTS`, an optional slug.
    On it: continue.
    On the default or a shared branch: propose creating the spec's branch, ask, then create it, through `scripts/setup/gwt-add.sh --no-open <branch>` and the EnterWorktree tool when this checkout should stay on the default branch; if the user picks another name, set the spec's `branch` field to it (frontmatter sits outside the content hash, so the spec stays approved).
    On a different feature branch: ask whether to switch to the spec's branch or record the current one the same way.
-   If `git status` shows changes that are not this work, list them and ask what to do.
 2. **Mark in progress**: `.claude/sdd/bin/sdd set-status <slug> tasks in-progress` (a no-op when already in progress).
-3. **For each unchecked task**, in order:
-   1. Load the task, its requirements from the spec, the plan sections it touches, and its seam.
-   2. Invoke `tdd` through the Skill tool, once per task, with these arguments: the task title as the behavior, `Seam:` from the task, `Files:` from the task, `Done when:` from the task, and this instruction verbatim: "Unit of work: this task.
-      The caller runs the full suite at slice close."
-   3. Run the task's Done when check and show the command and its result.
-   4. Self-check: list the task's requirements and mark each met with evidence, or not met.
-      A requirement not met means the task is not done.
-   5. Check the box and add exactly one sub-bullet `- Evidence: <the check and its result, on one line>` under the task, including any appearance assertions `tdd` removed.
-      Record anything out of scope under `## Follow-ups (out of scope)`.
-      Only the checkbox, that single `- Evidence:` line and the Follow-ups section sit outside the content hash; any other edit changes the approved tasks and routes the work back to `sdd-task`.
-4. **Close each slice** when its last task is checked:
-   1. Run the full suite once with the repo's test tiers: the commands `CLAUDE.md` names, or the ones the `tdd` discovery in `.claude/skills/tdd/references/discover.md` finds for this repo.
-   2. On a failure, check whether it existed before your changes (stash, rerun, compare) and say which failures were already there.
-   3. Stage by explicit path, including `docs/sdd/<slug>/tasks.md` so the progress log lands with the slice.
-      Never `git add -A` or `git add .`.
-   4. Propose a commit message in the repo's convention.
-      Commit only on the user's word.
-      Never push.
-   5. Check the slice's close-out item.
-5. **Finish**: when every item is checked, run `.claude/sdd/bin/sdd lint <slug>` as the exit check, then `.claude/sdd/bin/sdd set-status <slug> tasks done`, stage `docs/sdd/<slug>/tasks.md` by explicit path with a proposed commit message, and name `sdd-review`, or `refine` first when the branch should be brought up to the standards before review.
+3. **For each slice from the resume point**, in order, finish one before dispatching the next:
+   1. **Dispatch** a fresh `implementer` through the Agent tool, with `effort: high` unless the user named another level for this run.
+      The brief carries only the slug, the slice heading, the notes earlier slices reported, and any decisions the user made for this slice; the agent loads its tasks, requirements, plan sections and seams itself, because anything more you add is this session's bias reaching a context built to be free of it.
+   2. **Act on the report's status**: `BLOCKED` goes to Blocked, `TRUNK_READY` to Trunk commit, and `DONE` or `DONE_WITH_CONCERNS` to Verify.
+      Carry a `DONE_WITH_CONCERNS` doubt into the final report.
 
-## While working
+### Blocked
 
-- Follow the plan; follow existing patterns; stay in scope; never weaken a check to make it pass.
-  Section 10 (Implement) lists these and the stop-and-ask conditions: a gap or contradiction in the spec, an "Ask first" action, or the same approach failing twice.
-  Stop there and describe, with options and a recommendation.
-- `tasks.md` is your memory.
-  Update it after every task, so `sdd status` resumes a fresh session at the right item.
-  Use a fresh session per slice on a long list.
+1. When the condition is an undecided trunk change, first dispatch `skeptic` with the intent (the spec path and the slice), the agent's description of the proposed change, and the consumers of each touched symbol, and wait for its verdict.
+2. Put the question to the user with options and a recommendation, quoting the skeptic's verdict and its strongest case against the change when there is one, and wait for the answer.
+3. Resume the same agent with the answer through `SendMessage`, so it keeps its full context.
+   When that agent is no longer reachable, such as after a new session, dispatch a fresh `implementer` with the answer listed as a decision for the slice.
+
+### Trunk commit
+
+On `TRUNK_READY`:
+
+1. Run the full suite, handling failures as in Verify.
+2. Check `git branch --show-current` is not the default branch, stage only the trunk paths the report names by explicit path, and commit them alone.
+   The body opens with `Trunk change: <touch point> (<n> consumers)`, then records the skeptic's verdict and the user's decision, because the pull request's risk section quotes it from there.
+3. Resume the same agent through `SendMessage` to finish the slice, and act on its next report.
+
+### Verify
+
+Check the agent's work yourself before committing, since a report is a claim:
+
+1. Rerun each Done-when check of the slice and compare with its Evidence line.
+2. Run the full suite with the repo's test tiers.
+3. Compare the test files the report names with the test files changed in the working tree; they match exactly, and "none" matches none.
+4. Diff `tasks.md` against `HEAD`: only this slice's task boxes went from unchecked to checked, each checked task gained exactly one `- Evidence:` line under it, Follow-ups gained only entries, and nothing else changed.
+5. Run `.claude/sdd/bin/sdd status <slug> --json` and confirm `tasks.md` is unchanged since approval.
+
+When a full-suite test fails, run it at `HEAD` in a temporary worktree (`git worktree add --detach <tmp> HEAD`, then `git worktree remove <tmp>`), never by stashing the working tree.
+A test that fails there too is pre-existing: record it and let it pass verification.
+Any other failure fails verification.
+
+On a failure, resume the same agent once through `SendMessage` with what you found, then verify again.
+A second failure stops the run: report the evidence to the user and commit nothing.
+
+### Slice commit
+
+1. Check the slice's close-out box in `tasks.md`, so it lands in the slice's own commit and a crash can never leave a committed slice that looks unbuilt.
+2. Check `git branch --show-current` is not the default branch.
+3. Stage the report's files and `docs/sdd/<slug>/tasks.md` by explicit path; never `git add -A` or `git add .`.
+4. Commit without asking: the subject names the slice's behavior in the repo's convention, and the body records the agent's judgment calls, any you made, and any pre-existing failures.
+   Never push.
+5. Carry the report's notes for later slices into the next brief.
+
+## Finish
+
+When every close-out box is checked:
+
+1. Run `.claude/sdd/bin/sdd lint <slug>` as the exit check, then `.claude/sdd/bin/sdd set-status <slug> tasks done`.
+2. Stage `docs/sdd/<slug>/tasks.md` by explicit path and commit the status change.
 
 ## Outputs
 
-- Code and tests, the user's commits, and `tasks.md` fully checked with status `done`.
+- Code and tests built by `implementer` agents, one commit per slice plus any trunk commits, and `tasks.md` fully checked with status `done`.
 
 ## Exit gate (section 4 (The workflow))
 
-Every task and close-out checked, each slice's full suite green, the tree clean, `tasks.md` at `done`.
+Every task and close-out checked, each slice's full suite green apart from recorded pre-existing failures, the tree clean, `tasks.md` at `done`.
 
 ## Next
 

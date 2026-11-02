@@ -22,7 +22,7 @@ approved_hash:
   - Files: <paths>
   - Depends on: T001
   - Done when: <check>
-- [ ] P1 close: full suite green, changes staged by explicit path, commit message proposed, user committed
+- [ ] P1 close: full suite green, changes staged by explicit path, slice verified and committed
 
 ## P2: <slice title>
 

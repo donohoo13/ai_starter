@@ -28,7 +28,7 @@ Every SDD skill points into it.
 | `sdd-outline`   | 1. Outline                             | 7       | Turn an idea into an approved `spec.md`                        |
 | `sdd-plan`      | 2. Plan                                | 8       | Turn an approved spec into an approved `plan.md`               |
 | `sdd-task`      | 3. Tasks                               | 9       | Turn an approved plan into an approved `tasks.md`              |
-| `sdd-implement` | 4. Implement                           | 10      | Build the tasks one at a time, each through `tdd`              |
+| `sdd-implement` | 4. Implement                           | 10      | Orchestrate the build: one `implementer` agent per slice       |
 | `tdd`           | Used by phases 4 and 5, and on its own | 11      | Red-green discipline for any change a test can lock down       |
 | `sdd-review`    | 5. Validate                            | 12      | Prove the branch meets the spec, review it, and prepare the PR |
 
@@ -59,7 +59,8 @@ The spec drives a plan, the plan drives small tasks, each task is built test-fir
 | Priorities and scope decisions                     | Finding ambiguity, gaps and contradictions and raising them |
 | Answers to open questions                          | Researching facts the plan depends on                       |
 | Approval at each gate                              | Building test-first, verifying and showing evidence         |
-| Commits, pushes and PRs                            | Staging by explicit path and proposing commit messages      |
+| QA at the end of Implement                         | Committing each verified slice during Implement             |
+| Gate and review commits, pushes and PRs            | Staging by explicit path and proposing those commits        |
 | Accepting the finished work                        | Reviewing the branch and reporting every finding            |
 
 You MUST NOT make the user's decisions for them.
@@ -80,8 +81,9 @@ What carries the spec forward after the merge, beyond the folder itself:
 - **Commit messages.**
 - **Repo docs or decision records,** only when the user asks for a lasting record, following the repo's convention.
 
-You MUST NOT commit on the user's behalf.
+You MUST NOT commit a gate artifact or a review fix on the user's behalf.
 Stage an artifact under `docs/sdd/` by explicit path at the gates section 4 names, propose the message, and let the user commit.
+During Implement, the orchestrator commits each verified slice itself (section 10).
 
 ### What a spec is not
 
@@ -131,9 +133,10 @@ Stage an artifact under `docs/sdd/` by explicit path at the gates section 4 name
    Load only what the current phase and task need, and start fresh sessions at natural breaks.
 9. **Change flows through the spec.**
    New or changed behavior updates the spec first, then the plan and tasks, then the code.
-10. **The user commits.**
-    You stage by explicit path and propose a commit message.
-    You commit only on the user's word, and you never push.
+10. **Commits follow approval.**
+    The user commits gate artifacts and review fixes: you stage them by explicit path and propose the message.
+    During Implement, the orchestrator commits each slice once it has verified it, because the user approved the spec, plan and tasks it builds and QAs the result at the end.
+    Nobody but the user pushes.
 
 ---
 
@@ -163,7 +166,7 @@ If you are torn between two rows, choose the lighter one and tell the user.
 | 1. Outline   | `sdd-outline`                | The user brings an idea, brief, ticket or bug big enough for the chain | `spec.md`                                                     | Readiness checklist passes, no clarification markers, **user approves**            | `sdd-plan`      |
 | 2. Plan      | `sdd-plan`                   | The spec is approved and unchanged since approval                      | `plan.md`                                                     | Every requirement traces to the plan and a seam, **user approves**                 | `sdd-task`      |
 | 3. Tasks     | `sdd-task`                   | The plan is approved and unchanged                                     | `tasks.md`                                                    | Every requirement has a task, every task has a seam and a check, **user approves** | `sdd-implement` |
-| 4. Implement | `sdd-implement`, using `tdd` | The tasks are approved and unchanged; on a feature branch              | Code, tests, commits the user made                            | Every task is checked off, each slice's full suite is green, the tree is clean     | `sdd-review`    |
+| 4. Implement | `sdd-implement`, using `tdd` | The tasks are approved and unchanged; on a feature branch              | Code, tests, one commit per verified slice                    | Every task is checked off, each slice's full suite is green, the tree is clean     | `sdd-review`    |
 | 5. Validate  | `sdd-review`                 | All tasks are done, on a feature branch with a clean tree              | `review.md`, the fixes the user picks, a PR description draft | **User accepts**                                                                   | Done            |
 
 ### State
@@ -216,7 +219,7 @@ Once set, it must match: refreshing a stale artifact means revising it against i
 3. **Record approval only when the user gives it,** with `sdd approve <slug> <artifact>` for the spec, plan and tasks, and `sdd set-status <slug> review accepted` for the review.
    Then stage that artifact by explicit path (`git add docs/sdd/<slug>/<artifact>.md`) and propose a commit message in the repo's convention; the user commits.
 4. **Name the next skill.**
-   Recommend a fresh session before `sdd-implement` and between slices of a long task list.
+   Recommend a fresh session before `sdd-implement`.
    The files in `docs/sdd/<slug>/` are the handoff.
 
 ### Gate rules
@@ -550,7 +553,7 @@ It works like a unit test for the spec.
   Write "Reject registration when the email format is invalid," not "Build authentication."
 - **Slices:** group tasks by user story (P1, P2, P3) so each slice ships on its own.
   Within a slice, build foundations before the things that depend on them.
-- **Slice close:** end every slice with a close-out item covering the full suite, staging and the user's commit (Appendix C).
+- **Slice close:** end every slice with a close-out item covering the full suite, staging and the orchestrator's commit (Appendix C).
 - **Seam:** every task names its seam, taken from the plan.
 - **Parallel work:** mark a task `[P]` only if it shares no files and no dependencies with the other parallel tasks.
   Never assign the same file to two agents at once.
@@ -569,43 +572,40 @@ Name `sdd-implement` as the next step, and recommend starting it in a fresh sess
 
 ## 10. Phase 4: Implement (`sdd-implement`)
 
-**Purpose:** build the tasks one at a time, each through the `tdd` discipline, and hand the user one commit per slice.
+**Purpose:** build the tasks slice by slice, each by a fresh `implementer` agent working through the `tdd` discipline, and commit each slice once it is verified.
 **Starts when:** `tasks.md` is approved and unchanged since approval, on a feature branch.
-**Produces:** code and tests, the user's commits, and `tasks.md` checked off with status `done`.
+**Produces:** code and tests, one commit per slice plus any trunk commits, and `tasks.md` checked off with status `done`.
+
+The session running `sdd-implement` is the **orchestrator**.
+It dispatches, verifies, commits and talks to the user, and writes nothing but `tasks.md`'s status and close-out boxes, the spec's `branch` field, git commits and the processes it starts.
+Every line of code, test and task evidence comes from an `implementer` in a fresh context, so the build follows the approved artifacts instead of the memory of the conversation that produced them.
 
 ### Steps
 
 1. **Check the branch.**
    The spec's `branch` field names the feature branch.
    If you're on the default or a shared branch, propose creating it and ask first; if the user picks another name, update the spec's `branch` field, which sits outside the hash.
-   If there are uncommitted changes that aren't part of this work, list them and ask what to do.
-2. **Resume** at the first unchecked task, and set `tasks.md` to `in-progress`.
-3. **For each task:**
-   1. Load the task, its requirements, the plan sections it touches and its seam.
-      Don't load the whole spec set when it is large.
-   2. Build it with the `tdd` skill (section 11).
-      The task is the behavior and the plan's seam is the seam.
-      Write the failing test first and confirm it fails for the right reason.
-      Write only enough code to pass, run the bounded checks, then tidy without changing tests.
-   3. Run the task's "Done when" check and show the evidence: the command and its result.
-   4. Self-check: list the task's requirements and mark each one met, with evidence, or not met.
-   5. Check off the task and add one `- Evidence:` sub-bullet under it with the check and its result, including any appearance assertions removed.
-      Record anything you found that's out of scope under Follow-ups.
-      Only the checkbox, that single line and the Follow-ups section sit outside the content hash; any other edit changes the approved tasks.
-4. **Close each slice:**
-   1. Run the full suite once, using the repo's test tiers.
-   2. If anything fails, check whether it failed before your changes.
-      Stash, rerun and compare, then say which failures were already there.
-   3. Stage by explicit path, including `docs/sdd/<slug>/tasks.md` so the progress log lands with the slice.
-      Never use `git add -A` or `git add .`.
-   4. Propose a commit message that follows the repo's convention.
-      Commit only on the user's word.
-      Never push.
-   5. Check off the slice close-out.
-5. **Finish.**
-   When every task and slice is checked off, set `tasks.md` to `done` and name `sdd-review` as the next step.
+2. **Resume** at the first slice whose close-out item is unchecked, and set `tasks.md` to `in-progress`.
+   If there are uncommitted changes, list them and let the user choose between handing them to a fresh `implementer` to continue that slice and setting them aside by hand; never discard them.
+3. **For each slice, one at a time:**
+   1. **Dispatch** a fresh `implementer` with a brief of pointers only: the slug, the slice heading, the facts earlier slices reported as notes, and the user's decisions for this slice.
+      The agent loads its tasks, requirements, plan sections and seams itself, builds each task through `tdd` (section 11), checks off each task with one `- Evidence:` line, and checks its diff against the matching `docs/standards/` files before it reports.
+   2. **Blocked.**
+      The agent stops for the conditions under Stop and ask.
+      Put its question to the user with options and a recommendation, dispatching the `skeptic` agent first when the question is a trunk change, then resume the same agent with the answer.
+   3. **Trunk commit.**
+      An approved trunk change is built first and reported on its own; run the full suite, commit it alone with a body that opens `Trunk change:` and records the skeptic's verdict and the user's decision, then resume the agent to finish the slice.
+   4. **Verify** before committing, since a report is a claim: rerun each "Done when" check, run the full suite, confirm the reported test files match the changed ones, confirm `tasks.md` changed only in this slice's boxes, Evidence lines and Follow-ups, and confirm with `sdd status` that it is unchanged since approval.
+      A test that also fails at `HEAD`, checked in a temporary worktree rather than by stashing, is recorded as pre-existing.
+      Any other failure goes back to the same agent once; a second failure stops the run with the evidence and no commit.
+   5. **Commit** the verified slice: check its close-out item, stage by explicit path, including `docs/sdd/<slug>/tasks.md` so the progress log lands with the slice, and commit with the agent's judgment calls in the body.
+      Never use `git add -A` or `git add .`, and never push.
+4. **Finish.**
+   When every slice is checked off, run `sdd lint <slug>`, set `tasks.md` to `done`, commit that change, and name `sdd-review` as the next step.
 
 ### While working
+
+The `implementer` holds these rules; the orchestrator checks the result against them.
 
 - **Follow the plan.**
   If the plan turns out to be wrong, stop and propose a change.
@@ -616,18 +616,21 @@ Name `sdd-implement` as the next step, and recommend starting it in a fresh sess
 - **Never weaken a check to make it pass.**
   Skipping tests, loosening assertions and suppressing errors all require the user's approval.
 - **Manage context.**
-  On a long task list, use a fresh session for each slice.
-  `tasks.md` is your memory, so keep it current.
+  Each slice runs in its agent's fresh context, so the orchestrator's own context holds only reports and verification.
+  `tasks.md` is the memory a resumed session reads, so it stays current.
 
 ### Stop and ask when
 
-- The spec doesn't cover the situation.
-  Describe the gap, give options with a recommendation, and wait.
+The `implementer` reports `BLOCKED` and the orchestrator asks the user when:
+
+- A gap would change observable behavior that a requirement or acceptance criterion describes, or would cross a non-goal or an invariant.
+  A gap that changes only how the slice is built is the agent's to decide and report.
 - The spec contradicts itself or the code.
   Raise it and don't choose a side.
 - A task needs an "Ask first" action.
 - The same approach has failed twice.
-  Summarize what you learned and consider a fresh session with a better-defined task.
+- The work needs a trunk change the spec did not decide.
+  The agent applies a proof bar before building an approved one: every consumer is in the repository and updated with it, and it alters no published package API, external HTTP contract or schema holding live data.
 
 ---
 
@@ -635,7 +638,7 @@ Name `sdd-implement` as the next step, and recommend starting it in a fresh sess
 
 The `tdd` skill owns this discipline and stands on its own.
 Use it for any change a test can lock down, inside the SDD chain or as a one-shot for a small task.
-It knows nothing about SDD: `sdd-implement` and `sdd-review` hand it one behavior at a time.
+It knows nothing about SDD: the `implementer` agent and `sdd-review` hand it one behavior at a time.
 This section summarizes what SDD relies on; the skill and its repo references are the full version.
 
 - **Read the repo's test reference first,** selected by the repo's git remote.
@@ -658,7 +661,7 @@ This section summarizes what SDD relies on; the skill and its repo references ar
   - Each cycle covers one seam, one test and one minimal implementation.
   - Keep each cycle's checks bounded: run the touched test files and lint the touched files.
     Run the full suite once at the end of the unit of work.
-    The caller names the unit: `sdd-implement` names the task and runs the full suite itself at slice close, `sdd-review` names the fix, and in a one-shot the unit is the whole request.
+    The caller names the unit: the `implementer` names the task and `sdd-implement` runs the full suite at slice close, `sdd-review` names the fix, and in a one-shot the unit is the whole request.
   - Refactoring is a separate tidy after green, with tests unchanged, and only inside code the task already touches.
 - **Anti-patterns:**
   - **Implementation-coupled** tests break under a refactor that changes no behavior.
@@ -798,18 +801,18 @@ Nothing is pushed from this phase.
 5. Mark every ambiguity with a clarification marker instead of guessing.
 6. Stop for the user's approval after the spec, the plan and the tasks.
 7. Number every requirement, make each testable, and trace each through the plan, tasks and tests.
-8. Build one task at a time through `tdd`, and show evidence for every check.
-9. Close each slice with the full suite, staging by explicit path, and a proposed commit message.
+8. Build each slice through a fresh `implementer`, one task at a time through `tdd`, with evidence for every check.
+9. Verify each slice yourself, then close it with the full suite, staging by explicit path, and the orchestrator's commit.
 10. Validate with `sdd-review`: the evidence, spec conformance, correctness and standards reviews, then confirm intent with the user.
 
 **You MUST NOT:**
 
 1. Start a phase whose upstream artifact is unapproved, changed or stale.
-2. Approve, commit or push on the user's behalf.
+2. Approve or push on the user's behalf.
 3. Weaken, skip or delete a check to make it pass.
 4. Treat a description of existing behavior as a new requirement.
 5. Add abstraction or features that no requirement calls for.
-6. Commit on the user's behalf, or stage with `git add -A` instead of by explicit path.
+6. Commit a gate artifact or a review fix on the user's behalf, or stage with `git add -A` instead of by explicit path.
 
 ---
 
@@ -1008,7 +1011,7 @@ approved_hash:
   - Files: <paths>
   - Depends on: T001
   - Done when: <check>
-- [ ] P1 close: full suite green, changes staged by explicit path, commit message proposed, user committed
+- [ ] P1 close: full suite green, changes staged by explicit path, slice verified and committed
 
 ## P2: <slice title>
 
