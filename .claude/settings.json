@@ -70,9 +70,7 @@
       "Bash(*wrangler versions deploy*)",
       "Bash(*wrangler publish*)",
       "Bash(*pnpm deploy*)",
-      "Bash(*run deploy*)",
-      "Bash(*--no-verify*)",
-      "Bash(*HUSKY=0*)"
+      "Bash(*run deploy*)"
     ],
     "ask": ["Bash(git*--force)", "Bash(git reset --hard*)", "Bash(*wrangler*--remote*)"],
     "defaultMode": "default"
