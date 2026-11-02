@@ -2,9 +2,9 @@
 // Runs the shipped .husky/pre-commit and .husky/pre-push against a throwaway repo, so default-branch detection and branch state are real git rather than mocks.
 
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 
 let failures = 0;
 
@@ -25,7 +25,16 @@ function readHook(name) {
   }
 }
 
-const sandbox = mkdtempSync(join(tmpdir(), "husky-guard-"));
+const scratch = mkdtempSync(join(tmpdir(), "husky-guard-"));
+const sandbox = join(scratch, "repo");
+const stubBin = join(scratch, "bin");
+mkdirSync(sandbox);
+mkdirSync(stubBin);
+
+// The project's formatting step after the guard (prettier, lint-staged) runs through pnpm; a no-op pnpm keeps this battery on the guard alone.
+writeFileSync(join(stubBin, "pnpm"), "#!/bin/sh\nexit 0\n");
+chmodSync(join(stubBin, "pnpm"), 0o755);
+const hookEnv = { ...process.env, PATH: `${stubBin}${delimiter}${process.env.PATH}` };
 
 function git(...args) {
   return execFileSync("git", args, { cwd: sandbox, encoding: "utf8" });
@@ -34,9 +43,9 @@ function git(...args) {
 function runHook(name, input = "") {
   const script = readHook(name);
   if (script === null) return { status: null, stderr: `.husky/${name} is missing` };
-  const path = join(sandbox, `${name}.sh`);
+  const path = join(scratch, `${name}.sh`);
   writeFileSync(path, script);
-  const result = spawnSync("sh", [path], { cwd: sandbox, input, encoding: "utf8" });
+  const result = spawnSync("sh", [path], { cwd: sandbox, input, encoding: "utf8", env: hookEnv });
   return { status: result.status, stderr: result.stderr };
 }
 
@@ -99,7 +108,7 @@ try {
     pushLine("refs/heads/feature/x") + pushLine("refs/heads/trunk"),
   );
 } finally {
-  rmSync(sandbox, { recursive: true, force: true });
+  rmSync(scratch, { recursive: true, force: true });
 }
 
 console.log("");
