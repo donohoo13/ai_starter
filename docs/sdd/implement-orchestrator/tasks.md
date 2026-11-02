@@ -197,30 +197,34 @@ approved_hash: d21c47a34aa8
 
 ## P5: Same-session review
 
-- [ ] T026 `sdd-implement` recommends `/sdd-review` in the same session, names the fresh-session alternative, and starts it only on an end-to-end request, and the SDD document drops the `sdd-implement` exception
+- [x] T026 `sdd-implement` recommends `/sdd-review` in the same session, names the fresh-session alternative, and starts it only on an end-to-end request, and the SDD document drops the `sdd-implement` exception
   - Requirements: FR-025, FR-031
   - Seam: `sdd check-refs` through `sdd-helper.battery.mjs`
   - Files: .claude/skills/sdd-implement/SKILL.md, .claude/sdd/spec-driven-development.md
   - Done when: `node scripts/test/sdd-helper.battery.mjs` passes, `grep -c 'never starts .sdd-review.' .claude/sdd/spec-driven-development.md` is 0, and the skill's Next names the same session, the fresh-session alternative and the end-to-end start
-- [ ] T027 `sdd-review` builds each picked fix through a fresh `implementer`, verifies it, and leaves the commit to the user
+  - Evidence: sdd-helper battery 3/3; `never starts sdd-review` 0 and fresh-session-before-review 0; Next reads "in this same session", "can still choose a fresh session", "only when the user asked for an end-to-end run"
+- [x] T027 `sdd-review` builds each picked fix through a fresh `implementer`, verifies it, and leaves the commit to the user
   - Requirements: FR-035
   - Seam: read by the conformance pass
   - Files: .claude/skills/sdd-review/SKILL.md, .claude/agents/implementer.md, .claude/sdd/spec-driven-development.md
   - Depends on: T026
   - Done when: the skill's and section 12's Fixes dispatch `implementer` with the finding brief and never invoke `tdd` themselves, and the agent describes its review-fix mode
-- [ ] T028 `sdd-review` and section 12 state that every reviewer runs in a fresh context on a pointer-only brief, with `code-review` as a forked skill
+  - Evidence: skill Fixes tdd 0 / implementer 1; section 12 Fixes tdd 0 / implementer 1; implementer "review finding" 2 (repair section and description); commit stays on the user's word
+- [x] T028 `sdd-review` and section 12 state that every reviewer runs in a fresh context on a pointer-only brief, with `code-review` as a forked skill
   - Requirements: FR-036
   - Seam: `sdd check-refs` through `sdd-helper.battery.mjs`
   - Files: .claude/skills/sdd-review/SKILL.md, .claude/sdd/spec-driven-development.md
   - Depends on: T027
   - Done when: `node scripts/test/sdd-helper.battery.mjs` passes and section 12 names the fresh contexts, the pointer-only briefs, the forked `code-review`, and that the reviewing session may be the one that built
-- [ ] T029 The skills README, the changelog and the gut-check prompts describe the same-session review
+  - Evidence: sdd-helper battery 3/3; section 12 Run: fresh context 2, pointers only 1, forked skill 1, may be the one that ran the build 1; skill names the forked skill 1; sdd-review body ≈ 1755 est tokens
+- [x] T029 The skills README, the changelog and the gut-check prompts describe the same-session review
   - Requirements: FR-025, FR-033
   - Seam: the battery
   - Files: .claude/skills/README.md, CHANGELOG.md, docs/sdd/implement-orchestrator/gut-check.md
   - Depends on: T028
   - Done when: `node scripts/test/process-suite.battery.mjs` passes and `grep -c 'fresh session without' .claude/skills/README.md CHANGELOG.md docs/sdd/implement-orchestrator/gut-check.md` reports 0 for each
-- [ ] P5 close: full suite green, changes staged by explicit path, commit message proposed, user committed
+  - Evidence: process-suite battery passes; `fresh session without` 0 in all three; gut-check gains a review-fix prompt
+- [x] P5 close: full suite green, changes staged by explicit path, commit message proposed, user committed
 
 ## Verified elsewhere
 

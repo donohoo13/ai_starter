@@ -23,12 +23,13 @@ Working files live in `docs/sdd/<slug>/` and are committed on the feature branch
 - **sdd-task** (`/sdd-task [slug]`): phase 3, an approved plan to an approved `tasks.md`.
   One observable behavior per task with its requirements, seam, files and done-when check, grouped into slices that each end in a close-out; a requirement the user verifies another way is recorded under Verified elsewhere, inside the content hash.
 - **sdd-implement** (`/sdd-implement [slug]`): phase 4, the session orchestrates and a fresh `implementer` builds each slice from a pointer-only brief.
-  Brings every `BLOCKED` question to the user (with `skeptic`'s case first for an undecided trunk change), verifies each report with its own checks, commits each verified slice, runs one QA pass before `tasks.md` reaches `done`, and recommends `/sdd-review` in a fresh session without starting it; offers the worktree helpers when the main checkout should stay on the default branch.
+  Brings every `BLOCKED` question to the user (with `skeptic`'s case first for an undecided trunk change), verifies each report with its own checks, commits each verified slice, runs one QA pass before `tasks.md` reaches `done`, and recommends `/sdd-review` next in the same session, starting it only on an end-to-end request; offers the worktree helpers when the main checkout should stay on the default branch.
 - **sdd-review** (`/sdd-review [slug] [effort] [--max-findings n] [base]`): phase 5, and the pre-PR review of any branch.
-  With a spec: evidence from the suite, spec conformance in a fresh subagent, Claude Code's `/code-review` for correctness beside `standards-reviewer` for legibility and usability, one `review.md` report, fixes on the user's pick, and a PR description draft once the user confirms the intent; without a spec, the two reviews and the same report in the conversation.
+  Every reviewer runs in a fresh context on a pointer-only brief, so it can run in the session that built the branch.
+  With a spec: evidence from the suite, spec conformance in a fresh subagent, Claude Code's `/code-review` (a forked skill) for correctness beside `standards-reviewer` for legibility and usability, one `review.md` report, fixes on the user's pick built by a fresh `implementer`, and a PR description draft once the user confirms the intent; without a spec, the two reviews and the same report in the conversation.
   Never pushes or opens the PR.
 - **tdd**: red before green at public seams chosen for the critical paths, discovering the repo's commands and test shapes from its own files first, mocks only at true external boundaries, appearance never a test target, and every bug fix opening with a failing repro at the lowest seam that shows it.
-  Preloaded into `implementer`, which runs it per task, run by `sdd-review` per fix, and used directly whenever a test can lock something down.
+  Preloaded into `implementer`, which runs it per task and per fix, and used directly whenever a test can lock something down.
 
 ## Other skills
 
@@ -40,7 +41,7 @@ Working files live in `docs/sdd/<slug>/` and are committed on the feature branch
 
 ## Agents
 
-- **implementer** (`.claude/agents/`): builds one slice of an approved `tasks.md`, or one QA bug fix, with `tdd` preloaded and `opus` pinned; `sdd-implement` dispatches it fresh per slice and resumes it with the user's answers.
+- **implementer** (`.claude/agents/`): builds one slice of an approved `tasks.md`, or one QA bug or review fix, with `tdd` preloaded and a model pinned; `sdd-implement` dispatches it fresh per slice and `sdd-review` per picked finding, resuming it with the user's answers.
   It builds each task red-first, checks its diff against the matching `docs/standards/` files, stops with `BLOCKED` only for a behavior gap, a contradiction, an "Ask first" action, a repeated failure or an undecided trunk change, and never commits.
 - **render-checker** (`.claude/agents/`): drives the running app to each state of each touched surface, screenshots it at mobile and desktop widths in every shipped theme, measures floors on the rendered page, and returns pass or fail with evidence.
   It inherits the browser tools with every edit tool and `Agent` disallowed, and never touches the server `render-check` owns.

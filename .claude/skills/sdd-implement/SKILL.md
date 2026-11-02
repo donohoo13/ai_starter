@@ -147,5 +147,6 @@ Every task and close-out checked, each slice's full suite green apart from recor
 
 ## Next
 
-Recommend running `/sdd-review` in a fresh session, so the review reads the branch without this session's context.
-Never start it from here, even when the user asked for an end-to-end run.
+Recommend running `/sdd-review` next, in this same session.
+Its reviewers each run in a fresh context on a brief of pointers, so this session's context never reaches them, and the user can still choose a fresh session instead.
+Start it only when the user asked for an end-to-end run.

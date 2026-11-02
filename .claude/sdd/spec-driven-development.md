@@ -227,7 +227,6 @@ Once set, it must match: refreshing a stale artifact means revising it against i
 - You MUST NOT approve on the user's behalf or run `sdd approve` without explicit approval in the conversation.
 - You MUST NOT start the next phase's skill on your own unless the user said to run end to end.
   Even then, stop at any clarification marker, failed check or stop-and-ask condition.
-  `sdd-implement` never starts `sdd-review`, even in an end-to-end run, so the review always reads the branch in a fresh session.
 - Running a skill on an artifact that already exists revises or resumes it.
   Start over only if the user asks.
 
@@ -604,7 +603,7 @@ Every line of code, test and task evidence comes from an `implementer` in a fres
    A bug the user finds goes to a fresh `implementer` as a red-first fix, which the orchestrator verifies and commits before QA resumes.
 5. **Finish.**
    When the user confirms QA, set `tasks.md` to `done` and commit that change, stop the processes the session started, and report what was built, where the build stopped and how each stop was resolved, the judgment calls made, any pre-existing failures, and the follow-ups.
-   Recommend `sdd-review` in a fresh session, and never start it.
+   Recommend `sdd-review` next in the same session, since its reviewers run in fresh contexts of their own; the user may still choose a fresh session.
 
 ### While working
 
@@ -699,6 +698,10 @@ Without a spec the skill skips the start and finish protocols and the steps mark
 
 ### Run
 
+The session running the review may be the one that ran the build.
+Its independence comes from the reviewers: each runs in a fresh context on a brief of pointers only (the artifact paths, the repository root, the base and the range), never the session's reasoning.
+`code-review` is a forked skill, a subagent that does not see the conversation; the conformance check and `standards-reviewer` are agents dispatched with those pointers.
+
 Run these in parallel where possible:
 
 1. **Evidence** _(spec only)_.
@@ -738,7 +741,8 @@ Then stop and wait for the user.
 ### Fixes
 
 The user picks which findings to fix.
-Build each fix with `tdd` and validate it with the repo's test tiers.
+A fresh `implementer` builds each fix red-first from the finding, its `file:line` and the requirement IDs it touches; the reviewing session never writes the fix itself.
+Verify it with the repo's test tiers and by matching the files the agent reports against every changed path.
 Stage it by explicit path and propose a commit message; commit only on the user's word, since a review fix answers a finding the user picked rather than an approved task.
 If the fixes are substantial, offer to rerun the review.
 

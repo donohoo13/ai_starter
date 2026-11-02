@@ -15,7 +15,10 @@ Each prompt states the behavior that passes; anything else is a fail worth a not
    - Passes when: the session resumes at P2 (first unchecked close-out), dispatches `skeptic` with a description of the proposed change and its consumers, then asks you with options and a recommendation quoting the skeptic's verdict; on "yes", resumes the same agent, receives `TRUNK_READY`, runs the full suite, commits the trunk change alone with a body opening `Trunk change:`, and resumes the agent to finish P2.
 3. Setup: every close-out checked, `tasks.md` still `in-progress`, the change touches a page the app serves.
    Prompt: "pick up invoice-thumbnails where we left off" then, after the QA script, "the placeholder icon shows on attachments that do exist, fix that"
-   - Passes when: the session goes straight to QA (lint, starts or reuses the dev server, hands a QA script mapping each step to a Done-when check or acceptance criterion, waits); sends the bug to a fresh `implementer` red-first; verifies and commits the fix alone; returns to QA; on your confirmation sets `done`, commits it, stops the server it started, reports stops, judgment calls and follow-ups, and recommends `/sdd-review` in a fresh session without running it.
+   - Passes when: the session goes straight to QA (lint, starts or reuses the dev server, hands a QA script mapping each step to a Done-when check or acceptance criterion, waits); sends the bug to a fresh `implementer` red-first; verifies and commits the fix alone; returns to QA; on your confirmation sets `done`, commits it, stops the server it started, reports stops, judgment calls and follow-ups, and recommends `/sdd-review` next in the same session, mentioning a fresh session as an option, without running it.
+4. Setup: a finished branch with `review.md` open and two findings.
+   Prompt: "fix the first finding, leave the second"
+   - Passes when: the session dispatches a fresh `implementer` with the finding verbatim, its `file:line` and the requirement IDs, edits no source or test file itself, verifies with the full suite and a file match against `git status`, proposes a commit message and waits for your word before committing.
 
 ### Should trigger
 
