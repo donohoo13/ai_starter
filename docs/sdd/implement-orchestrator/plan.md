@@ -3,8 +3,8 @@ title: Implement orchestrator plan
 slug: implement-orchestrator
 status: approved
 updated: 2026-11-02
-based_on: d36a6638a637
-approved_hash: 1f38a952fdb6
+based_on: 4485cb3ff02f
+approved_hash: a3a4636ee56d
 ---
 
 # Implement orchestrator plan
@@ -17,7 +17,8 @@ Section 10 of the SDD document is rewritten to match, and the commit-authority l
 `refine`'s QA and app-lifecycle rules move into `sdd-implement`, its base and surface discovery move into a new user-only `render-check` skill, and `refine`, `refiner`, `code-reviewer` and `docs/specs/` are deleted.
 The `[P]` marker leaves the document, the template and the helper.
 A new battery, `scripts/test/process-suite.battery.mjs`, locks the structural rules that must always hold, growing one slice at a time so each slice opens red.
-The work ships in four slices, each leaving the chain usable.
+A fifth slice, added after review, points the handoff at `sdd-review` in the same session and moves review fixes to a fresh `implementer`, since the review's independence comes from its fresh-context reviewers.
+The work ships in five slices, each leaving the chain usable.
 
 ## Technical context
 
@@ -61,7 +62,7 @@ None.
 - **`implementer` (new agent).**
   Frontmatter: `name`, `description`, `skills: [tdd]`, `model: opus`; no `effort`, no `tools` restriction.
   Owns: loading its slice from the slug, building each task through `tdd`, the standards self-check (FR-005), its `tasks.md` edits (FR-006), the stop rules (FR-007, FR-008), the proof bar and trunk sequence (FR-013, FR-014), and the report (FR-009).
-  Three modes, set by the brief: slice, trunk continuation (a resume), and QA fix.
+  Four modes, set by the brief: slice, trunk continuation (a resume), QA fix, and review fix (FR-035).
   Never commits, pushes or switches branches.
 - **`skeptic` (existing agent, edited).**
   Reads the proposed change from its brief, not the index; dispatched by the orchestrator (FR-012).
@@ -72,6 +73,9 @@ None.
   Description names `render-check` (FR-027); behavior unchanged.
 - **SDD document, templates and helper.**
   Section 10 describes the orchestrated flow; commit authority, the end-to-end exception and the pre-existing-failure exit gate change across sections 1, 2, 4, 9, 10, 12 and 15 (FR-031, FR-032); `[P]` leaves sections 9 and Appendix C, the generated template, `sdd-task`, and the helper (FR-029).
+- **`sdd-review` (existing skill, edited).**
+  Builds each user-picked fix through a fresh `implementer` and verifies it with the full suite and the changed-path match before the user commits it (FR-035); states that each reviewer runs in a fresh context on a pointer-only brief (FR-036).
+  Triage stays in the reviewing session, which may be the one that ran the build; rejected findings are still shown with evidence.
 - **`scripts/test/process-suite.battery.mjs` (new).**
   Locks the structural invariants listed under Interfaces and contracts.
 
@@ -133,6 +137,7 @@ The `tasks.md` shape is unchanged except that a task line no longer carries `[P]
 - Change: `.claude/sdd/templates/tasks.md`, regenerated (P4).
 - Change: `.claude/skills/sdd-task/SKILL.md`, drop the `[P]` instruction (P4).
 - Change: `.claude/skills/README.md`, `.claude/sdd/README.md`, `CLAUDE.md`, `README.md`, `CHANGELOG.md`, `.ai-starter.yaml`, `scripts/test/ai-starter-version.battery.mjs`, the docs sweep (P4).
+- Change: `.claude/skills/sdd-implement/SKILL.md` Next, `.claude/skills/sdd-review/SKILL.md` Run and Fixes, `.claude/agents/implementer.md` review-fix mode, the SDD document's sections 4, 10 and 12, `.claude/skills/README.md`, `CHANGELOG.md` and `docs/sdd/implement-orchestrator/gut-check.md` for the same-session review (P5).
 - Pattern to follow: `.claude/skills/refine/SKILL.md` for dispatch, `BLOCKED`, resume, verify, app lifecycle and QA; the deleted `builder.md` (`git show f323246^:.claude/agents/builder.md`) for the agent's stop section, trunk protocol and report; `scripts/test/rules-frontmatter.battery.mjs` for the battery; `.claude/sdd/tests/test_lint_tasks.py` for helper tests.
 
 ## Seams and test strategy
@@ -174,6 +179,12 @@ Skill and agent prose has no executable seam: its acceptance criteria are judged
   - FR-028 (sweep), FR-034 → battery: the removed-name `git grep` check (red until the sweep lands).
   - FR-033 → read by the conformance pass.
 
+### P5: Same-session review
+
+- Seam: `check-refs` and `templates sync --check` through `sdd-helper.battery.mjs`; the process-suite battery; the updated gut-check prompts.
+- Test types: the helper's drift and reference checks; battery assertions.
+- Acceptance criteria to tests: FR-025, FR-031 (no `sdd-implement` exception), FR-035 and FR-036 → read by the conformance pass and the gut-check prompts.
+
 ## Alternatives considered
 
 - Parallel slices in worktrees: rejected by the owner; dependency inference, a shared checkout, a shared database and serial suite runs made it costly for little gain.
@@ -185,6 +196,8 @@ Skill and agent prose has no executable seam: its acceptance criteria are judged
 - Keeping skill and agent counts and testing them: rejected by the owner; dropping the numbers removes the drift.
 - A one-time grep instead of a battery: rejected by the owner; the battery keeps the rules from regressing.
 - A shared app-lifecycle reference used by both `sdd-implement` and `render-check`: rejected; skills stay self-contained and the rules run a few lines in each.
+- Running `sdd-review` only in a fresh session: rejected by the owner after review; its reviewers already run in fresh contexts on pointer-only briefs, so a new session adds a handoff and buys no independence.
+- Building review fixes in the reviewing session through `tdd`: rejected; it is the in-session code writing this change removes from implement.
 
 ## Trade-offs and risks
 
@@ -193,6 +206,7 @@ Skill and agent prose has no executable seam: its acceptance criteria are judged
 - The orchestrator commits without asking: verification (FR-016) runs before every commit, `guard-main` blocks the default branch, and nothing is pushed.
 - `effort: high` on every dispatch costs more than a lower level: the user can name another level per run.
 - The removed-name check can false-positive on an ordinary English "refine" or "builder": the check reads `.claude/`, root docs and `scripts/` with `-w`, and any legitimate use is reworded rather than excluded.
+- Triage runs in the session that may have run the build, so it can lean toward rejecting findings about its own decisions: every rejected finding is shown to the user with evidence, and the user picks the fixes.
 - This branch's own build runs on today's in-session `sdd-implement`: the slices are prose and checks, which that flow handles, and P1 lands the new skill for later specs.
 
 ## Rollout
@@ -201,6 +215,7 @@ Skill and agent prose has no executable seam: its acceptance criteria are judged
 2. P2, QA and finish: QA before `done`, the QA-fix loop, the report, the no-start handoff, and the document's end-to-end exception, exit gate and section 12 wording. Rollback: revert the slice commit; P1's finish returns.
 3. P3, retire `refine`: create `render-check`, retarget `render-checker`, delete `refine`, `refiner`, `code-reviewer` and `docs/specs/`, and extend the battery. Rollback: revert the slice commit.
 4. P4, docs and `[P]`: remove `[P]` from the document, template, `sdd-task` and helper, sweep every stale reference, rewrite the v0.3.0 changelog entry, and add the battery's removed-name check. Rollback: revert the slice commit.
+5. P5, same-session review: the handoff recommends `/sdd-review` in the same session and starts it on an end-to-end request, review fixes go to a fresh `implementer`, the document drops the end-to-end exception and states the fresh-context reviewers, and the README, changelog and gut-check prompts follow. Rollback: revert the slice commit.
 
 ## Traceability
 
@@ -230,7 +245,7 @@ Skill and agent prose has no executable seam: its acceptance criteria are judged
 | FR-022      | sdd-implement                                | read            | conformance pass; P2 gut-check                                       |
 | FR-023      | sdd-implement                                | read            | conformance pass; P2 gut-check                                       |
 | FR-024      | sdd-implement                                | read            | conformance pass; P2 gut-check                                       |
-| FR-025      | sdd-implement                                | read            | conformance pass; P2 gut-check                                       |
+| FR-025      | sdd-implement, SDD document                  | read            | conformance pass; P2 gut-check                                       |
 | FR-026      | render-check                                 | battery         | process-suite: render-check user-only                                |
 | FR-027      | render-checker                               | battery         | process-suite: sole render-checker dispatcher                        |
 | FR-028      | deletions, docs sweep                        | battery         | process-suite: no orphans; removed names                             |
@@ -240,17 +255,19 @@ Skill and agent prose has no executable seam: its acceptance criteria are judged
 | FR-032      | SDD document                                 | helper checks   | check-refs; templates sync --check                                   |
 | FR-033      | CHANGELOG                                    | read            | conformance pass                                                     |
 | FR-034      | CLAUDE.md, .ai-starter.yaml, version battery | battery         | process-suite: removed names                                         |
+| FR-035      | sdd-review, implementer, SDD document        | read            | conformance pass; gut-check                                          |
+| FR-036      | sdd-review, SDD document                     | read            | conformance pass; check-refs                                         |
 | NFR-001     | every changed skill                          | measurement     | `wc -c` estimate per body, recorded as Evidence                      |
 | NFR-002     | all                                          | battery         | `pnpm test:scripts`                                                  |
 | INV-001     | sdd-implement                                | read            | conformance pass; P1 gut-check                                       |
 | INV-002     | sdd-implement, implementer, guard-main       | existing hook   | guard-main.battery.mjs; conformance pass                             |
 | INV-003     | render-check, render-checker                 | battery         | process-suite: sole render-checker dispatcher                        |
-| INV-004     | sdd-implement, SDD document                  | read            | conformance pass                                                     |
 | INV-005     | sdd-implement, implementer                   | read            | conformance pass                                                     |
 
 ## Research notes
 
 - Agent frontmatter supports `skills` (full skill content injected at startup), `model` (`sonnet`, `opus`, `haiku`, `fable`, a full ID, or `inherit`), `effort` (`low` to `max`), `tools`, `disallowedTools`, `isolation` and others: https://code.claude.com/docs/en/sub-agents.md
+- A skill with `context: fork` starts a new subagent that "doesn't see your conversation history", and `/code-review` is named as one that runs as a forked subagent: https://code.claude.com/docs/en/skills.md
 - `disable-model-invocation: true` blocks model invocation and preloading into subagents while `/name` still works: https://code.claude.com/docs/en/skills.md
 - `SendMessage` resumes a subagent with its full history in the same session; transcripts are kept for `cleanupPeriodDays` (default 30); resuming from an unrelated session is not documented: https://code.claude.com/docs/en/sub-agents.md
 - Subagents can spawn subagents up to three levels deep by default (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`): https://code.claude.com/docs/en/sub-agents.md
