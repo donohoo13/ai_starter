@@ -6,7 +6,7 @@ status: approved
 owner: Conner Donohoo
 created: 2026-11-02
 updated: 2026-11-02
-approved_hash: d36a6638a637
+approved_hash: 4485cb3ff02f
 description: Moves `sdd-implement` from building every task in-session to orchestrating one fresh implementer agent per slice and committing each verified slice. The result is a build free of the planning session's bias, one user QA pass at the end, and one review instead of two.
 ---
 
@@ -20,7 +20,7 @@ A long task list fills the context until the skill tells the user to restart bet
 After the build, a separate `refine` pass rewrites the branch to the standards before `sdd-review` reviews it again, so standards are judged twice and code changes after it was built.
 This change turns `sdd-implement` into an orchestrator that dispatches one fresh `implementer` agent per slice, verifies the agent's work, and commits it, then hands the user one QA pass at the end.
 Each slice is built in a clean context from pointers into the approved spec, plan and tasks, and is checked by a context that did not write it, while standards checks move inside the slice where the code is written.
-When the work is done, the branch holds one commit per slice, `refine` is gone, and `sdd-review` in a fresh session is the single review before the pull request.
+When the work is done, the branch holds one commit per slice, `refine` is gone, and `sdd-review`, whose reviewers each run in a fresh context, is the single review before the pull request.
 
 ## Problem and context
 
@@ -43,7 +43,7 @@ When the work is done, the branch holds one commit per slice, `refine` is gone, 
 - G2: A run in which no interruption in G3 fires ends with every slice committed and no commit made by the user.
 - G3: The user is interrupted during a run only by an interruption the Glossary lists, and once at the end for QA.
 - G4: Standards are judged once inside each slice and once by `sdd-review`, against the same set of standards files, with no post-build rewrite pass.
-- G5: Every tracked file outside `docs/sdd/` and released `CHANGELOG.md` entries describes only the skills, agents and flow that exist after the change.
+- G5: Every tracked file outside `docs/sdd/` and `CHANGELOG.md` describes only the skills, agents and flow that exist after the change.
 
 ## Non-goals
 
@@ -68,7 +68,7 @@ Independent test: a fresh session given the gut-check prompts that `.claude/rule
 ### P2: End-of-run QA and report
 
 As the owner, I want one QA pass after every slice is committed, then a report of where the build stalled and what was decided along the way, so that I confirm the result once and know what to scrutinize.
-Independent test: a fresh session given the gut-check prompts for a run with a trunk stop and a QA bug describes the bug fixed in its own commit, a report naming the trunk stop and its resolution, and `/sdd-review` in a fresh session as the next step.
+Independent test: a fresh session given the gut-check prompts for a run with a trunk stop and a QA bug describes the bug fixed in its own commit, a report naming the trunk stop and its resolution, and `/sdd-review` in the same session as the next step.
 
 - Given every slice committed, when the orchestrator reaches QA, then it starts the app when the change has a runnable surface, hands over a QA script and waits.
 - Given a bug the user reports in QA, when the orchestrator handles it, then a fresh `implementer` fixes it red-first and the orchestrator verifies and commits the fix.
@@ -160,8 +160,8 @@ Orchestrator: QA and finish
   - Acceptance: Given the skill, when a reviewer reads its QA-bug handling, then the brief, the two checks, the commit body and the return to QA are stated.
 - FR-024: When the user confirms QA, the orchestrator shall set `tasks.md` to `done`, commit that change, stop every process it started while leaving any reused server running, and report: what was built, each stop with its resolution, the judgment calls of the agents and the orchestrator, any pre-existing failures, and the Follow-ups.
   - Acceptance: Given the skill, when a reviewer reads its finish step, then the status change follows QA confirmation and the report lists those five parts.
-- FR-025: The orchestrator shall end by recommending `/sdd-review` in a fresh session, and shall not start it even when the user asked for an end-to-end run.
-  - Acceptance: Given the skill's Next section, when a reviewer reads it, then it names `/sdd-review` in a fresh session and forbids starting it in every case.
+- FR-025: The orchestrator shall end by recommending `/sdd-review` in the same session, noting that the user may run it in a fresh session instead, and shall start it only when the user asked for an end-to-end run.
+  - Acceptance: Given the skill's Next section, when a reviewer reads it, then it recommends `/sdd-review` in the same session, names the fresh-session alternative, and starts it only on an end-to-end request.
 
 Render check
 
@@ -179,20 +179,27 @@ Render check
 
 Removals and docs
 
-- FR-028: The `refine` skill, the `refiner` and `code-reviewer` agents, and `docs/specs/` shall be deleted, and every tracked file outside `docs/sdd/` and the `CHANGELOG.md` entries of released versions shall name only skills and agents that exist.
+- FR-028: The `refine` skill, the `refiner` and `code-reviewer` agents, and `docs/specs/` shall be deleted, and every tracked file outside `docs/sdd/` and `CHANGELOG.md` shall name only skills and agents that exist; the changelog is excluded because its entries must name what they removed.
   - Acceptance: Given the repository, when a reviewer runs `git grep -nwE 'refine|refiner|code-reviewer|template-sync|template-feedback|builder|implement-spec|run-skill-generator'` outside those exclusions, then no match names a skill or agent, and `CLAUDE.md` and `README.md` list skills and agents by name without stating a count.
 - FR-029: The `[P]` task marker shall be removed from the SDD document's task shape and rules, Appendix C and the generated tasks template, and the helper's `[P]` lint and its tests shall be removed.
   - Acceptance: Given the branch, when a reviewer greps the SDD document, `.claude/sdd/templates/` and `.claude/sdd/bin/sdd` for `[P]`, then nothing matches, and the helper's unittest suite passes.
 - FR-030: `.claude/rules/skill-authoring.md` shall drop the `sdd-implement` exemption from "code work runs in agents".
   - Acceptance: Given the rule file, when a reviewer reads it, then no exemption names `sdd-implement`.
-- FR-031: The SDD document shall state that the `sdd-implement` orchestrator commits slice work, approved trunk changes, QA fixes and the `done` status against the approved spec, that the user QAs at the end, that the user still commits gate artifacts and `sdd-review` fixes, and that nothing is pushed; and that `sdd-implement` never starts `sdd-review`, as an exception to section 4's end-to-end gate rule.
-  - Acceptance: Given `.claude/sdd/spec-driven-development.md`, when a reviewer reads the whole document, then no line says the user commits slice work or that a fresh session is needed between slices, section 4's exit gate allows recorded pre-existing failures, section 12's Fixes no longer compares itself to a slice commit, and section 4's gate rules carry the exception.
+- FR-031: The SDD document shall state that the `sdd-implement` orchestrator commits slice work, approved trunk changes, QA fixes and the `done` status against the approved spec, that the user QAs at the end, that the user still commits gate artifacts and `sdd-review` fixes, and that nothing is pushed.
+  - Acceptance: Given `.claude/sdd/spec-driven-development.md`, when a reviewer reads the whole document, then no line says the user commits slice work or that a fresh session is needed between slices or before `sdd-review`, section 4's exit gate allows recorded pre-existing failures, section 12's Fixes no longer compares itself to a slice commit, and section 4's gate rules carry no `sdd-implement` exception.
 - FR-032: Section 10 of the SDD document shall describe the orchestrated flow of FR-001 to FR-025.
   - Acceptance: Given section 10, when a reviewer compares it with the skill, then their steps agree and `.claude/sdd/bin/sdd templates sync --check` and `check-refs` pass.
 - FR-033: `CHANGELOG.md`'s unreleased v0.3.0 entry shall absorb this change: rewrite its lines this change makes false, and add what changed, why, and adaptation notes for projects with a customized `sdd-implement` or `refine`.
   - Acceptance: Given `CHANGELOG.md`, when a reviewer reads the v0.3.0 entry, then it has those three parts for this change and no line contradicts the repository.
 - FR-034: `CLAUDE.md` shall state the skill body budget the rule uses (5000 tokens), and `.ai-starter.yaml` and `scripts/test/ai-starter-version.battery.mjs` shall not describe `template-sync`.
   - Acceptance: Given those files, when a reviewer reads them, then `CLAUDE.md` matches `.claude/rules/skill-authoring.md` and no line names `template-sync`.
+
+Review
+
+- FR-035: When the user picks findings to fix, `sdd-review` shall dispatch a fresh `implementer` per finding with the slug (when there is one), the finding verbatim with its `file:line`, and the requirement IDs it touches, to fix it red-first; it shall verify the report with the full suite and the changed-path match FR-016 describes, and commit only on the user's word.
+  - Acceptance: Given `.claude/skills/sdd-review/SKILL.md` and section 12 of the SDD document, when a reviewer reads their Fixes steps, then the fix is built by a fresh `implementer` with that brief, the session never builds it through `tdd` itself, and the verification and commit rule are stated.
+- FR-036: `sdd-review` shall run every reviewer in a fresh context whose brief carries only pointers (the artifact paths, the repository root, the base and the range), and the SDD document shall say so, naming that `code-review` runs as a forked skill that does not see the conversation.
+  - Acceptance: Given section 12 and the skill, when a reviewer reads them, then each of the conformance subagent, `code-review` and `standards-reviewer` is described as running in a fresh context with a pointer-only brief, and section 12 states that the session running the review may be the one that ran the build.
 
 ### Non-functional
 
@@ -205,7 +212,7 @@ Removals and docs
 - INV-001: The orchestrator shall never write a file outside the writes FR-002 allows.
 - INV-002: No skill or agent shall push, open a pull request, or commit on the default branch.
 - INV-003: No skill or agent shall dispatch `render-checker` except the `render-check` skill.
-- INV-004: `sdd-implement` shall never start `sdd-review`.
+- INV-004: Removed 2026-11-02: `sdd-implement` may start `sdd-review` on an end-to-end request, since the review's independence comes from its fresh-context reviewers, not a fresh session.
 - INV-005: No skill or agent shall discard uncommitted work it did not create.
 
 ## Edge cases and failure behavior
@@ -239,7 +246,7 @@ These exist today and are reused, not rebuilt:
 | Term          | Meaning                                                                                                                                                                                       |
 | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Orchestrator  | The session running `sdd-implement`: dispatches, verifies, commits and talks to the user, writing only what FR-002 allows.                                                                    |
-| Implementer   | The `implementer` agent: builds one slice, one trunk change or one QA fix in a fresh context and reports back.                                                                                |
+| Implementer   | The `implementer` agent: builds one slice, one trunk change, one QA fix or one review fix in a fresh context and reports back.                                                                |
 | Trunk change  | A change to a shared utility, public interface, schema or config that existed before the branch.                                                                                              |
 | Judgment call | A decision that changes only how the slice is built, made by an agent or the orchestrator without asking the user.                                                                            |
 | Interruption  | A point where the orchestrator waits for the user: a `BLOCKED` report (FR-007), a second verification failure (FR-018), uncommitted work at start (FR-020), or a start on the default branch. |
@@ -248,3 +255,4 @@ These exist today and are reused, not rebuilt:
 ## Changelog
 
 - 2026-11-02: Removed NFR-003 (fixture dry run) at the owner's request; P1 and P2 are proven through the skill-authoring gut-check prompts instead. CLAUDE.md and README.md drop skill and agent counts rather than keep them in sync.
+- 2026-11-02: After review, `sdd-implement` recommends `sdd-review` in the same session (FR-025 revised, INV-004 removed), since the review's independence comes from its fresh-context reviewers; review fixes go to a fresh `implementer` (FR-035); every reviewer runs on a pointer-only brief (FR-036); FR-028 excludes all of `CHANGELOG.md`, as the owner decided during the build.
