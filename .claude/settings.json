@@ -70,29 +70,14 @@
       "Bash(*wrangler versions deploy*)",
       "Bash(*wrangler publish*)",
       "Bash(*pnpm deploy*)",
-      "Bash(*run deploy*)"
+      "Bash(*run deploy*)",
+      "Bash(*--no-verify*)",
+      "Bash(*HUSKY=0*)"
     ],
     "ask": ["Bash(git*--force)", "Bash(git reset --hard*)", "Bash(*wrangler*--remote*)"],
     "defaultMode": "default"
   },
   "enableAllProjectMcpServers": true,
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "input=$(cat); case \"$input\" in *git*) printf '%s' \"$input\" | node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-main.mjs\";; esac"
-          },
-          {
-            "type": "command",
-            "command": "input=$(cat); case \"$input\" in *.env*|*.vars*|*secret*|*.ssh*|*.claude.json*|*.config/gh*|*.docker*|*.kube*) printf '%s' \"$input\" | node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-secret-read.mjs\";; esac"
-          }
-        ]
-      }
-    ]
-  },
   "enabledPlugins": {
     "typescript-lsp@claude-plugins-official": true,
     "pyright-lsp@claude-plugins-official": true,

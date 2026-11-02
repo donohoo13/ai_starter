@@ -1,0 +1,13 @@
+# .husky/pre-push
+# Tags pass so a release can be published from the default branch.
+
+default_branch=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)
+default_branch=${default_branch#origin/}
+default_branch=${default_branch:-main}
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [ "$remote_ref" = "refs/heads/$default_branch" ]; then
+    echo "pre-push: refusing to push to $default_branch; push a feature branch and merge it through a pull request." >&2
+    exit 1
+  fi
+done
+exit 0
