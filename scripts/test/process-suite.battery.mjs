@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Asserts the structural rules of the skill and agent suite that prose alone cannot hold, such as which agent a skill preloads and which skill may dispatch an agent.
 
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 let failures = 0;
@@ -62,7 +62,81 @@ function checkImplementer() {
   check(`${path} pins model opus`, scalarValue(frontmatter, "model") === "opus");
 }
 
+function checkRenderCheckIsUserOnly() {
+  const path = ".claude/skills/render-check/SKILL.md";
+  const frontmatter = frontmatterOf(readRepoFile(path));
+  check(`${path} exists with frontmatter`, frontmatter !== null);
+  if (frontmatter === null) return;
+  check(
+    `${path} is user-only`,
+    scalarValue(frontmatter, "disable-model-invocation") === "true",
+    "render checks are slow and token-heavy, so only the user starts one",
+  );
+}
+
+function suiteFiles() {
+  const skills = readdirSync(join(process.cwd(), ".claude/skills"), { withFileTypes: true })
+    .filter(function isSkillDir(entry) {
+      return entry.isDirectory();
+    })
+    .map(function skillFile(entry) {
+      return `.claude/skills/${entry.name}/SKILL.md`;
+    });
+  const agents = readdirSync(join(process.cwd(), ".claude/agents"))
+    .filter(function isMarkdown(name) {
+      return name.endsWith(".md");
+    })
+    .map(function agentFile(name) {
+      return `.claude/agents/${name}`;
+    });
+  return [...skills, ...agents].filter(function exists(path) {
+    return readRepoFile(path) !== null;
+  });
+}
+
+function namesWord(path, word) {
+  return new RegExp(`(^|[^\\w-])${word}([^\\w-]|$)`).test(readRepoFile(path));
+}
+
+function checkRenderCheckerHasOneDispatcher() {
+  const allowed = [".claude/skills/render-check/SKILL.md", ".claude/agents/render-checker.md"];
+  const others = suiteFiles().filter(function namesRenderChecker(path) {
+    return !allowed.includes(path) && namesWord(path, "render-checker");
+  });
+  check(
+    "only render-check dispatches render-checker",
+    others.length === 0,
+    `also named in ${others.join(", ")}`,
+  );
+}
+
+function checkNoOrphanAgents() {
+  const files = suiteFiles();
+  const skills = files.filter(function isSkill(path) {
+    return path.startsWith(".claude/skills/");
+  });
+  const agents = files
+    .filter(function isAgent(path) {
+      return path.startsWith(".claude/agents/");
+    })
+    .map(function agentName(path) {
+      return path.slice(".claude/agents/".length, -".md".length);
+    });
+  for (const agent of agents) {
+    check(
+      `agent ${agent} is named by a skill`,
+      skills.some(function namesAgent(path) {
+        return namesWord(path, agent);
+      }),
+      "an agent no skill dispatches is dead; delete it or name its dispatcher",
+    );
+  }
+}
+
 checkImplementer();
+checkRenderCheckIsUserOnly();
+checkRenderCheckerHasOneDispatcher();
+checkNoOrphanAgents();
 
 console.log("");
 if (failures > 0) {

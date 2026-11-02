@@ -135,24 +135,27 @@ approved_hash: e2f23863cfe8
 
 ## P3: Retire refine; render checks on demand
 
-- [ ] T018 A user-only `render-check` skill discovers its base, surfaces and bar, runs `render-checker`, and only reports
+- [x] T018 A user-only `render-check` skill discovers its base, surfaces and bar, runs `render-checker`, and only reports
   - Requirements: FR-026
   - Seam: the battery
   - Files: .claude/skills/render-check/SKILL.md, scripts/test/process-suite.battery.mjs
   - Done when: `node scripts/test/process-suite.battery.mjs` passes its new `render-check` user-only check, after failing on the missing skill
-- [ ] T019 Only `render-check` dispatches `render-checker`, with `refine` deleted
+  - Evidence: red `FAIL .claude/skills/render-check/SKILL.md exists with frontmatter`; green `ok ... is user-only`; skill covers base, surfaces, states, themes, bar, app, dispatch, report-only, cleanup (~885 est tokens)
+- [x] T019 Only `render-check` dispatches `render-checker`, with `refine` deleted
   - Requirements: FR-027, FR-028, INV-003
   - Seam: the battery
   - Files: .claude/agents/render-checker.md, .claude/skills/refine/SKILL.md, scripts/test/process-suite.battery.mjs
   - Depends on: T018
   - Done when: `node scripts/test/process-suite.battery.mjs` passes its sole-dispatcher check, after failing while `refine` named `render-checker`
-- [ ] T020 No agent is orphaned, with `refiner`, `code-reviewer` and `docs/specs/` deleted
+  - Evidence: red `FAIL only render-check dispatches render-checker — also named in .claude/skills/refine/SKILL.md`; green after the description retarget and `git rm -r .claude/skills/refine`
+- [x] T020 No agent is orphaned, with `refiner`, `code-reviewer` and `docs/specs/` deleted
   - Requirements: FR-028
   - Seam: the battery
   - Files: .claude/agents/refiner.md, .claude/agents/code-reviewer.md, docs/specs/001-refine.md, scripts/test/process-suite.battery.mjs
   - Depends on: T019
   - Done when: `node scripts/test/process-suite.battery.mjs` passes its no-orphan check, after failing on `refiner` and `code-reviewer`, and `test ! -e docs/specs` succeeds
-- [ ] P3 close: full suite green, changes staged by explicit path, commit message proposed, user committed
+  - Evidence: red FAIL for code-reviewer and refiner (no skill names them); green after `git rm`, 5 remaining agents each named by a skill; `test ! -e docs/specs` succeeds
+- [x] P3 close: full suite green, changes staged by explicit path, commit message proposed, user committed
 
 ## P4: Docs reflect the repository
 
