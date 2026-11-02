@@ -4,7 +4,7 @@ slug: implement-orchestrator
 status: approved
 updated: 2026-11-02
 based_on: d36a6638a637
-approved_hash: ac22bdf7de06
+approved_hash: 1f38a952fdb6
 ---
 
 # Implement orchestrator plan
