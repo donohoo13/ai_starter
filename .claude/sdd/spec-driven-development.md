@@ -161,13 +161,13 @@ If you are torn between two rows, choose the lighter one and tell the user.
 
 ## 4. The workflow
 
-| Phase        | Skill                        | Starts when                                                            | Produces                                                      | Exit gate                                                                          | Next            |
-| ------------ | ---------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------- | --------------- |
-| 1. Outline   | `sdd-outline`                | The user brings an idea, brief, ticket or bug big enough for the chain | `spec.md`                                                     | Readiness checklist passes, no clarification markers, **user approves**            | `sdd-plan`      |
-| 2. Plan      | `sdd-plan`                   | The spec is approved and unchanged since approval                      | `plan.md`                                                     | Every requirement traces to the plan and a seam, **user approves**                 | `sdd-task`      |
-| 3. Tasks     | `sdd-task`                   | The plan is approved and unchanged                                     | `tasks.md`                                                    | Every requirement has a task, every task has a seam and a check, **user approves** | `sdd-implement` |
-| 4. Implement | `sdd-implement`, using `tdd` | The tasks are approved and unchanged; on a feature branch              | Code, tests, one commit per verified slice                    | Every task is checked off, each slice's full suite is green, the tree is clean     | `sdd-review`    |
-| 5. Validate  | `sdd-review`                 | All tasks are done, on a feature branch with a clean tree              | `review.md`, the fixes the user picks, a PR description draft | **User accepts**                                                                   | Done            |
+| Phase        | Skill                        | Starts when                                                            | Produces                                                      | Exit gate                                                                                                                                       | Next            |
+| ------------ | ---------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| 1. Outline   | `sdd-outline`                | The user brings an idea, brief, ticket or bug big enough for the chain | `spec.md`                                                     | Readiness checklist passes, no clarification markers, **user approves**                                                                         | `sdd-plan`      |
+| 2. Plan      | `sdd-plan`                   | The spec is approved and unchanged since approval                      | `plan.md`                                                     | Every requirement traces to the plan and a seam, **user approves**                                                                              | `sdd-task`      |
+| 3. Tasks     | `sdd-task`                   | The plan is approved and unchanged                                     | `tasks.md`                                                    | Every requirement has a task, every task has a seam and a check, **user approves**                                                              | `sdd-implement` |
+| 4. Implement | `sdd-implement`, using `tdd` | The tasks are approved and unchanged; on a feature branch              | Code, tests, one commit per verified slice                    | Every task is checked off, each slice's full suite is green apart from recorded pre-existing failures, the user confirmed QA, the tree is clean | `sdd-review`    |
+| 5. Validate  | `sdd-review`                 | All tasks are done, on a feature branch with a clean tree              | `review.md`, the fixes the user picks, a PR description draft | **User accepts**                                                                                                                                | Done            |
 
 ### State
 
@@ -227,6 +227,7 @@ Once set, it must match: refreshing a stale artifact means revising it against i
 - You MUST NOT approve on the user's behalf or run `sdd approve` without explicit approval in the conversation.
 - You MUST NOT start the next phase's skill on your own unless the user said to run end to end.
   Even then, stop at any clarification marker, failed check or stop-and-ask condition.
+  `sdd-implement` never starts `sdd-review`, even in an end-to-end run, so the review always reads the branch in a fresh session.
 - Running a skill on an artifact that already exists revises or resumes it.
   Start over only if the user asks.
 
@@ -600,8 +601,12 @@ Every line of code, test and task evidence comes from an `implementer` in a fres
       Any other failure goes back to the same agent once; a second failure stops the run with the evidence and no commit.
    5. **Commit** the verified slice: check its close-out item, stage by explicit path, including `docs/sdd/<slug>/tasks.md` so the progress log lands with the slice, and commit with the agent's judgment calls in the body.
       Never use `git add -A` or `git add .`, and never push.
-4. **Finish.**
-   When every slice is checked off, run `sdd lint <slug>`, set `tasks.md` to `done`, commit that change, and name `sdd-review` as the next step.
+4. **QA.**
+   When every slice is checked off, run `sdd lint <slug>`, start the app when the change has a runnable surface, and hand the user one QA script whose every observation maps to a "Done when" check or an acceptance criterion.
+   A bug the user finds goes to a fresh `implementer` as a red-first fix, which the orchestrator verifies and commits before QA resumes.
+5. **Finish.**
+   When the user confirms QA, set `tasks.md` to `done` and commit that change, stop the processes the session started, and report what was built, where the build stopped and how each stop was resolved, the judgment calls made, any pre-existing failures, and the follow-ups.
+   Recommend `sdd-review` in a fresh session, and never start it.
 
 ### While working
 
@@ -736,7 +741,7 @@ Then stop and wait for the user.
 
 The user picks which findings to fix.
 Build each fix with `tdd` and validate it with the repo's test tiers.
-Stage it by explicit path and propose a commit message, exactly as for a slice; commit only on the user's word.
+Stage it by explicit path and propose a commit message; commit only on the user's word, since a review fix answers a finding the user picked rather than an approved task.
 If the fixes are substantial, offer to rerun the review.
 
 ### Confirm intent and close

@@ -42,7 +42,7 @@ Never take the next step until the report is in; when it has not arrived, end th
    Load no more of the spec and plan than a question in front of you needs; the agents load their own.
 5. **Find the resume point.**
    The next slice is the first whose close-out box is unchecked.
-   When every close-out box is checked and `tasks.md` is still `in-progress`, go to Finish.
+   When every close-out box is checked and `tasks.md` is still `in-progress`, the build is done and QA has not been confirmed: go to QA.
 6. **Uncommitted changes** found now are listed for the user with two options: hand them to a fresh `implementer` to continue the resume slice, or set them aside by hand before you go on.
    Never stash, reset or discard them yourself, since they may hold work nobody else has.
 
@@ -102,22 +102,41 @@ A second failure stops the run: report the evidence to the user and commit nothi
    Never push.
 5. Carry the report's notes for later slices into the next brief.
 
+## QA
+
+Green checks prove the code does what the tests say; only the user confirms it does what they meant, so the one human pass comes after every slice is committed and before `tasks.md` reaches `done`.
+
+1. Run `.claude/sdd/bin/sdd lint <slug>` as the exit check.
+2. When the change has a runnable surface, something the app serves or the user exercises through it, start the app in this checkout: a `run-*` project skill under `.claude/skills/` when one exists, otherwise the repo's dev command as a background task.
+   Read its log for readiness and the real URL, and reuse a server that is already running rather than starting a second one.
+   When the app fails to start, tell the user once with the cause and carry on without it.
+3. Hand over one QA script: exact commands, URLs and actions, each observation mapped to a Done-when check or an acceptance criterion it confirms.
+   When there is no runnable surface or the app did not start, the script names the commands to run and the files to read instead.
+4. Stop and wait for the user.
+
+### QA bug
+
+A bug the user reports goes to a fresh `implementer` with the slug, the bug in the user's words with its reproduction steps, and the requirement IDs it touches, to fix red-first.
+Verify its report with the full suite and the test-file check from Verify, then commit the fix alone, refusing the default branch and staging by explicit path, with a subject naming the bug and a body naming the red test and its passing run.
+Then return to QA with the script's affected steps.
+
 ## Finish
 
-When every close-out box is checked:
+When the user confirms QA:
 
-1. Run `.claude/sdd/bin/sdd lint <slug>` as the exit check, then `.claude/sdd/bin/sdd set-status <slug> tasks done`.
-2. Stage `docs/sdd/<slug>/tasks.md` by explicit path and commit the status change.
+1. Run `.claude/sdd/bin/sdd set-status <slug> tasks done`, stage `docs/sdd/<slug>/tasks.md` by explicit path, and commit the status change.
+2. Stop every process this session started, the server included; leave a server it reused running.
+3. Report, in this order: what was built, slice by slice; each stop with how it was resolved; the judgment calls of the agents and of this session, gathered from the commit bodies; any pre-existing failures; and the Follow-ups in `tasks.md`.
 
 ## Outputs
 
-- Code and tests built by `implementer` agents, one commit per slice plus any trunk commits, and `tasks.md` fully checked with status `done`.
+- Code and tests built by `implementer` agents; one commit per slice plus any trunk and QA-fix commits; `tasks.md` fully checked with status `done`; and the report.
 
 ## Exit gate (section 4 (The workflow))
 
-Every task and close-out checked, each slice's full suite green apart from recorded pre-existing failures, the tree clean, `tasks.md` at `done`.
+Every task and close-out checked, each slice's full suite green apart from recorded pre-existing failures, QA confirmed by the user, the tree clean, `tasks.md` at `done`.
 
 ## Next
 
-`sdd-review`.
-Do not start it unless the user said to run end to end.
+Recommend running `/sdd-review` in a fresh session, so the review reads the branch without this session's context.
+Never start it from here, even when the user asked for an end-to-end run.

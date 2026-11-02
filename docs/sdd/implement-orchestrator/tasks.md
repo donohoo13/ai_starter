@@ -104,30 +104,34 @@ approved_hash: e2f23863cfe8
 
 ## P2: End-of-run QA and report
 
-- [ ] T014 After the last slice, the orchestrator lints, launches or reuses the app when there is a runnable surface, and hands over a QA script mapped to the checks
+- [x] T014 After the last slice, the orchestrator lints, launches or reuses the app when there is a runnable surface, and hands over a QA script mapped to the checks
   - Requirements: FR-022
   - Seam: read by the conformance pass
   - Files: .claude/skills/sdd-implement/SKILL.md
   - Done when: the QA step states the lint, the launch order, server reuse, the no-surface and launch-failure scripts, the mapping rule, and that it waits
-- [ ] T015 A QA bug goes to a fresh implementer as a red-first fix, verified and committed, then QA resumes
+  - Evidence: QA section greps: sdd lint 1, run-\* then dev-command launch 1, server reuse 1, no-surface script 1, launch failure 1, mapping rule 1, stop and wait 1
+- [x] T015 A QA bug goes to a fresh implementer as a red-first fix, verified and committed, then QA resumes
   - Requirements: FR-023
   - Seam: read by the conformance pass
   - Files: .claude/skills/sdd-implement/SKILL.md, .claude/agents/implementer.md
   - Depends on: T014
   - Done when: the skill states the QA-fix brief, the full suite and test-file checks, the commit body, and the return to QA, and the agent describes its QA-fix mode
-- [ ] T016 On QA confirmation the orchestrator sets `done`, commits it, stops its processes, and reports the five parts
+  - Evidence: QA bug greps: user's-words brief 1, full suite and test-file check 1, red-test body 1, return to QA 1; implementer has `## Fix a QA bug` 1
+- [x] T016 On QA confirmation the orchestrator sets `done`, commits it, stops its processes, and reports the five parts
   - Requirements: FR-024
   - Seam: read by the conformance pass
   - Files: .claude/skills/sdd-implement/SKILL.md
   - Depends on: T015
   - Done when: the finish step follows QA confirmation, commits the status change, keeps reused servers running, and lists the five report parts
-- [ ] T017 The orchestrator recommends `/sdd-review` in a fresh session and never starts it, and the SDD document carries the end-to-end exception, the pre-existing-failure exit gate and section 12's new Fixes wording
+  - Evidence: Finish greps: after QA confirmation 1, commits the status change 1, reused server left running 1, five-part report line 1
+- [x] T017 The orchestrator recommends `/sdd-review` in a fresh session and never starts it, and the SDD document carries the end-to-end exception, the pre-existing-failure exit gate and section 12's new Fixes wording
   - Requirements: FR-025, FR-031, INV-004
   - Seam: `sdd check-refs` through `sdd-helper.battery.mjs`
   - Files: .claude/skills/sdd-implement/SKILL.md, .claude/sdd/spec-driven-development.md
   - Depends on: T016
   - Done when: `node scripts/test/sdd-helper.battery.mjs` passes, the skill's Next forbids starting `sdd-review` in every case, and `grep -c 'exactly as for a slice' .claude/sdd/spec-driven-development.md` is 0
-- [ ] P2 close: full suite green, changes staged by explicit path, commit message proposed, user committed
+  - Evidence: sdd-helper battery 3/3; skill Next "Never start it from here, even when the user asked for an end-to-end run" 1; doc `exactly as for a slice` 0; section 4 gate rule exception and exit gate with pre-existing failures and QA added
+- [x] P2 close: full suite green, changes staged by explicit path, commit message proposed, user committed
 
 ## P3: Retire refine; render checks on demand
 
