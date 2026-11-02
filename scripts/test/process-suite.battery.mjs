@@ -152,7 +152,8 @@ function removedNamePattern() {
   const notNameChar = "[^[:alnum:]_-]";
   const asWordAnywhere = `(^|${notNameChar})(${REMOVED_NAMES.join("|")})(${notNameChar}|$)`;
   const opensCodeSlashOrBold = "[`/*]";
-  const closesCodeBoldLinkOrWord = "([`*\\] ]|$)";
+  // `]` must lead the bracket: POSIX brackets read `\]` as a literal backslash and close early.
+  const closesCodeBoldLinkOrWord = "([]`* ]|$)";
   const asCodeCommandOrBold = `${opensCodeSlashOrBold}(${REMOVED_ENGLISH_WORDS.join("|")})${closesCodeBoldLinkOrWord}`;
   return `${asWordAnywhere}|${asCodeCommandOrBold}`;
 }
