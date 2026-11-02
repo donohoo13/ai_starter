@@ -60,7 +60,11 @@ function checkImplementer() {
     listValues(frontmatter, "skills").includes("tdd"),
     "add tdd under skills:",
   );
-  check(`${path} pins model opus`, scalarValue(frontmatter, "model") === "opus");
+  check(
+    `${path} pins a model`,
+    Boolean(scalarValue(frontmatter, "model")),
+    "set model: so every slice builds on the same model; which one is the project's choice",
+  );
 }
 
 function checkRenderCheckIsUserOnly() {
@@ -145,10 +149,12 @@ const REMOVED_NAMES = [
 const REMOVED_ENGLISH_WORDS = ["refine", "builder"];
 
 function removedNamePattern() {
-  const edge = "([^[:alnum:]_-]|$)";
-  const anywhere = `(^|[^[:alnum:]_-])(${REMOVED_NAMES.join("|")})${edge}`;
-  const asName = `[\`/*](${REMOVED_ENGLISH_WORDS.join("|")})([\`*\\] ]|$)`;
-  return `${anywhere}|${asName}`;
+  const notNameChar = "[^[:alnum:]_-]";
+  const asWordAnywhere = `(^|${notNameChar})(${REMOVED_NAMES.join("|")})(${notNameChar}|$)`;
+  const opensCodeSlashOrBold = "[`/*]";
+  const closesCodeBoldLinkOrWord = "([`*\\] ]|$)";
+  const asCodeCommandOrBold = `${opensCodeSlashOrBold}(${REMOVED_ENGLISH_WORDS.join("|")})${closesCodeBoldLinkOrWord}`;
+  return `${asWordAnywhere}|${asCodeCommandOrBold}`;
 }
 
 function checkNoRemovedNames() {

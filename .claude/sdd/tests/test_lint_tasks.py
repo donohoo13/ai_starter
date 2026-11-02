@@ -74,7 +74,7 @@ class LintTasksTests(SddCase):
         self.assertIn("P1", out)
         self.assertIn("close-out", out)
 
-    def test_tasks_in_a_slice_may_share_files_and_depend_on_each_other(self):
+    def test_a_leftover_parallel_marker_no_longer_constrains_shared_files_or_dependencies(self):
         marked = VALID_TASKS.replace("- [ ] T001 Render", "- [ ] T001 [P] Render").replace("- [ ] T002 Render", "- [ ] T002 [P] Render")
         shared = marked.replace("  - Files: src/invoices/pdf-placeholder.ts, tests/invoices/pdf-placeholder.test.ts", "  - Files: src/invoices/pdf.ts, tests/invoices/pdf-placeholder.test.ts")
         dependent = shared.replace("  - Seam: service test on InvoicePdf\n", "  - Seam: service test on InvoicePdf\n  - Depends on: T001\n")

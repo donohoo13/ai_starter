@@ -594,8 +594,8 @@ Every line of code, test and task evidence comes from an `implementer` in a fres
       Put its question to the user with options and a recommendation, dispatching the `skeptic` agent first when the question is a trunk change, then resume the same agent with the answer.
    3. **Trunk commit.**
       An approved trunk change is built first and reported on its own; run the full suite, commit it alone with a body that opens `Trunk change:` and records the skeptic's verdict and the user's decision, then resume the agent to finish the slice.
-   4. **Verify** before committing, since a report is a claim: rerun each "Done when" check, run the full suite, confirm the reported test files match the changed ones, confirm `tasks.md` changed only in this slice's boxes, Evidence lines and Follow-ups, and confirm with `sdd status` that it is unchanged since approval.
-      A test that also fails at `HEAD`, checked in a temporary worktree rather than by stashing, is recorded as pre-existing.
+   4. **Verify** before committing, since a report is a claim: rerun each "Done when" check, run the full suite, confirm the reported files and test files match every changed path, confirm `tasks.md` changed only in this slice's boxes, Evidence lines and Follow-ups, and confirm with `sdd status` that it is unchanged since approval.
+      A failing test in a file the slice added or changed belongs to the slice; any other failing test that also fails at `HEAD`, checked in a temporary worktree with dependencies installed rather than by stashing, is recorded as pre-existing.
       Any other failure goes back to the same agent once; a second failure stops the run with the evidence and no commit.
    5. **Commit** the verified slice: check its close-out item, stage by explicit path, including `docs/sdd/<slug>/tasks.md` so the progress log lands with the slice, and commit with the agent's judgment calls in the body.
       Never use `git add -A` or `git add .`, and never push.
@@ -611,13 +611,13 @@ Every line of code, test and task evidence comes from an `implementer` in a fres
 The `implementer` holds these rules; the orchestrator checks the result against them.
 
 - **Follow the plan.**
-  If the plan turns out to be wrong, stop and propose a change.
+  A plan that turns out to be wrong against the code is a contradiction, reported under Stop and ask.
   Don't improvise a new architecture.
 - **Stay in scope.**
   Record bugs, refactors and ideas as follow-ups instead of acting on them.
 - **Follow existing patterns** in the codebase.
 - **Never weaken a check to make it pass.**
-  Skipping tests, loosening assertions and suppressing errors all require the user's approval.
+  Skipping tests, loosening assertions and suppressing errors are not fixes; when nothing else makes a check pass, the same approach has failed twice, which is a reason to stop and ask.
 - **Manage context.**
   Each slice runs in its agent's fresh context, so the orchestrator's own context holds only reports and verification.
   `tasks.md` is the memory a resumed session reads, so it stays current.

@@ -82,7 +82,8 @@ When the user declines, build the slice around the change, or report `BLOCKED` a
 
 Never commit, push, open a pull request, or switch branches; the orchestrator commits after it verifies your work.
 Never stash, reset, or discard changes you did not make.
-Never weaken a check to make it pass: skipping a test, loosening an assertion, or suppressing an error is a `BLOCKED` question, not a fix.
+Never weaken a check to make it pass: skipping a test, loosening an assertion, or suppressing an error is not a fix.
+When nothing else makes the check pass, that is the same approach failing twice, one of the conditions in When to stop.
 
 ## Report
 

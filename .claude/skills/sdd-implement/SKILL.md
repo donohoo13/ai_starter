@@ -22,7 +22,8 @@ Only these, so that every line of code and test comes from an agent whose work t
 - Git staging and commits.
 - The processes it starts and stops.
 
-Every other file, code, tests, docs and the task boxes and Evidence lines included, is written by an `implementer`.
+An `implementer` writes every other file.
+That includes code, tests, docs, and the task boxes and Evidence lines in `tasks.md`.
 When something needs changing, dispatch or resume an agent for it.
 
 Every agent this session dispatches or resumes is waited on, because the next step acts on its report.
@@ -54,6 +55,7 @@ Never take the next step until the report is in; when it has not arrived, end th
    On the default or a shared branch: propose creating the spec's branch, ask, then create it, through `scripts/setup/gwt-add.sh --no-open <branch>` and the EnterWorktree tool when this checkout should stay on the default branch; if the user picks another name, set the spec's `branch` field to it (frontmatter sits outside the content hash, so the spec stays approved).
    On a different feature branch: ask whether to switch to the spec's branch or record the current one the same way.
 2. **Mark in progress**: `.claude/sdd/bin/sdd set-status <slug> tasks in-progress` (a no-op when already in progress).
+   When this or step 1 changed `tasks.md` or `spec.md`, stage those files by explicit path and commit them before the first dispatch, so every later diff holds only an agent's work.
 3. **For each slice from the resume point**, in order, finish one before dispatching the next:
    1. **Dispatch** a fresh `implementer` through the Agent tool, with `effort: high` unless the user named another level for this run.
       The brief carries only the slug, the slice heading, the notes earlier slices reported, and any decisions the user made for this slice; the agent loads its tasks, requirements, plan sections and seams itself, because anything more you add is this session's bias reaching a context built to be free of it.
@@ -66,6 +68,7 @@ Never take the next step until the report is in; when it has not arrived, end th
 2. Put the question to the user with options and a recommendation, quoting the skeptic's verdict and its strongest case against the change when there is one, and wait for the answer.
 3. Resume the same agent with the answer through `SendMessage`, so it keeps its full context.
    When that agent is no longer reachable, such as after a new session, dispatch a fresh `implementer` with the answer listed as a decision for the slice.
+   Act on its next report.
 
 ### Trunk commit
 
@@ -74,7 +77,7 @@ On `TRUNK_READY`:
 1. Run the full suite, handling failures as in Verify.
 2. Check `git branch --show-current` is not the default branch, stage only the trunk paths the report names by explicit path, and commit them alone.
    The body opens with `Trunk change: <touch point> (<n> consumers)`, then records the skeptic's verdict and the user's decision, because the pull request's risk section quotes it from there.
-3. Resume the same agent through `SendMessage` to finish the slice, and act on its next report.
+3. Resume the same agent through `SendMessage` to finish the slice, telling it the trunk paths are committed so its next report lists only what it changes from here, and act on that report.
 
 ### Verify
 
@@ -82,22 +85,28 @@ Check the agent's work yourself before committing, since a report is a claim:
 
 1. Rerun each Done-when check of the slice and compare with its Evidence line.
 2. Run the full suite with the repo's test tiers.
-3. Compare the test files the report names with the test files changed in the working tree; they match exactly, and "none" matches none.
+3. Compare the report's files with every path `git status --porcelain` lists, `tasks.md` aside, and its test files with the test files among them; both match exactly, and "none" matches none.
+   An unreported change would otherwise be left out of the commit.
 4. Diff `tasks.md` against `HEAD`: only this slice's task boxes went from unchecked to checked, each checked task gained exactly one `- Evidence:` line under it, Follow-ups gained only entries, and nothing else changed.
 5. Run `.claude/sdd/bin/sdd status <slug> --json` and confirm `tasks.md` is unchanged since approval.
 
-When a full-suite test fails, run it at `HEAD` in a temporary worktree (`git worktree add --detach <tmp> HEAD`, then `git worktree remove <tmp>`), never by stashing the working tree.
-A test that fails there too is pre-existing: record it and let it pass verification.
+When a full-suite test fails, decide whether the failure is pre-existing:
+
+- A test in a file this slice added or changed is never pre-existing, since the slice owns it.
+- Any other failing test runs at `HEAD` in a temporary worktree (`git worktree add --detach <tmp> HEAD`, install dependencies there with the repo's install command, run the test, then `git worktree remove <tmp>`), never by stashing the working tree.
+  It is pre-existing only when it fails there for the same reason; record it and let it pass verification.
+
 Any other failure fails verification.
 
 On a failure, resume the same agent once through `SendMessage` with what you found, then verify again.
 A second failure stops the run: report the evidence to the user and commit nothing.
+When every check passes, go to Slice commit.
 
 ### Slice commit
 
 1. Check the slice's close-out box in `tasks.md`, so it lands in the slice's own commit and a crash can never leave a committed slice that looks unbuilt.
 2. Check `git branch --show-current` is not the default branch.
-3. Stage the report's files and `docs/sdd/<slug>/tasks.md` by explicit path; never `git add -A` or `git add .`.
+3. Stage the report's files, which Verify matched against `git status`, and `docs/sdd/<slug>/tasks.md` by explicit path; never `git add -A` or `git add .`.
 4. Commit without asking: the subject names the slice's behavior in the repo's convention, and the body records the agent's judgment calls, any you made, and any pre-existing failures.
    Never push.
 5. Carry the report's notes for later slices into the next brief.
