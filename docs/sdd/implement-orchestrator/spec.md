@@ -6,7 +6,7 @@ status: approved
 owner: Conner Donohoo
 created: 2026-11-02
 updated: 2026-11-02
-approved_hash: 59fe442dd0c0
+approved_hash: d36a6638a637
 description: Moves `sdd-implement` from building every task in-session to orchestrating one fresh implementer agent per slice and committing each verified slice. The result is a build free of the planning session's bias, one user QA pass at the end, and one review instead of two.
 ---
 
@@ -60,7 +60,7 @@ When the work is done, the branch holds one commit per slice, `refine` is gone, 
 ### P1: Orchestrated slice build
 
 As the owner, I want `sdd-implement` to build each slice through a fresh agent and commit it after checking it, so that the build follows the approved spec without the planning session's bias and without me committing by hand.
-Independent test: the fixture dry run in NFR-003 ends with one commit per slice plus one trunk commit, and its transcript shows the orchestrator writing only what FR-002 allows.
+Independent test: a fresh session given the gut-check prompts that `.claude/rules/skill-authoring.md` requires, for a two-slice spec with an undecided trunk change, describes one commit per slice plus one trunk commit and no orchestrator write outside FR-002.
 
 - Given an approved `tasks.md` with two slices, when the user runs `sdd-implement` in a fresh session, then the orchestrator dispatches one `implementer` per slice, verifies each, and commits each before dispatching the next.
 - Given a slice agent that finds a trunk change the spec did not decide, when it stops, then the orchestrator dispatches `skeptic`, puts the decision to the user with the skeptic's case, and on approval commits the trunk change alone before the slice continues.
@@ -68,7 +68,7 @@ Independent test: the fixture dry run in NFR-003 ends with one commit per slice 
 ### P2: End-of-run QA and report
 
 As the owner, I want one QA pass after every slice is committed, then a report of where the build stalled and what was decided along the way, so that I confirm the result once and know what to scrutinize.
-Independent test: in the NFR-003 dry run, a QA bug reported by the user is fixed in its own commit, the report names the trunk stop and its resolution, and the next step named is `/sdd-review` in a fresh session.
+Independent test: a fresh session given the gut-check prompts for a run with a trunk stop and a QA bug describes the bug fixed in its own commit, a report naming the trunk stop and its resolution, and `/sdd-review` in a fresh session as the next step.
 
 - Given every slice committed, when the orchestrator reaches QA, then it starts the app when the change has a runnable surface, hands over a QA script and waits.
 - Given a bug the user reports in QA, when the orchestrator handles it, then a fresh `implementer` fixes it red-first and the orchestrator verifies and commits the fix.
@@ -83,7 +83,7 @@ Independent test: no tracked file outside the FR-028 exclusions names `refine`, 
 ### P4: Docs reflect the repository
 
 As the owner, I want every document to describe the skills, agents and flow that exist, so that a fresh session is never misled by a stale reference.
-Independent test: the FR-028 grep finds no reference to a removed skill or agent, and every count of skills or agents matches the files.
+Independent test: the FR-028 grep finds no reference to a removed skill or agent, and `CLAUDE.md` and `README.md` state no count of skills or agents.
 
 ## Requirements
 
@@ -180,7 +180,7 @@ Render check
 Removals and docs
 
 - FR-028: The `refine` skill, the `refiner` and `code-reviewer` agents, and `docs/specs/` shall be deleted, and every tracked file outside `docs/sdd/` and the `CHANGELOG.md` entries of released versions shall name only skills and agents that exist.
-  - Acceptance: Given the repository, when a reviewer runs `git grep -nwE 'refine|refiner|code-reviewer|template-sync|template-feedback|builder|implement-spec|run-skill-generator'` outside those exclusions, then no match names a skill or agent, and the skill and agent counts in `CLAUDE.md` and `README.md` equal the contents of `.claude/skills/` and `.claude/agents/`.
+  - Acceptance: Given the repository, when a reviewer runs `git grep -nwE 'refine|refiner|code-reviewer|template-sync|template-feedback|builder|implement-spec|run-skill-generator'` outside those exclusions, then no match names a skill or agent, and `CLAUDE.md` and `README.md` list skills and agents by name without stating a count.
 - FR-029: The `[P]` task marker shall be removed from the SDD document's task shape and rules, Appendix C and the generated tasks template, and the helper's `[P]` lint and its tests shall be removed.
   - Acceptance: Given the branch, when a reviewer greps the SDD document, `.claude/sdd/templates/` and `.claude/sdd/bin/sdd` for `[P]`, then nothing matches, and the helper's unittest suite passes.
 - FR-030: `.claude/rules/skill-authoring.md` shall drop the `sdd-implement` exemption from "code work runs in agents".
@@ -198,7 +198,7 @@ Removals and docs
 
 - NFR-001: Every changed skill body shall stay within the 5000-token budget in `.claude/rules/skill-authoring.md`, measured before landing.
 - NFR-002: `pnpm test:scripts` shall pass on the branch, covering the helper's unittest suite, the template drift check and the section-reference check.
-- NFR-003: Before landing, `sdd-implement` shall run once in a throwaway clone of the branch on a fixture spec with two slices, one undecided trunk change and one QA bug supplied by the user; the run's transcript shall show P1's and P2's independent tests passing, and the result shall be recorded as Evidence.
+- NFR-003: Removed 2026-11-02: the fixture dry run is replaced by the gut-check handoff `.claude/rules/skill-authoring.md` already requires.
 
 ## Invariants
 
@@ -244,3 +244,7 @@ These exist today and are reused, not rebuilt:
 | Judgment call | A decision that changes only how the slice is built, made by an agent or the orchestrator without asking the user.                                                                            |
 | Interruption  | A point where the orchestrator waits for the user: a `BLOCKED` report (FR-007), a second verification failure (FR-018), uncommitted work at start (FR-020), or a start on the default branch. |
 | Proof bar     | The FR-013 test an approved trunk change must pass before it is built.                                                                                                                        |
+
+## Changelog
+
+- 2026-11-02: Removed NFR-003 (fixture dry run) at the owner's request; P1 and P2 are proven through the skill-authoring gut-check prompts instead. CLAUDE.md and README.md drop skill and agent counts rather than keep them in sync.
