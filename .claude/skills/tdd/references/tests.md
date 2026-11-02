@@ -1,5 +1,7 @@
 # Good and Bad Tests
 
+Read as reference from `SKILL.md`; nothing here runs.
+
 ## Good Tests
 
 **Integration-style**: Test through real interfaces, not mocks of internal parts.

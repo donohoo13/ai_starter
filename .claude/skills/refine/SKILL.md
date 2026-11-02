@@ -1,7 +1,7 @@
 ---
 name: refine
-description: Makes a working branch right, then runs the one human QA pass on the final code. Discovers the change and its intent without asking, dispatches a fresh refiner agent that audits it against docs/standards/, pins required behavior with proven tests, and refactors code and tests without weakening them, verifies the result, runs a render pass with the UX floors when a surface changed, and hands over a QA script with the app running; on confirmation flips a built spec to done. Works on any branch, with or without a spec, and never pushes or opens a PR. Use when a build is finished or ad-hoc AI work should be brought up to standard, when a spec sits at status built, or when the user says "refine", "make it right", "clean this up", "bring this up to our standards", or "tidy this branch before review".
-argument-hint: "[optional: a docs/specs/ path or one line of intent, plus --base <ref> on a stacked branch; blank to discover]"
+description: Makes a working branch right, then runs the one human QA pass on the final code. Discovers the change and its intent without asking, dispatches a fresh refiner agent that audits it against docs/standards/, pins required behavior with proven tests, and refactors code and tests without weakening them, verifies the result, runs a render pass with the UX floors when a surface changed, and hands over a QA script with the app running. Works on any branch, with or without a spec, and never pushes or opens a PR. Use when a build is finished or ad-hoc AI work should be brought up to standard, when sdd-implement has every task done and the branch should be made right before sdd-review, or when the user says "refine", "make it right", "clean this up", "bring this up to our standards", or "tidy this branch before review".
+argument-hint: "[optional: a docs/sdd/<slug>/spec.md path or one line of intent, plus --base <ref> on a stacked branch; blank to discover]"
 ---
 
 # Refine
@@ -25,10 +25,10 @@ Beyond that, only something major enough to halt reaches them during the run.
   A `--base` ref that does not resolve is reported in one line and ends the run.
 - The change is everything between the base and the working tree, committed or not.
   An empty change is reported in one line and ends the run.
-- The intent is the rest of the argument, else a `docs/specs/` file the change touches, else inferred from the branch's commits and diff.
+- The intent is the rest of the argument, else the `docs/sdd/<slug>/spec.md` whose folder the change touches, else inferred from the branch's commits and diff.
   Announce it in one line, "Refining X, from Y, since <base>", naming the base ref and the merge-base's short sha, and never ask.
   Emit that line as soon as discovery ends, before the baseline commit and the dispatch, so the user can interrupt a wrong read before any work starts.
-- A spec at `status: built` sets spec mode; anything else, a spec at another status included, is ad-hoc.
+- A `docs/sdd/<slug>/tasks.md` at `status: done` sets spec mode, with its `spec.md` as the intent; anything else, a spec still being built included, is ad-hoc.
 - On the default branch, branch first per `CLAUDE.md`, naming the branch from the intent.
 - Commit any uncommitted work untouched as a baseline, staging each path `git status` lists by explicit path, so the refiner's commits stay separable from the work it was handed and the test-table check stays exact.
   The baseline is `HEAD` after that commit, or `HEAD` as found when the tree was clean.
@@ -45,20 +45,19 @@ Beyond that, only something major enough to halt reaches them during the run.
 
 ## Render
 
-- Run the render pass when the change touches a user-facing surface: a changed path matching the `applies-to:` globs in `docs/standards/ux-standards.md`, or a spec whose Design Requirements name a surface rather than a one-line disposition.
-- Launch the app (below), then dispatch `render-checker` with the URL, the touched surfaces and the states to reach, the themes the app ships, and the bar: the spec's Design Requirements and `DESIGN.md` when there is a spec, `DESIGN.md` otherwise, plus the `docs/standards/ux-standards.md` floors measured on the rendered page.
+- Run the render pass when the change touches a user-facing surface: a changed path matching the `applies-to:` globs in `docs/standards/ux-standards.md`, or a spec whose user scenarios or requirements name a surface.
+- Launch the app (below), then dispatch `render-checker` with the URL, the touched surfaces and the states to reach, the themes the app ships, and the bar: the spec's requirements and `DESIGN.md` when there is a spec, `DESIGN.md` otherwise, plus the `docs/standards/ux-standards.md` floors measured on the rendered page.
 - Failures resume the refiner with the findings through `SendMessage`, the suite reruns, then one re-check; what still fails after that is reported, not looped on.
 - A skipped pass is said in the render line with its reason.
 
 ## QA
 
-- Hand over one QA script with the app already running when there is one: exact commands, URLs, and actions, each observation mapped to a done-when check in the spec (spec mode) or to the intent (ad-hoc).
+- Hand over one QA script with the app already running when there is one: exact commands, URLs, and actions, each observation mapped to a Done when check in `tasks.md` or an acceptance criterion in the spec (spec mode), or to the intent (ad-hoc).
   Then stop and wait.
   Green checks prove the code does what the tests say; only the user confirms it does what they meant.
 - An issue the user finds resumes the refiner with it, a bug opening red-first.
   The suite reruns, the render re-check reruns when a surface changed, and QA returns.
-- On confirmation, spec mode flips the spec to `status: done` and commits the flip alone.
-  Then stop every process this session started, and stop.
+- On confirmation, stop every process this session started, and stop; `sdd-review` owns the acceptance that closes the spec.
   Never push or open a PR from here.
 
 ## App lifecycle

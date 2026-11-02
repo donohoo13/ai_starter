@@ -1,0 +1,1161 @@
+#!/usr/bin/env python3
+"""sdd: state and mechanical checks for spec-driven development.
+
+Keeps the working files under <project root>/docs/sdd/<slug>/ honest: creates
+them from the templates, hashes and approves them, lints their structure,
+derives the current phase, and keeps the templates in sync with the document.
+Behavior follows sections 4 and 5 of .claude/sdd/spec-driven-development.md,
+which lives beside this script; SDD_HOME overrides that location for tests.
+"""
+from __future__ import annotations
+
+import argparse
+import datetime
+import hashlib
+import json
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+ARTIFACTS = ("spec", "plan", "tasks", "review")
+UPSTREAM = {"plan": "spec", "tasks": "plan"}
+DOC_NAME = "spec-driven-development.md"
+SKILL_NAMES = ("sdd-outline", "sdd-plan", "sdd-task", "sdd-implement", "tdd", "sdd-review")
+
+
+class Refusal(Exception):
+    """A command declined to act; the message goes to stderr and the exit code is 1."""
+
+
+# --- locations ---------------------------------------------------------------
+
+
+def sdd_home() -> Path:
+    return Path(os.environ.get("SDD_HOME") or Path(__file__).resolve().parents[1])
+
+
+def skills_dir() -> Path:
+    return sdd_home().parent / "skills"
+
+
+def git(*args: str, cwd: Path | None = None) -> str | None:
+    """Run a git command and return its stdout, or None when it fails."""
+    try:
+        result = subprocess.run(
+            ["git", *args], cwd=cwd, capture_output=True, text=True, check=False
+        )
+    except FileNotFoundError:
+        return None
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip()
+
+
+def project_root() -> Path:
+    top = git("rev-parse", "--show-toplevel")
+    return Path(top) if top else Path.cwd()
+
+
+def sdd_dir() -> Path:
+    return project_root() / "docs" / "sdd"
+
+
+def current_branch() -> str:
+    return git("symbolic-ref", "--short", "HEAD") or ""
+
+
+def today() -> str:
+    return datetime.date.today().isoformat()
+
+
+# --- frontmatter -------------------------------------------------------------
+
+
+def parse_frontmatter(text: str) -> tuple[dict[str, str], str]:
+    """Split a markdown file into its `key: value` frontmatter and its body."""
+    if not text.startswith("---\n"):
+        return {}, text
+    end = text.find("\n---\n", 4)
+    if end == -1:
+        return {}, text
+    fields: dict[str, str] = {}
+    for line in text[4:end].splitlines():
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        fields[key.strip()] = value.strip().strip('"').strip("'")
+    return fields, text[end + 5 :]
+
+
+def set_frontmatter(text: str, updates: dict[str, str]) -> str:
+    """Return the text with each frontmatter key set, appending keys that are absent."""
+    if not text.startswith("---\n"):
+        raise Refusal("file has no frontmatter")
+    end = text.find("\n---\n", 4)
+    if end == -1:
+        raise Refusal("file has no frontmatter")
+    lines = text[4:end].splitlines()
+    pending = dict(updates)
+    for index, line in enumerate(lines):
+        key = line.split(":", 1)[0].strip()
+        if key in pending:
+            lines[index] = "%s: %s" % (key, pending.pop(key))
+    for key, value in pending.items():
+        lines.append("%s: %s" % (key, value))
+    return "---\n" + "\n".join(lines) + text[end:]
+
+
+# --- hashing -----------------------------------------------------------------
+
+CHECKBOX = re.compile(r"^(\s*- )\[[xX]\]")
+EVIDENCE = re.compile(r"^\s*- Evidence:", re.IGNORECASE)
+FOLLOW_UPS = re.compile(r"^## Follow-ups", re.IGNORECASE)
+
+
+def normalized_body(text: str) -> str:
+    """The body below the frontmatter with progress marks removed.
+
+    Ticking a checkbox, adding an evidence note, listing a follow-up, or
+    trailing whitespace must not count as a change to an approved artifact.
+    """
+    _, body = parse_frontmatter(text)
+    kept: list[str] = []
+    skipping = False
+    for line in body.splitlines():
+        if line.startswith("## "):
+            skipping = bool(FOLLOW_UPS.match(line))
+        if skipping or EVIDENCE.match(line):
+            continue
+        kept.append(CHECKBOX.sub(r"\1[ ]", line).rstrip())
+    while kept and not kept[-1]:
+        kept.pop()
+    return "\n".join(kept) + "\n"
+
+
+def content_hash(text: str) -> str:
+    return hashlib.sha256(normalized_body(text).encode("utf-8")).hexdigest()[:12]
+
+
+# --- command registry --------------------------------------------------------
+
+COMMANDS: list[tuple[str, str, list, object]] = []
+
+
+def command(name: str, help_text: str, *arguments):
+    """Register a subcommand; each argument is (flags, kwargs) for argparse."""
+
+    def wrap(fn):
+        COMMANDS.append((name, help_text, list(arguments), fn))
+        return fn
+
+    return wrap
+
+
+@command("hash", "Print the content hash of an artifact", (["file"], {}))
+def cmd_hash(args: argparse.Namespace) -> int:
+    path = Path(args.file)
+    if not path.is_file():
+        raise Refusal("no such file: %s" % path)
+    print(content_hash(path.read_text()))
+    return 0
+
+
+# --- working folder ----------------------------------------------------------
+
+
+def artifact_path(slug: str, name: str) -> Path:
+    return sdd_dir() / slug / (name + ".md")
+
+
+def read_artifact(slug: str, name: str) -> tuple[dict[str, str], str, str] | None:
+    """Return (frontmatter, body, raw text) or None when the artifact is missing."""
+    path = artifact_path(slug, name)
+    if not path.is_file():
+        return None
+    text = path.read_text()
+    fields, body = parse_frontmatter(text)
+    return fields, body, text
+
+
+def write_artifact(slug: str, name: str, text: str) -> None:
+    artifact_path(slug, name).write_text(text)
+
+
+def template(name: str) -> str:
+    path = sdd_home() / "templates" / (name + ".md")
+    if not path.is_file():
+        raise Refusal("missing template %s; run `sdd templates sync`" % path)
+    return path.read_text()
+
+
+def all_slugs() -> list[str]:
+    base = sdd_dir()
+    if not base.is_dir():
+        return []
+    return sorted(p.parent.name for p in base.glob("*/spec.md"))
+
+
+def resolve_slug(slug: str | None) -> str:
+    """The slug argument, else the spec whose branch matches the current branch."""
+    if slug:
+        return slug
+    return find_slug()
+
+
+def find_slug() -> str:
+    slugs = all_slugs()
+    if not slugs:
+        raise Refusal("no specs under %s" % sdd_dir())
+    branch = current_branch()
+    for slug in slugs:
+        fields, _, _ = read_artifact(slug, "spec")
+        if fields.get("branch") == branch:
+            return slug
+    raise Refusal(
+        "no spec matches branch %r; existing slugs: %s" % (branch, ", ".join(slugs))
+    )
+
+
+@command("root", "Print the project root and its docs/sdd/ path")
+def cmd_root(args: argparse.Namespace) -> int:
+    root = project_root()
+    print("root: %s" % root)
+    print("sdd: %s" % (root / "docs" / "sdd"))
+    return 0
+
+
+def title_from_slug(slug: str) -> str:
+    words = slug.replace("_", "-").split("-")
+    return " ".join(words).strip().capitalize()
+
+
+@command(
+    "init",
+    "Create docs/sdd/<slug>/spec.md from the template",
+    (["slug"], {}),
+    (["--branch"], {"help": "feature branch to record; defaults to the current branch"}),
+)
+def cmd_init(args: argparse.Namespace) -> int:
+    path = artifact_path(args.slug, "spec")
+    if path.exists():
+        raise Refusal("%s already exists; run the skill on it to revise or resume" % path)
+    text = template("spec")
+    title = title_from_slug(args.slug)
+    text = set_frontmatter(
+        text,
+        {
+            "title": title,
+            "slug": args.slug,
+            "branch": args.branch or current_branch(),
+            "owner": git("config", "user.name") or "",
+            "created": today(),
+            "updated": today(),
+        },
+    )
+    text = re.sub(r"^# .*$", "# " + title, text, count=1, flags=re.MULTILINE)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text)
+    print("created %s" % path)
+    print("it is tracked by git: stage it by explicit path once the user approves it")
+    return 0
+
+
+@command("find", "Print the slug whose spec branch matches the current branch")
+def cmd_find(args: argparse.Namespace) -> int:
+    print(find_slug())
+    return 0
+
+
+# --- tasks parsing -----------------------------------------------------------
+
+CHECK_ITEM = re.compile(r"^- \[( |x|X)\] (.*\S)\s*$")
+TASK_TEXT = re.compile(r"^(T\d{3})(\s+\[P\])?\s+(.*)$")
+SUB_FIELD = re.compile(r"^\s+- ([A-Za-z][A-Za-z ]*?):\s*(.*)$")
+SLICE_HEADING = re.compile(r"^## (P\d+)\b")
+
+
+def parse_task_items(body: str) -> list[dict]:
+    """Checkbox items in tasks.md with their sub-bullet fields.
+
+    Items under Follow-ups are not progress, so they are left out.
+    """
+    items: list[dict] = []
+    slice_name = None
+    skipping = False
+    for number, line in enumerate(body.splitlines(), start=1):
+        if line.startswith("## "):
+            skipping = bool(FOLLOW_UPS.match(line))
+            match = SLICE_HEADING.match(line)
+            slice_name = match.group(1) if match else None
+            continue
+        if skipping:
+            continue
+        item = CHECK_ITEM.match(line)
+        if item:
+            text = item.group(2)
+            task = TASK_TEXT.match(text)
+            items.append(
+                {
+                    "line": number,
+                    "checked": item.group(1) != " ",
+                    "text": text,
+                    "id": task.group(1) if task else None,
+                    "parallel": bool(task and task.group(2)),
+                    "title": task.group(3) if task else text,
+                    "slice": slice_name,
+                    "fields": {},
+                }
+            )
+            continue
+        field = SUB_FIELD.match(line)
+        if field and items:
+            items[-1]["fields"][field.group(1).strip().lower()] = field.group(2).strip()
+    return items
+
+
+def task_progress(body: str) -> dict:
+    items = parse_task_items(body)
+    tasks = [item for item in items if item["id"]]
+    unchecked = [item for item in items if not item["checked"]]
+    return {
+        "done": sum(1 for item in tasks if item["checked"]),
+        "total": len(tasks),
+        "next": unchecked[0]["text"] if unchecked else None,
+    }
+
+
+# --- status ------------------------------------------------------------------
+
+MARKER = "[NEEDS CLARIFICATION"
+APPROVED_STATUSES = {"approved", "in-progress", "done"}
+
+
+def artifact_state(slug: str, name: str, upstream: dict | None) -> dict:
+    """What `sdd status` reports for one artifact, following section 4's state rules."""
+    found = read_artifact(slug, name)
+    if not found:
+        return {
+            "exists": False,
+            "status": None,
+            "hash": None,
+            "approved_hash": None,
+            "based_on": None,
+            "changed": False,
+            "stale": False,
+        }
+    fields, body, text = found
+    status = fields.get("status", "")
+    approved_hash = fields.get("approved_hash", "")
+    based_on = fields.get("based_on", "")
+    current = content_hash(text)
+    changed = name != "review" and status in APPROVED_STATUSES and approved_hash != current
+    stale = False
+    if upstream is not None and name in UPSTREAM:
+        upstream_hash = upstream["approved_hash"] or ""
+        stale = (
+            upstream["changed"]
+            or upstream["stale"]
+            or (bool(based_on) and based_on != upstream_hash)
+        )
+    return {
+        "exists": True,
+        "status": status,
+        "hash": current,
+        "approved_hash": approved_hash or None,
+        "based_on": based_on or None,
+        "changed": changed,
+        "stale": stale,
+    }
+
+
+def count_markers(slug: str) -> int:
+    found = read_artifact(slug, "spec")
+    if not found:
+        return 0
+    return sum(1 for line in found[2].splitlines() if MARKER in line)
+
+
+def derive_phase(states: dict, markers: int) -> tuple[str, str | None]:
+    """The phase and skill for the current state, per the table in section 4."""
+    spec, plan, tasks, review = (states[name] for name in ARTIFACTS)
+    if not spec["exists"] or spec["status"] != "approved" or spec["changed"] or markers:
+        return "1. Outline", "sdd-outline"
+    if not plan["exists"] or plan["status"] != "approved" or plan["changed"] or plan["stale"]:
+        return "2. Plan", "sdd-plan"
+    if (
+        not tasks["exists"]
+        or tasks["status"] not in APPROVED_STATUSES
+        or tasks["changed"]
+        or tasks["stale"]
+    ):
+        return "3. Tasks", "sdd-task"
+    if tasks["status"] in ("approved", "in-progress"):
+        return "4. Implement", "sdd-implement"
+    if not review["exists"] or review["status"] != "accepted":
+        return "5. Validate", "sdd-review"
+    return "Done", None
+
+
+def chain_states(slug: str) -> dict[str, dict]:
+    """Every artifact's state, each computed against its upstream so staleness propagates."""
+    states: dict[str, dict] = {}
+    for name in ARTIFACTS:
+        upstream = states.get(UPSTREAM.get(name, ""))
+        states[name] = artifact_state(slug, name, upstream)
+    return states
+
+
+def collect_status(slug: str) -> dict:
+    states = chain_states(slug)
+    markers = count_markers(slug)
+    phase, skill = derive_phase(states, markers)
+    tasks = read_artifact(slug, "tasks")
+    spec = read_artifact(slug, "spec")
+    return {
+        "slug": slug,
+        "branch": spec[0].get("branch") if spec else None,
+        "current_branch": current_branch(),
+        "artifacts": states,
+        "clarifications": markers,
+        "tasks": task_progress(tasks[1]) if tasks else None,
+        "phase": phase,
+        "skill": skill,
+    }
+
+
+def describe_artifact(name: str, state: dict, progress: dict | None) -> str:
+    if not state["exists"]:
+        return "%-8s missing" % name
+    parts = ["%-8s %-12s" % (name, state["status"] or "(no status)")]
+    if name != "review":
+        parts.append("hash %s" % state["hash"])
+        if state["based_on"]:
+            parts.append("based_on %s" % state["based_on"])
+        if state["changed"]:
+            parts.append("changed since approval")
+        if state["stale"]:
+            parts.append("stale")
+        if state["status"] in APPROVED_STATUSES and not state["changed"] and not state["stale"]:
+            parts.append("current")
+    if name == "tasks" and progress:
+        parts.append("%d/%d done" % (progress["done"], progress["total"]))
+        if progress["next"]:
+            parts.append("next: %s" % progress["next"])
+    return "  ".join(parts)
+
+
+@command(
+    "status",
+    "Report each artifact's state, task progress, the phase and the skill to run",
+    (["slug"], {"nargs": "?"}),
+    (["--json"], {"action": "store_true"}),
+)
+def cmd_status(args: argparse.Namespace) -> int:
+    slug = resolve_slug(args.slug)
+    report = collect_status(slug)
+    if args.json:
+        print(json.dumps(report, indent=2))
+        return 0
+    print("slug: %s" % slug)
+    print("branch: %s (current: %s)" % (report["branch"] or "?", report["current_branch"] or "?"))
+    for name in ARTIFACTS:
+        print(describe_artifact(name, report["artifacts"][name], report["tasks"]))
+    print("clarification markers: %d" % report["clarifications"])
+    print("phase: %s" % report["phase"])
+    print("next skill: %s" % (report["skill"] or "none"))
+    return 0
+
+
+# --- lint --------------------------------------------------------------------
+
+
+class Lint:
+    """Collected findings for one artifact. Errors fail; warnings only print."""
+
+    def __init__(self, filename: str):
+        self.filename = filename
+        self.errors: list[str] = []
+        self.warnings: list[str] = []
+
+    def _where(self, line: int | None) -> str:
+        return "%s:%d" % (self.filename, line) if line else self.filename
+
+    def error(self, message: str, line: int | None = None) -> None:
+        self.errors.append("ERROR %s: %s" % (self._where(line), message))
+
+    def warn(self, message: str, line: int | None = None) -> None:
+        self.warnings.append("WARN %s: %s" % (self._where(line), message))
+
+    def report(self) -> str:
+        lines = self.errors + self.warnings
+        lines.append(
+            "%s: %d error%s, %d warning%s"
+            % (
+                self.filename,
+                len(self.errors),
+                "" if len(self.errors) == 1 else "s",
+                len(self.warnings),
+                "" if len(self.warnings) == 1 else "s",
+            )
+        )
+        return "\n".join(lines)
+
+
+def body_offset(text: str, body: str) -> int:
+    """Number of file lines before the body, so body line numbers map to the file."""
+    return text[: len(text) - len(body)].count("\n")
+
+
+def sections(body: str) -> dict[str, tuple[int, list[str]]]:
+    """Level-2 sections by title: (body line of the heading, lines until the next `## `)."""
+    found: dict[str, tuple[int, list[str]]] = {}
+    title = None
+    for number, line in enumerate(body.splitlines(), start=1):
+        if line.startswith("## "):
+            title = line[3:].strip()
+            found[title] = (number, [])
+        elif title is not None:
+            found[title][1].append(line)
+    return found
+
+
+def find_section(found: dict, title: str):
+    for name, value in found.items():
+        if name.lower() == title.lower():
+            return value
+    return None
+
+
+def split_sentences(text: str) -> list[str]:
+    return [s for s in re.split(r"(?<=[.!?])\s+", text.strip()) if s]
+
+
+def frontmatter_line(text: str, key: str) -> int | None:
+    for number, line in enumerate(text.splitlines(), start=1):
+        if line.startswith(key + ":"):
+            return number
+        if number > 1 and line == "---":
+            return None
+    return None
+
+
+REQUIREMENT_LINE = re.compile(r"^(\s*)- ((?:FR|NFR|INV)-[^\s:]+):?\s*(.*)$")
+REQUIREMENT_ID = re.compile(r"^(FR|NFR|INV)-\d{3}$")
+
+
+def requirement_definitions(body: str) -> list[dict]:
+    """Every `- FR-001:` style line: id, body line, kind, whether marked removed, and its sub-lines."""
+    lines = body.splitlines()
+    found: list[dict] = []
+    for index, line in enumerate(lines):
+        match = REQUIREMENT_LINE.match(line)
+        if not match:
+            continue
+        indent = len(match.group(1))
+        children: list[str] = []
+        for later in lines[index + 1 :]:
+            if later.strip() == "":
+                children.append(later)
+                continue
+            if len(later) - len(later.lstrip()) <= indent:
+                break
+            children.append(later)
+        found.append(
+            {
+                "id": match.group(2),
+                "line": index + 1,
+                "kind": match.group(2).split("-")[0],
+                "removed": match.group(3).lower().startswith("removed"),
+                "children": children,
+            }
+        )
+    return found
+
+
+def spec_requirement_ids(slug: str) -> tuple[set[str], set[str]]:
+    """(all defined ids, ids still in force) from the spec, or empty sets when it is missing."""
+    found = read_artifact(slug, "spec")
+    if not found:
+        return set(), set()
+    definitions = requirement_definitions(found[1])
+    defined = {d["id"] for d in definitions}
+    active = {d["id"] for d in definitions if not d["removed"]}
+    return defined, active
+
+
+SPEC_FIELDS = ("title", "slug", "branch", "status", "owner", "created", "updated", "approved_hash", "description")
+SPEC_SECTIONS = ("Summary", "Problem and context", "Goals", "Non-goals", "Requirements", "Edge cases and failure behavior")
+VAGUE_WORDS = re.compile(r"\b(fast|simple|robust|scalable|intuitive|user-friendly|appropriate|reasonable)\b", re.IGNORECASE)
+RESULT_OPENER = "The result is"
+ID_LABEL = re.compile(r"\b[A-Z]{1,4}-?\d{1,3}\b")
+
+
+def lint_description(lint: Lint, text: str, description: str) -> None:
+    line = frontmatter_line(text, "description")
+    sentences = split_sentences(description)
+    if not 1 <= len(sentences) <= 2:
+        lint.error("description must be 1 or 2 sentences, found %d" % len(sentences), line)
+    if len(sentences) == 2 and not sentences[1].startswith(RESULT_OPENER):
+        lint.error('description sentence 2 must begin "%s"' % RESULT_OPENER, line)
+    words = len(description.split())
+    if words >= 50:
+        lint.error("description must be under 50 words, found %d" % words, line)
+    elif words > 45:
+        lint.warn("description is %d words; keep it at 45 or fewer" % words, line)
+
+
+def lint_summary(lint: Lint, found: dict, offset: int) -> None:
+    section = find_section(found, "Summary")
+    if not section:
+        return
+    heading_line, lines = section
+    paragraphs = [p for p in "\n".join(lines).strip().split("\n\n") if p.strip()]
+    line = heading_line + offset + 1
+    if len(paragraphs) != 1:
+        lint.error("summary must be one paragraph, found %d" % len(paragraphs), line)
+        return
+    count = len(split_sentences(" ".join(paragraphs[0].split())))
+    if not 5 <= count <= 7:
+        lint.error("summary must be 5 to 7 sentences, found %d" % count, line)
+
+
+def lint_requirements(lint: Lint, body: str, offset: int) -> None:
+    seen: dict[str, int] = {}
+    for definition in requirement_definitions(body):
+        rid, line = definition["id"], definition["line"] + offset
+        if not REQUIREMENT_ID.match(rid):
+            lint.error("malformed requirement id %s (expected FR-001, NFR-001 or INV-001)" % rid, line)
+            continue
+        if rid in seen:
+            lint.error("duplicate requirement id %s (first at line %d)" % (rid, seen[rid]), line)
+            continue
+        seen[rid] = line
+        if definition["kind"] == "FR" and not definition["removed"]:
+            if not any("acceptance:" in child.lower() for child in definition["children"]):
+                lint.error("%s has no Acceptance line" % rid, line)
+
+
+def lint_spec(slug: str) -> Lint:
+    lint = Lint("spec.md")
+    found = read_artifact(slug, "spec")
+    if not found:
+        lint.error("spec.md is missing")
+        return lint
+    fields, body, text = found
+    offset = body_offset(text, body)
+    for key in SPEC_FIELDS:
+        if key not in fields:
+            lint.error('missing frontmatter field "%s"' % key)
+    section_map = sections(body)
+    for title in SPEC_SECTIONS:
+        if not find_section(section_map, title):
+            lint.error('missing section "%s"' % title)
+    if fields.get("description"):
+        lint_description(lint, text, fields["description"])
+    lint_summary(lint, section_map, offset)
+    lint_requirements(lint, body, offset)
+    lint_placeholders(lint, "spec", text)
+    for number, line in enumerate(text.splitlines(), start=1):
+        if MARKER in line:
+            lint.error("clarification marker still open: %s" % line.strip(), number)
+        if not re.search(r"\d", ID_LABEL.sub("", line)):
+            for word in VAGUE_WORDS.findall(line):
+                lint.warn('vague word "%s" without a number nearby' % word, number)
+    return lint
+
+
+def template_headings(name: str) -> list[str]:
+    return [line[3:].strip() for line in template(name).splitlines() if line.startswith("## ")]
+
+
+def template_fields(name: str) -> list[str]:
+    return list(parse_frontmatter(template(name))[0])
+
+
+PLACEHOLDER = re.compile(r"<[^<>\n]+>")
+
+
+def template_placeholders(name: str) -> set[str]:
+    """Every `<...>` token in a template; the same token in an artifact is unfilled."""
+    return set(PLACEHOLDER.findall(template(name)))
+
+
+def lint_placeholders(lint: Lint, name: str, text: str) -> None:
+    tokens = template_placeholders(name)
+    for number, line in enumerate(text.splitlines(), start=1):
+        for token in dict.fromkeys(PLACEHOLDER.findall(line)):
+            if token in tokens:
+                lint.error("unfilled template placeholder %s" % token, number)
+
+
+def upstream_check(lint: Lint, slug: str, name: str) -> dict | None:
+    """Require the upstream artifact to exist, be approved, be unchanged and not be stale."""
+    upstream_name = UPSTREAM[name]
+    state = chain_states(slug)[upstream_name]
+    if not state["exists"]:
+        lint.error("%s.md is missing" % upstream_name)
+        return None
+    if state["status"] != "approved":
+        lint.error("%s.md is not approved" % upstream_name)
+    elif state["changed"]:
+        lint.error("%s.md changed since approval; re-approve it first" % upstream_name)
+    elif state["stale"]:
+        lint.error("%s.md is stale; refresh it against its upstream and re-approve it first" % upstream_name)
+    return state
+
+
+def lint_based_on(lint: Lint, text: str, fields: dict, upstream: dict | None, upstream_name: str) -> None:
+    based_on = fields.get("based_on", "")
+    if not based_on or upstream is None:
+        return
+    expected = upstream["approved_hash"] or ""
+    if based_on != expected:
+        lint.error(
+            "based_on %s does not match %s.md approved_hash %s" % (based_on, upstream_name, expected or "(none)"),
+            frontmatter_line(text, "based_on"),
+        )
+
+
+TABLE_ROW = re.compile(r"^\|(.+)\|\s*$")
+SEPARATOR_CELL = re.compile(r"^:?-+:?$")
+
+
+def table_rows(lines: list[str]) -> list[list[str]]:
+    """Cells of each data row in a markdown table, skipping the header and separator."""
+    rows: list[list[str]] = []
+    for line in lines:
+        match = TABLE_ROW.match(line)
+        if not match:
+            continue
+        cells = [cell.strip() for cell in match.group(1).split("|")]
+        if all(SEPARATOR_CELL.match(cell) for cell in cells if cell):
+            continue
+        rows.append(cells)
+    return rows[1:]
+
+
+def is_placeholder(value: str) -> bool:
+    return not value or (value.startswith("<") and value.endswith(">"))
+
+
+def lint_traceability(lint: Lint, section_map: dict, offset: int, active: set[str]) -> None:
+    section = find_section(section_map, "Traceability")
+    if not section:
+        return
+    heading_line, lines = section
+    rows = table_rows(lines)
+    for rid in sorted(active):
+        row = next((r for r in rows if re.search(r"\b%s\b" % re.escape(rid), r[0])), None)
+        if row is None:
+            lint.error("%s has no row in the Traceability table" % rid, heading_line + offset)
+        elif len(row) < 3 or is_placeholder(row[2]):
+            lint.error("%s traceability row has no seam" % rid, heading_line + offset)
+
+
+def lint_plan(slug: str) -> Lint:
+    lint = Lint("plan.md")
+    found = read_artifact(slug, "plan")
+    if not found:
+        lint.error("plan.md is missing")
+        return lint
+    fields, body, text = found
+    offset = body_offset(text, body)
+    section_map = sections(body)
+    for title in template_headings("plan"):
+        if not find_section(section_map, title):
+            lint.error('missing section "%s"' % title)
+    spec_state = upstream_check(lint, slug, "plan")
+    lint_based_on(lint, text, fields, spec_state, "spec")
+    _, active = spec_requirement_ids(slug)
+    lint_traceability(lint, section_map, offset, active)
+    lint_placeholders(lint, "plan", text)
+    return lint
+
+
+TASK_FIELDS = ("Requirements", "Seam", "Files", "Done when")
+TEST_FILE = re.compile(
+    r"(^|/)(spec|specs|test|tests|__tests__|__mocks__)/|\.test\.|\.spec\.|_spec\.rb$|_test\.\w+$|(^|/)test_[^/]*\.py$"
+)
+
+
+def split_list(value: str) -> list[str]:
+    return [part for part in re.split(r"[,\s]+", value or "") if part]
+
+
+def lint_task_fields(lint: Lint, task: dict, offset: int, defined: set[str], active: set[str]) -> None:
+    line = task["line"] + offset
+    for field in TASK_FIELDS:
+        if field.lower() not in task["fields"]:
+            lint.error("%s is missing %s" % (task["id"], field), line)
+    for ref in split_list(task["fields"].get("requirements", "")):
+        if ref not in defined:
+            lint.error("%s references unknown requirement %s" % (task["id"], ref), line)
+        elif ref not in active:
+            lint.error("%s references removed requirement %s" % (task["id"], ref), line)
+    files = split_list(task["fields"].get("files", ""))
+    if files and all(TEST_FILE.search(path) for path in files):
+        lint.warn("%s touches only test files; a task writes its test and the code together" % task["id"], line)
+
+
+def lint_close_outs(lint: Lint, items: list[dict], offset: int) -> None:
+    last_by_slice: dict[str, dict] = {}
+    for item in items:
+        if item["slice"]:
+            last_by_slice[item["slice"]] = item
+    for slice_name, item in last_by_slice.items():
+        if item["id"] or "close" not in item["text"].lower():
+            lint.error("slice %s does not end with a close-out item" % slice_name, item["line"] + offset)
+
+
+def lint_parallel(lint: Lint, tasks: list[dict], offset: int) -> None:
+    by_slice: dict[str, list[dict]] = {}
+    for task in tasks:
+        if task["parallel"]:
+            by_slice.setdefault(task["slice"] or "", []).append(task)
+    for group in by_slice.values():
+        for index, first in enumerate(group):
+            for second in group[index + 1 :]:
+                shared = set(split_list(first["fields"].get("files", ""))) & set(split_list(second["fields"].get("files", "")))
+                if shared:
+                    lint.error(
+                        "%s and %s are both [P] but share %s" % (first["id"], second["id"], ", ".join(sorted(shared))),
+                        second["line"] + offset,
+                    )
+                for task, other in ((first, second), (second, first)):
+                    if other["id"] in split_list(task["fields"].get("depends on", "")):
+                        lint.error(
+                            "%s is [P] but depends on %s in the same slice" % (task["id"], other["id"]),
+                            task["line"] + offset,
+                        )
+
+
+VERIFIED_ENTRY = re.compile(r"^- ((?:FR|NFR|INV)-[^\s:]+):\s*\S")
+
+
+def verified_elsewhere(body: str) -> list[tuple[str, int]]:
+    """(requirement id, body line) for each entry under `## Verified elsewhere`."""
+    section = find_section(sections(body), "Verified elsewhere")
+    if not section:
+        return []
+    heading_line, lines = section
+    entries: list[tuple[str, int]] = []
+    for index, line in enumerate(lines, start=1):
+        match = VERIFIED_ENTRY.match(line)
+        if match:
+            entries.append((match.group(1), heading_line + index))
+    return entries
+
+
+def lint_coverage(lint: Lint, body: str, tasks: list[dict], offset: int, defined: set[str], active: set[str]) -> None:
+    """Every FR needs a task; every NFR and INV needs a task or a Verified elsewhere entry."""
+    verified = verified_elsewhere(body)
+    for rid, line in verified:
+        if rid not in defined:
+            lint.error("Verified elsewhere names unknown requirement %s" % rid, line + offset)
+        elif rid not in active:
+            lint.error("Verified elsewhere names removed requirement %s" % rid, line + offset)
+    verified_ids = {rid for rid, _ in verified}
+    covered = {ref for task in tasks for ref in split_list(task["fields"].get("requirements", ""))}
+    for rid in sorted(active - covered):
+        if rid.startswith("FR-"):
+            lint.error("%s has no task" % rid)
+        elif rid not in verified_ids:
+            lint.error("%s has no task and no Verified elsewhere entry" % rid)
+
+
+def lint_tasks(slug: str) -> Lint:
+    lint = Lint("tasks.md")
+    found = read_artifact(slug, "tasks")
+    if not found:
+        lint.error("tasks.md is missing")
+        return lint
+    fields, body, text = found
+    offset = body_offset(text, body)
+    plan_state = upstream_check(lint, slug, "tasks")
+    lint_based_on(lint, text, fields, plan_state, "plan")
+    defined, active = spec_requirement_ids(slug)
+    items = parse_task_items(body)
+    tasks = [item for item in items if item["id"]]
+    seen: dict[str, int] = {}
+    for task in tasks:
+        if task["id"] in seen:
+            lint.error("duplicate task id %s (first at line %d)" % (task["id"], seen[task["id"]]), task["line"] + offset)
+        seen.setdefault(task["id"], task["line"] + offset)
+        lint_task_fields(lint, task, offset, defined, active)
+    lint_coverage(lint, body, tasks, offset, defined, active)
+    lint_close_outs(lint, items, offset)
+    lint_parallel(lint, tasks, offset)
+    lint_placeholders(lint, "tasks", text)
+    return lint
+
+
+def lint_review(slug: str) -> Lint:
+    lint = Lint("review.md")
+    found = read_artifact(slug, "review")
+    if not found:
+        lint.error("review.md is missing")
+        return lint
+    fields, body, text = found
+    for key in template_fields("review"):
+        if key not in fields:
+            lint.error('missing frontmatter field "%s"' % key)
+    section_map = sections(body)
+    for title in template_headings("review"):
+        if not find_section(section_map, title):
+            lint.error('missing section "%s"' % title)
+    lint_placeholders(lint, "review", text)
+    return lint
+
+
+LINTERS = {"spec": lint_spec, "plan": lint_plan, "tasks": lint_tasks, "review": lint_review}
+
+
+def run_lint(slug: str, names: list[str]) -> tuple[list[Lint], bool]:
+    results = [LINTERS[name](slug) for name in names]
+    return results, all(not r.errors for r in results)
+
+
+@command(
+    "lint",
+    "Check an artifact's structure, traceability and unfilled placeholders",
+    (["slug"], {}),
+    (["artifact"], {"nargs": "?", "choices": sorted(LINTERS)}),
+)
+def cmd_lint(args: argparse.Namespace) -> int:
+    if not (sdd_dir() / args.slug).is_dir():
+        raise Refusal("no working folder for %s under %s" % (args.slug, sdd_dir()))
+    if args.artifact:
+        if not artifact_path(args.slug, args.artifact).is_file():
+            raise Refusal("%s has no %s.md" % (args.slug, args.artifact))
+        names = [args.artifact]
+    else:
+        names = [name for name in LINTERS if artifact_path(args.slug, name).is_file()]
+    results, clean = run_lint(args.slug, names)
+    for result in results:
+        print(result.report())
+    return 0 if clean else 1
+
+
+# --- approval and status changes --------------------------------------------
+
+
+@command(
+    "approve",
+    "Record the user's approval of an artifact (run only after they approve in the conversation)",
+    (["slug"], {}),
+    (["artifact"], {"choices": ["spec", "plan", "tasks"]}),
+)
+def cmd_approve(args: argparse.Namespace) -> int:
+    slug, name = args.slug, args.artifact
+    found = read_artifact(slug, name)
+    if not found:
+        raise Refusal("%s.md is missing for %s" % (name, slug))
+    lint = LINTERS[name](slug)
+    print(lint.report())
+    if lint.errors:
+        raise Refusal("lint reported errors; fix them before approving %s.md" % name)
+    fields, body, text = found
+    updates = {"status": "approved", "approved_hash": content_hash(text), "updated": today()}
+    if name in UPSTREAM:
+        upstream = artifact_state(slug, UPSTREAM[name], None)
+        updates["based_on"] = upstream["approved_hash"] or ""
+    write_artifact(slug, name, set_frontmatter(text, updates))
+    print("%s.md approved; approved_hash %s" % (name, updates["approved_hash"]))
+    return 0
+
+
+TRANSITIONS = {
+    ("tasks", "in-progress"): {"approved", "in-progress"},
+    ("tasks", "done"): {"approved", "in-progress"},
+    ("review", "accepted"): {"open"},
+}
+
+
+@command(
+    "set-status",
+    "Move tasks.md to in-progress or done, or review.md to accepted",
+    (["slug"], {}),
+    (["artifact"], {"choices": ["tasks", "review"]}),
+    (["status"], {}),
+)
+def cmd_set_status(args: argparse.Namespace) -> int:
+    key = (args.artifact, args.status)
+    if key not in TRANSITIONS:
+        allowed = ", ".join(status for artifact, status in TRANSITIONS if artifact == args.artifact)
+        raise Refusal("%s.md cannot be set to %r; allowed: %s" % (args.artifact, args.status, allowed))
+    found = read_artifact(args.slug, args.artifact)
+    if not found:
+        raise Refusal("%s.md is missing for %s" % (args.artifact, args.slug))
+    fields, body, text = found
+    current = fields.get("status", "")
+    if current not in TRANSITIONS[key]:
+        raise Refusal(
+            "%s.md is %r; it must be %s before %s"
+            % (args.artifact, current, " or ".join(sorted(TRANSITIONS[key])), args.status)
+        )
+    if key == ("tasks", "done"):
+        unchecked = [item for item in parse_task_items(body) if not item["checked"]]
+        if unchecked:
+            raise Refusal(
+                "%d item%s still unchecked, first: %s"
+                % (len(unchecked), "" if len(unchecked) == 1 else "s", unchecked[0]["text"])
+            )
+    if key == ("review", "accepted"):
+        lint = lint_review(args.slug)
+        print(lint.report())
+        if lint.errors:
+            raise Refusal("lint reported errors; fix them before accepting review.md")
+    write_artifact(args.slug, args.artifact, set_frontmatter(text, {"status": args.status, "updated": today()}))
+    print("%s.md is now %s" % (args.artifact, args.status))
+    return 0
+
+
+# --- templates and references -----------------------------------------------
+
+APPENDICES = (
+    ("A", "Spec template", "spec"),
+    ("B", "Plan template", "plan"),
+    ("C", "Tasks template", "tasks"),
+    ("D", "Review report template", "review"),
+)
+FENCE = re.compile(r"^(`{3,})markdown\s*$")
+
+
+def document_text() -> str:
+    path = sdd_home() / DOC_NAME
+    if not path.is_file():
+        raise Refusal("the SDD document is missing at %s" % path)
+    return path.read_text()
+
+
+def extract_templates(doc: str) -> dict[str, str]:
+    """The fenced markdown block under each appendix heading, keyed by template name."""
+    lines = doc.splitlines()
+    found: dict[str, str] = {}
+    for letter, title, name in APPENDICES:
+        heading = "## Appendix %s: %s" % (letter, title)
+        try:
+            start = lines.index(heading)
+        except ValueError:
+            raise Refusal("Appendix %s (%s) not found in the document" % (letter, title))
+        block: list[str] = []
+        fence = None
+        for line in lines[start + 1 :]:
+            if fence is None:
+                match = FENCE.match(line)
+                if match:
+                    fence = match.group(1)
+                elif line.startswith("## "):
+                    break
+                continue
+            if line.strip() == fence:
+                found[name] = "\n".join(block) + "\n"
+                break
+            block.append(line)
+        if name not in found:
+            raise Refusal("Appendix %s (%s) has no closing ````markdown block" % (letter, title))
+    return found
+
+
+@command(
+    "templates",
+    "Regenerate the templates folder from the document's appendices",
+    (["action"], {"choices": ["sync"]}),
+    (["--check"], {"action": "store_true", "help": "fail if the templates have drifted from the document"}),
+)
+def cmd_templates(args: argparse.Namespace) -> int:
+    templates = extract_templates(document_text())
+    folder = sdd_home() / "templates"
+    if args.check:
+        drifted = [
+            name
+            for name, text in templates.items()
+            if not (folder / (name + ".md")).is_file() or (folder / (name + ".md")).read_text() != text
+        ]
+        if drifted:
+            print("templates drifted from the document: %s" % ", ".join(n + ".md" for n in drifted))
+            print("run `sdd templates sync` to regenerate them")
+            return 1
+        print("templates are in sync with the document")
+        return 0
+    folder.mkdir(parents=True, exist_ok=True)
+    for name, text in templates.items():
+        (folder / (name + ".md")).write_text(text)
+        print("wrote %s" % (folder / (name + ".md")))
+    return 0
+
+
+NUMBERED_HEADING = re.compile(r"^## (\d+)\. (.*)$")
+APPENDIX_HEADING = re.compile(r"^## Appendix ([A-Z]): (.*)$")
+SECTION_REF = re.compile(r"\bsection (\d+) \(([^)]+)\)", re.IGNORECASE)
+APPENDIX_REF = re.compile(r"\bAppendix ([A-Z]) \(([^)]+)\)")
+
+
+def document_headings(doc: str) -> dict[str, str]:
+    headings: dict[str, str] = {}
+    for line in doc.splitlines():
+        match = NUMBERED_HEADING.match(line) or APPENDIX_HEADING.match(line)
+        if match:
+            headings[match.group(1)] = match.group(2).replace("`", "")
+    return headings
+
+
+def reference_files() -> list[Path]:
+    files: list[Path] = []
+    for name in SKILL_NAMES:
+        files.extend(sorted((skills_dir() / name).rglob("*.md")))
+    readme = sdd_home() / "README.md"
+    if readme.is_file():
+        files.append(readme)
+    return files
+
+
+@command("check-refs", "Check every section reference in the skills and README against the document")
+def cmd_check_refs(args: argparse.Namespace) -> int:
+    headings = document_headings(document_text())
+    misses: list[str] = []
+    count = 0
+    files = reference_files()
+    for path in files:
+        for number, line in enumerate(path.read_text().splitlines(), start=1):
+            for pattern in (SECTION_REF, APPENDIX_REF):
+                for key, title in pattern.findall(line):
+                    count += 1
+                    heading = headings.get(key)
+                    if heading is None or title.lower() not in heading.lower():
+                        label = ("section %s (%s)" if pattern is SECTION_REF else "Appendix %s (%s)") % (key, title)
+                        found = "heading is %r" % heading if heading else "no such section"
+                        misses.append("%s:%d: %s does not match the document; %s" % (path, number, label, found))
+    for miss in misses:
+        print(miss)
+    print("%d references checked across %d files, %d mismatched" % (count, len(files), len(misses)))
+    return 1 if misses else 0
+
+
+# --- entry point -------------------------------------------------------------
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="sdd", description=__doc__.splitlines()[0])
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    for name, help_text, arguments, fn in COMMANDS:
+        sub = subparsers.add_parser(name, help=help_text)
+        for flags, kwargs in arguments:
+            sub.add_argument(*flags, **kwargs)
+        sub.set_defaults(fn=fn)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    try:
+        return args.fn(args)
+    except Refusal as refusal:
+        print("sdd: %s" % refusal, file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

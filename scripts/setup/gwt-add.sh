@@ -7,7 +7,7 @@ set -euo pipefail
 # env files, runs pnpm install, and opens the worktree in Zed. The in-repo
 # location is the harness's default worktree home, so EnterWorktree needs no
 # extra approval prompt; .gitignore and .prettierignore both exclude it.
-# --no-open skips the editor launch (scripted/AI invocations, e.g. implement-spec).
+# --no-open skips the editor launch (scripted/AI invocations, e.g. sdd-implement).
 
 no_open=0
 if [[ "${1:-}" == "--no-open" ]]; then
@@ -89,7 +89,7 @@ fi
 echo "Installing dependencies..."
 # A worktree without node_modules cannot build or test, so a failed install is a
 # failed worktree — not a warning to print under a success banner. Callers
-# (implement-spec, CI) branch on this exit code; reporting 0 here sends them off
+# (sdd-implement, CI) branch on this exit code; reporting 0 here sends them off
 # to run tests in an empty tree and blame their own changes for the failures.
 if ! (cd "$target" && pnpm install); then
   # %q-quote every interpolated value: git accepts shell metacharacters in

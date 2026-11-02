@@ -1,6 +1,6 @@
 ---
 name: render-checker
-description: Render checker for a running app, dispatched by the implement-spec and refine skills when a change touches a user-facing surface. Drives the app in a browser to reach each state of each touched surface, screenshots it at mobile and desktop widths in every shipped theme, measures floors on the rendered page, and returns pass or fail per surface, width, and theme with evidence. Never edits files and never starts or stops the server. Expects a brief supplying the URL, the touched surfaces with the states to reach, the shipped themes, and the bar (the spec's Design Requirements, DESIGN.md, and, when named, the docs/standards/ux-standards.md floors).
+description: Render checker for a running app, dispatched by the refine skill when a change touches a user-facing surface. Drives the app in a browser to reach each state of each touched surface, screenshots it at mobile and desktop widths in every shipped theme, measures floors on the rendered page, and returns pass or fail per surface, width, and theme with evidence. Never edits files and never starts or stops the server. Expects a brief supplying the URL, the touched surfaces with the states to reach, the shipped themes, and the bar (the spec's Design Requirements, DESIGN.md, and, when named, the docs/standards/ux-standards.md floors).
 disallowedTools: Edit, Write, NotebookEdit, Agent
 ---
 
