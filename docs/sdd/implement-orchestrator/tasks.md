@@ -1,10 +1,10 @@
 ---
 title: Implement orchestrator tasks
 slug: implement-orchestrator
-status: done
+status: approved
 updated: 2026-11-02
-based_on: 1f38a952fdb6
-approved_hash: e2f23863cfe8
+based_on: a3a4636ee56d
+approved_hash: d21c47a34aa8
 ---
 
 # Implement orchestrator tasks
@@ -125,7 +125,7 @@ approved_hash: e2f23863cfe8
   - Done when: the finish step follows QA confirmation, commits the status change, keeps reused servers running, and lists the five report parts
   - Evidence: Finish greps: after QA confirmation 1, commits the status change 1, reused server left running 1, five-part report line 1
 - [x] T017 The orchestrator recommends `/sdd-review` in a fresh session and never starts it, and the SDD document carries the end-to-end exception, the pre-existing-failure exit gate and section 12's new Fixes wording
-  - Requirements: FR-025, FR-031, INV-004
+  - Requirements: FR-025, FR-031
   - Seam: `sdd check-refs` through `sdd-helper.battery.mjs`
   - Files: .claude/skills/sdd-implement/SKILL.md, .claude/sdd/spec-driven-development.md
   - Depends on: T016
@@ -194,6 +194,33 @@ approved_hash: e2f23863cfe8
   - Done when: the file holds two or three task prompts with expected behavior per skill, and should-trigger and near-miss should-not-trigger prompts for each changed description
   - Evidence: gut-check.md has 3 sdd-implement and 2 render-check task prompts, 1 implementer report check, 5 should-trigger and 4+3 near-miss prompts, 6 "Passes when" expectations
 - [x] P4 close: full suite green, changes staged by explicit path, commit message proposed, user committed
+
+## P5: Same-session review
+
+- [ ] T026 `sdd-implement` recommends `/sdd-review` in the same session, names the fresh-session alternative, and starts it only on an end-to-end request, and the SDD document drops the `sdd-implement` exception
+  - Requirements: FR-025, FR-031
+  - Seam: `sdd check-refs` through `sdd-helper.battery.mjs`
+  - Files: .claude/skills/sdd-implement/SKILL.md, .claude/sdd/spec-driven-development.md
+  - Done when: `node scripts/test/sdd-helper.battery.mjs` passes, `grep -c 'never starts .sdd-review.' .claude/sdd/spec-driven-development.md` is 0, and the skill's Next names the same session, the fresh-session alternative and the end-to-end start
+- [ ] T027 `sdd-review` builds each picked fix through a fresh `implementer`, verifies it, and leaves the commit to the user
+  - Requirements: FR-035
+  - Seam: read by the conformance pass
+  - Files: .claude/skills/sdd-review/SKILL.md, .claude/agents/implementer.md, .claude/sdd/spec-driven-development.md
+  - Depends on: T026
+  - Done when: the skill's and section 12's Fixes dispatch `implementer` with the finding brief and never invoke `tdd` themselves, and the agent describes its review-fix mode
+- [ ] T028 `sdd-review` and section 12 state that every reviewer runs in a fresh context on a pointer-only brief, with `code-review` as a forked skill
+  - Requirements: FR-036
+  - Seam: `sdd check-refs` through `sdd-helper.battery.mjs`
+  - Files: .claude/skills/sdd-review/SKILL.md, .claude/sdd/spec-driven-development.md
+  - Depends on: T027
+  - Done when: `node scripts/test/sdd-helper.battery.mjs` passes and section 12 names the fresh contexts, the pointer-only briefs, the forked `code-review`, and that the reviewing session may be the one that built
+- [ ] T029 The skills README, the changelog and the gut-check prompts describe the same-session review
+  - Requirements: FR-025, FR-033
+  - Seam: the battery
+  - Files: .claude/skills/README.md, CHANGELOG.md, docs/sdd/implement-orchestrator/gut-check.md
+  - Depends on: T028
+  - Done when: `node scripts/test/process-suite.battery.mjs` passes and `grep -c 'fresh session without' .claude/skills/README.md CHANGELOG.md docs/sdd/implement-orchestrator/gut-check.md` reports 0 for each
+- [ ] P5 close: full suite green, changes staged by explicit path, commit message proposed, user committed
 
 ## Verified elsewhere
 
