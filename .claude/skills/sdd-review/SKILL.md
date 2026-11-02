@@ -10,6 +10,7 @@ allowed-tools: Bash(.claude/sdd/bin/sdd *)
 Two reviewers, two purposes, one report, plus the spec's own evidence when there is a spec.
 Correctness belongs to the `code-review` skill; legibility and usability belong to the `standards-reviewer` agent.
 Neither is skipped, and no finding is dropped quietly.
+This session orchestrates and may be the one that ran the build: every reviewer runs in a fresh context on a brief of pointers only, so its judgment never inherits this session's reasoning, and every fix is built by a fresh `implementer`.
 The rules live in section 12 (Validate) of `.claude/sdd/spec-driven-development.md`; this file is only the procedure.
 Where the two differ, the document wins.
 
@@ -50,7 +51,9 @@ State which mode you are in, and why, as your first line.
    Measure each non-functional requirement instead of assuming it.
 2. **Spec conformance** _(spec only)_: dispatch a general-purpose subagent through the Agent tool with the prompt in [references/conformance-review.md](references/conformance-review.md), its five placeholders filled in: the spec, plan and tasks paths, the repository root, and the base.
    It gets the files and the diff, never your reasoning.
-3. **Correctness**: invoke the `code-review` skill through the Skill tool with the effort level, `--max-findings <n>`, and this branch against the base as its target, in the form `<effort> --max-findings <n> <base>...HEAD`. Keep its findings verbatim.
+3. **Correctness**: invoke the `code-review` skill through the Skill tool with the effort level, `--max-findings <n>`, and this branch against the base as its target, in the form `<effort> --max-findings <n> <base>...HEAD`.
+   It runs as a forked skill, a subagent that does not see this conversation, so pass nothing but that target.
+   Keep its findings verbatim.
 4. **Standards**: dispatch the `standards-reviewer` agent through the Agent tool with two inputs: the base ref and the commit range `<base>..HEAD`. It judges legibility, tests as documentation, usability floors and customer-facing text against `CLAUDE.md` and the `docs/standards/` files whose globs match the changed paths.
 
 ## Triage (section 12 (Validate), Triage)
@@ -73,8 +76,9 @@ Then stop and wait for the user.
 ## Fixes (section 12 (Validate), Fixes)
 
 The user picks which findings to fix.
-Build each one through the `tdd` skill via the Skill tool, with the finding as the behavior and "Unit of work: this fix." as its unit of work.
-Validate with the repo's test tiers, stage by explicit path, propose a commit message, and commit only on the user's word.
+For each one, dispatch a fresh `implementer` through the Agent tool with the slug when there is one, the finding verbatim with its `file:line`, and the requirement IDs it touches, to fix it red-first; this session never writes the fix itself.
+Verify its report with the full suite and by matching the files it names against every path `git status --porcelain` lists; on a mismatch or a failure, resume the same agent once with what you found.
+Stage by explicit path, propose a commit message, and commit only on the user's word.
 Never push.
 Record each fix under Fixes in the report.
 Offer to rerun the review when the fixes are substantial.

@@ -271,7 +271,7 @@ def cmd_find(args: argparse.Namespace) -> int:
 # --- tasks parsing -----------------------------------------------------------
 
 CHECK_ITEM = re.compile(r"^- \[( |x|X)\] (.*\S)\s*$")
-TASK_TEXT = re.compile(r"^(T\d{3})(\s+\[P\])?\s+(.*)$")
+TASK_TEXT = re.compile(r"^(T\d{3})\s+(.*)$")
 SUB_FIELD = re.compile(r"^\s+- ([A-Za-z][A-Za-z ]*?):\s*(.*)$")
 SLICE_HEADING = re.compile(r"^## (P\d+)\b")
 
@@ -302,8 +302,7 @@ def parse_task_items(body: str) -> list[dict]:
                     "checked": item.group(1) != " ",
                     "text": text,
                     "id": task.group(1) if task else None,
-                    "parallel": bool(task and task.group(2)),
-                    "title": task.group(3) if task else text,
+                    "title": task.group(2) if task else text,
                     "slice": slice_name,
                     "fields": {},
                 }
@@ -809,28 +808,6 @@ def lint_close_outs(lint: Lint, items: list[dict], offset: int) -> None:
             lint.error("slice %s does not end with a close-out item" % slice_name, item["line"] + offset)
 
 
-def lint_parallel(lint: Lint, tasks: list[dict], offset: int) -> None:
-    by_slice: dict[str, list[dict]] = {}
-    for task in tasks:
-        if task["parallel"]:
-            by_slice.setdefault(task["slice"] or "", []).append(task)
-    for group in by_slice.values():
-        for index, first in enumerate(group):
-            for second in group[index + 1 :]:
-                shared = set(split_list(first["fields"].get("files", ""))) & set(split_list(second["fields"].get("files", "")))
-                if shared:
-                    lint.error(
-                        "%s and %s are both [P] but share %s" % (first["id"], second["id"], ", ".join(sorted(shared))),
-                        second["line"] + offset,
-                    )
-                for task, other in ((first, second), (second, first)):
-                    if other["id"] in split_list(task["fields"].get("depends on", "")):
-                        lint.error(
-                            "%s is [P] but depends on %s in the same slice" % (task["id"], other["id"]),
-                            task["line"] + offset,
-                        )
-
-
 VERIFIED_ENTRY = re.compile(r"^- ((?:FR|NFR|INV)-[^\s:]+):\s*\S")
 
 
@@ -886,7 +863,6 @@ def lint_tasks(slug: str) -> Lint:
         lint_task_fields(lint, task, offset, defined, active)
     lint_coverage(lint, body, tasks, offset, defined, active)
     lint_close_outs(lint, items, offset)
-    lint_parallel(lint, tasks, offset)
     lint_placeholders(lint, "tasks", text)
     return lint
 

@@ -2,9 +2,9 @@
 // Asserts .ai-starter.yaml is well-formed, and in the template repo itself that
 // its version matches package.json.
 //
-// Why this exists: template-sync uses the recorded version as the common
-// ancestor for every three-way comparison, so a malformed or drifted value
-// silently turns project edits into apparent template changes. In the template
+// Why this exists: the recorded version is the base a project diffs against
+// when it takes a newer release, so a malformed or drifted value silently
+// turns project edits into apparent template changes. In the template
 // repo the file ships in the payload, so a release that bumps package.json but
 // not this file stamps every new project with the wrong base.
 //

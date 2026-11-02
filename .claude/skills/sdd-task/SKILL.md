@@ -38,11 +38,10 @@ Arguments: `$ARGUMENTS`, an optional slug.
    Within a slice, foundations before what depends on them.
 3. **Tasks**: `- [ ] T001 <one observable behavior>` with sub-bullets `Requirements`, `Seam` (copied from the plan), `Files`, `Depends on` when needed, and `Done when` as a command from the repo's test tiers, or a check, that passes or fails.
    Its test is written inside the task, never in a separate testing task.
-   Mark `[P]` only when the task shares no files and no dependency with the other `[P]` tasks in its slice.
 4. **Close-outs and decisions**: end every slice with the close-out line from the template.
    Keep the `## Verified elsewhere` section for coverage decisions (step 5) and the `## Follow-ups (out of scope)` section for discoveries during implementation; write `- None` under either when it is empty.
 5. **Lint**: `.claude/sdd/bin/sdd lint <slug> tasks`.
-   Fix every error before presenting: a requirement without a task, an unknown or removed ID, a missing field, a `[P]` conflict, a slice without a close-out, a placeholder left from the template.
+   Fix every error before presenting: a requirement without a task, an unknown or removed ID, a missing field, a slice without a close-out, a placeholder left from the template.
    An `NFR-` or `INV-` needs a task unless the user decides it is verified another way; record that decision under `## Verified elsewhere` as `- <ID>: <how it is verified>. Decided by <name>.`, which lint accepts in place of a task and the content hash guards after approval.
    Act on every warning: a test-only task is horizontal work, so fold the test into the task that makes it pass.
 

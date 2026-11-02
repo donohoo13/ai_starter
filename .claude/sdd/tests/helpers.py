@@ -191,7 +191,7 @@ approved_hash:
   - Seam: <from the plan>
   - Files: <paths>
   - Done when: <command or check that passes or fails>
-- [ ] T002 [P] <one observable behavior>
+- [ ] T002 <one observable behavior>
   - Requirements: FR-002
   - Seam: <from the plan>
   - Files: <paths>
@@ -409,7 +409,7 @@ approved_hash:
   - Seam: request test on GET /invoices/:id.pdf
   - Files: src/invoices/pdf.ts, tests/invoices/pdf.test.ts
   - Done when: `pnpm test -- tests/invoices/pdf.test.ts` passes
-- [ ] T002 [P] Render a placeholder when a attachment file is missing
+- [ ] T002 Render a placeholder when a attachment file is missing
   - Requirements: FR-001, INV-001
   - Seam: service test on InvoicePdf
   - Files: src/invoices/pdf-placeholder.ts, tests/invoices/pdf-placeholder.test.ts

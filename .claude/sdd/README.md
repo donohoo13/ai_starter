@@ -28,8 +28,8 @@ The skills live beside this folder:
 | `tdd`           | used by 4 and 5, and alone | 11      | tests and code, red then green                                          |
 | `sdd-review`    | 5. Validate                | 12      | `review.md` and a PR description draft, or a chat report without a spec |
 
-`tdd` knows nothing about SDD; `sdd-implement` and `sdd-review` hand it one behavior at a time.
-The `standards-reviewer` and `research-analyst` agents in `.claude/agents/` are dispatched by `sdd-review` and `sdd-plan`.
+`tdd` knows nothing about SDD; the `implementer` agent and `sdd-review` hand it one behavior at a time.
+The agents in `.claude/agents/` are dispatched by the skills: `implementer` and `skeptic` by `sdd-implement`, `standards-reviewer` by `sdd-review`, and `research-analyst` by `sdd-plan`.
 
 ## How to start
 

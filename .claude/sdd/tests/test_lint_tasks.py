@@ -74,18 +74,13 @@ class LintTasksTests(SddCase):
         self.assertIn("P1", out)
         self.assertIn("close-out", out)
 
-    def test_parallel_tasks_share_no_files_and_no_dependency(self):
-        both_parallel = VALID_TASKS.replace("- [ ] T001 Render", "- [ ] T001 [P] Render")
-        shared = both_parallel.replace("  - Files: src/invoices/pdf-placeholder.ts, tests/invoices/pdf-placeholder.test.ts", "  - Files: src/invoices/pdf.ts, tests/invoices/pdf-placeholder.test.ts")
-        code, out, err = self.lint(shared)
-        self.assertEqual(code, 1)
-        self.assertIn("src/invoices/pdf.ts", out)
-        self.assertIn("[P]", out)
-        dependent = both_parallel.replace("  - Seam: service test on InvoicePdf\n", "  - Seam: service test on InvoicePdf\n  - Depends on: T001\n")
+    def test_a_leftover_parallel_marker_no_longer_constrains_shared_files_or_dependencies(self):
+        marked = VALID_TASKS.replace("- [ ] T001 Render", "- [ ] T001 [P] Render").replace("- [ ] T002 Render", "- [ ] T002 [P] Render")
+        shared = marked.replace("  - Files: src/invoices/pdf-placeholder.ts, tests/invoices/pdf-placeholder.test.ts", "  - Files: src/invoices/pdf.ts, tests/invoices/pdf-placeholder.test.ts")
+        dependent = shared.replace("  - Seam: service test on InvoicePdf\n", "  - Seam: service test on InvoicePdf\n  - Depends on: T001\n")
         code, out, err = self.lint(dependent)
-        self.assertEqual(code, 1)
-        self.assertIn("T002", out)
-        self.assertIn("depends on", out.lower())
+        self.assertEqual(code, 0, out)
+        self.assertNotIn("ERROR", out)
 
     def test_test_only_task_warns(self):
         tests_only = VALID_TASKS.replace("  - Files: src/invoices/pdf.ts, tests/invoices/pdf.test.ts", "  - Files: tests/invoices/pdf.test.ts, tests/invoices/model.test.ts")
@@ -95,7 +90,7 @@ class LintTasksTests(SddCase):
         self.assertIn("only test files", out)
 
     def test_duplicate_task_ids_are_an_error(self):
-        duplicate = VALID_TASKS.replace("- [ ] T002 [P]", "- [ ] T001 [P]")
+        duplicate = VALID_TASKS.replace("- [ ] T002 Render", "- [ ] T001 Render")
         code, out, err = self.lint(duplicate)
         self.assertEqual(code, 1)
         self.assertIn("duplicate task id T001", out)

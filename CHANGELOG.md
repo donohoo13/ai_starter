@@ -9,11 +9,21 @@ In a project created from the template, this file is template residue: delete it
 
 - **What**:
   - The spec suite is replaced by a five-phase spec-driven development chain: `sdd-outline`, `sdd-plan`, `sdd-task`, `sdd-implement` and `sdd-review` follow `.claude/sdd/spec-driven-development.md` by section, keep state with the `.claude/sdd/bin/sdd` helper (approvals with content hashes, staleness down the chain, structural lint, templates generated from the appendices), and commit their artifacts under `docs/sdd/<slug>/` as `spec.md`, `plan.md`, `tasks.md` and `review.md`.
-    `sdd`, `implement-spec`, `review` and `preflight` are removed, with the `builder` and `docs-reviewer` agents only they dispatched; `refine` keys its spec mode on a `tasks.md` at `done` and no longer flips a spec status, since `sdd-review` owns acceptance.
-  - `tdd` is rebuilt around a discovery reference that finds a repo's test commands and test shapes from its own files, keeps the mocking and good-versus-bad-test references, and adds a report-back contract so `sdd-implement` records evidence per task.
+    `sdd`, `implement-spec`, `review` and `preflight` are removed, with the `builder` and `docs-reviewer` agents only they dispatched.
+  - `sdd-implement` orchestrates instead of building: a fresh `implementer` agent (new, `tdd` preloaded, `opus` pinned, dispatched at `effort: high` unless the user names another level) builds each slice from a pointer-only brief and self-checks against the matching `docs/standards/` files.
+    The orchestrator brings each `BLOCKED` question to the user, dispatching `skeptic` first for a trunk change the spec did not decide, verifies every report with its own checks, commits each verified slice and any approved trunk change on its own, runs one QA pass before `tasks.md` reaches `done`, and recommends `sdd-review` next in the same session.
+    `sdd-review` runs every reviewer in a fresh context on a pointer-only brief, so it needs no fresh session, and builds each fix the user picks through a fresh `implementer`.
+    The SDD document's principle 10 follows: the orchestrator commits slice work during Implement, and the user still commits gate artifacts and review fixes.
+  - `skeptic` argues a proposed trunk change from its brief instead of the index, since nothing is built until the user approves it.
+  - `refine` and the `refiner` and `code-reviewer` agents are removed; `render-check`, a skill only the user can start, now runs `render-checker`.
+  - The `[P]` task marker leaves `tasks.md`, its template, `sdd-task` and the helper's lint.
+  - `scripts/test/process-suite.battery.mjs` fails CI when the implementer's frontmatter drifts, a skill other than `render-check` names `render-checker`, an agent has no skill naming it, or a tracked file outside `docs/sdd/` and this changelog names a removed skill or agent.
+  - `template-sync` and `template-feedback` are removed; a project takes a release by diffing against its `.ai-starter.yaml` base by hand.
+  - The skill body budget in `.claude/rules/skill-authoring.md` is 5000 tokens instead of 500 lines, and `CLAUDE.md` and the READMEs list skills and agents by name without a count.
+  - `tdd` is rebuilt around a discovery reference that finds a repo's test commands and test shapes from its own files, keeps the mocking and good-versus-bad-test references, and adds a report-back contract so the `implementer` records evidence per task.
   - `research-analyst` is dispatched by `sdd-plan` and takes pinned Context7 library IDs; `standards-reviewer` is dispatched by `sdd-review` with the base ref and the commit range.
   - `scripts/test/sdd-helper.battery.mjs` runs the helper's unittest suite, the template drift check and the section-reference check under `pnpm test:scripts`, so CI needs `python3`; `.claude/sdd/templates/` is prettier-ignored so the generated files stay byte-identical to the appendices.
-  - `.claude/rules/skill-authoring.md` records the two SDD exceptions: naming the next phase as the handoff, and `sdd-implement` running `tdd` in the session.
+  - `.claude/rules/skill-authoring.md` records the one SDD exception: naming the next phase as the handoff.
   - `BRANDING.md` is replaced by `DESIGN.md`, a scaffold in Google's [design.md](https://github.com/google-labs-code/design.md) format.
     Token values move into YAML front matter: colors named by role, each with its `on-` pair, typography roles, radius and spacing scales, and component bindings for a base UI kit, all checked by `pnpm exec designmd lint DESIGN.md` and exportable to Tailwind or DTCG tokens.
     The prose keeps the spec's section order (Overview, Colors, Typography, Layout, Elevation & Depth, Shapes, Components, Do's and Don'ts) and adds Hierarchy & Emphasis, Motion, Imagery & Iconography, Data Visualization, and Voice & Copy as extension sections; Anti-Goals merge into Do's and Don'ts, where every Don't names its Do.
@@ -34,15 +44,22 @@ In a project created from the template, this file is template residue: delete it
   `pnpm dev` wrote its pidfile before the previous log was cleared, so a reader acting on the new pid could read the last server's output, and the dev-server battery failed intermittently on slow runners.
   The dropped install checks duplicated what mise and pnpm 11's `devEngines` runtime already guarantee, and the code-review settings battery guarded against settings no project adds.
   The spec chain replaces four skills that each held part of the lifecycle with one document and one state helper, so a phase cannot start on a stale or unapproved upstream and a fresh session resumes from the committed artifacts alone; `preflight` went with it because `sdd-review` covers the review, the fixes and the PR draft while the user keeps the push.
+  Building in the session that invoked `sdd-implement` carried the whole build in one context and checked each slice in the context that wrote it; a fresh agent per slice builds from the approved artifacts alone, and an orchestrator that did not write the code verifies it before committing.
+  `refine` rewrote finished code to the standards `sdd-review` then judged again, so standards now hold inside each slice and the review is the single pass; render passes are slow and token-heavy, so only the user starts one.
+  The `[P]` marker had no consumer once slices build one at a time, and the battery keeps the suite's structural rules from drifting the way the skill counts did.
 - **Adaptation notes**:
-  - A `docs/specs/*.md` spec in flight finishes under the old skills before syncing, or is outlined again with `sdd-outline` into `docs/sdd/<slug>/`; nothing migrates it.
-  - A project that kept `sdd`, `implement-spec`, `review` or `preflight` unedited sees them deleted; one that edited them sees a conflict to resolve by deleting.
+  - A `docs/specs/*.md` spec in flight finishes under the old skills before taking this release, or is outlined again with `sdd-outline` into `docs/sdd/<slug>/`; nothing migrates it.
+  - A project that edited `sdd-implement` reapplies its edits to the orchestrator, or to `implementer` when they concerned how a task is built.
+    One that used `refine` gets standards checks inside each slice, QA at the end of `sdd-implement`, and render passes through `/render-check`; `git grep -E 'refine|refiner|code-reviewer'` finds project files that still name the removed pieces.
+  - A `tasks.md` in flight that marks tasks `[P]` still lints; the marker is now plain title text, so drop it.
+  - A project that wants a different build model or effort edits `model:` in `.claude/agents/implementer.md`, or names the effort when it starts `sdd-implement`.
+  - A project deletes `sdd`, `implement-spec`, `review` and `preflight`, first carrying any edits it made to them into the `sdd-*` skills.
   - CI runners need `python3` for the new battery; a project without Python deletes `scripts/test/sdd-helper.battery.mjs` and runs `python3 -m unittest discover -s .claude/sdd/tests` by hand.
   - Project-owned files that name the removed skills (nested `CLAUDE.md` files, project rules) need the same rename; `git grep -E 'implement-spec|preflight|/review'` finds them.
-  - A filled `BRANDING.md` arrives in `template-sync` as a conflict beside a new `DESIGN.md`, since the contents differ too much to register as a rename.
+  - A filled `BRANDING.md` shows up beside a new `DESIGN.md` when this release is diffed, since the contents differ too much to register as a rename.
     Port its decisions into the new sections: values into the front matter, positioning and messaging pillars into `docs/company/company-overview.md`, anti-goals into Do's and Don'ts.
     Then run the lint and delete `BRANDING.md`.
-  - A project that still has an unedited `brand-init` ends up with `design-init` in its place; an edited one surfaces as a conflict.
+  - A project replaces `brand-init` with `design-init`, carrying across any edits it made.
     A project that deleted `brand-init` after filling its brand doc sees `design-init` as a new skill: take it to run the interview against the new scaffold, or skip it and port by hand.
   - The devDependency adds about 90 packages to the install; a project that ships no UI drops it with `pnpm remove @google/design.md`.
   - Move an existing `docs/branding/moodboard/` to `docs/design/moodboard/`, along with any `.gitignore` line for it.
