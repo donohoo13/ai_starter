@@ -1,8 +1,8 @@
 # Agent Skills Overview
 
 Skills, agents, a document and a helper carrying a unit of work from idea to an accepted pre-PR review.
-Each skill is self-contained: nothing starts another, and the user decides when to call each one.
-The five SDD skills end by naming the next phase as the handoff, and still never start it.
+Each skill is self-contained, and the user decides when to call each one.
+The five SDD skills end by naming the next phase as the handoff, and start it only when the user asked for an end-to-end run.
 
 The keystone: ceremony scales with size, engineering discipline never does.
 A one-line chore still gets a failing test first and a real validation run; what collapses for small work is artifacts, never rigor.
