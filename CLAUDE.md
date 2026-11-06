@@ -62,6 +62,8 @@ The full company perspective lives in [docs/company/company-overview.md](./docs/
   Leave passages you are not editing in their existing format rather than reflowing them.
 - Escape literal pipes in table cells as `\|`, including inside backticks: `|` separates columns regardless of code spans, so `` `a || b` `` silently adds phantom columns.
 - Use a list rather than a table when cells run past about one line; long-form content reads better and cannot break the table grammar.
+- Wrap angle-bracket placeholders in backticks (`/item/<item_id>`, `Row <n>`); bare, Markdown parses them as HTML tags and renderers hide them or break the formatting after them.
+- Use emoji only as signal from a fixed set (✅ ❌ pass/fail, ⚠️ risk), a few per document at most and never in headings; for a point that must stand out, use a `> [!WARNING]`-style callout, which renders in Obsidian and GitHub.
 
 ## Skills
 
