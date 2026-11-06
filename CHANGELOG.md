@@ -43,6 +43,9 @@ In a project created from the template, this file is template residue: delete it
   - `code-review-settings.battery.mjs` is removed.
   - The `playwright-local` MCP server leaves `.mcp.json`, along with its `settings.json` allow rule and the `.playwright` lines in `.gitignore` and `.prettierignore`.
     The `chrome-devtools` server moves from `chrome-devtools-mcp@1.6.0` to `1.12.0`.
+  - `sdd-outline` plays the problem back before its interview and ends the turn until the user confirms or corrects it.
+    Section 7 of the SDD document holds the rules: grounding reads how each involved system behaves, the playback marks each distinct problem confirmed or hypothesis, a cause that decides the options is confirmed before any question, the user scopes several problems with the rest under Non-goals and the remainder sized again, and interview options stay at behavior and split per problem.
+    Appendix A's Problem and context asks for each distinct problem, and the adversarial review flags a problem that no requirement addresses and no non-goal excludes.
 - **Why**: the design restructure gets better results from design sessions.
   Role-named tokens and component bindings give a building session exact values to compose from instead of prose to interpret, and the linter catches broken references and contrast failures before a surface ships.
   `DESIGN.md` is the filename the format's spec and tooling use, and the skill that fills it now carries the same name.
@@ -55,6 +58,8 @@ In a project created from the template, this file is template residue: delete it
   A git hook guards every commit and push, from any author or tool, where the Claude Code hooks guarded only Claude's Bash calls and parsed shell text to do it.
   `chrome-devtools` covers what `playwright-local` did in a render or debug pass and adds performance traces, Lighthouse audits and network bodies, so a second Chromium driver only split sessions across overlapping tools and cost a ~100MB browser download on first launch.
   `chrome-devtools-mcp` 1.11.0 and later read a machine-level `~/.config/cd4a/config.json`, so one file can point every project's server at a chosen browser binary without a per-project flag.
+  An outline session grounded in the code and went straight to solution-level questions without saying the problem had three distinct causes, so the user could not answer them with confidence.
+  The grounding stayed in the session, the brief's framing went unchecked, and the options rested on an error source nobody had read up on.
 - **Adaptation notes**:
   - A `docs/specs/*.md` spec in flight finishes under the old skills before taking this release, or is outlined again with `sdd-outline` into `docs/sdd/<slug>/`; nothing migrates it.
   - A project that edited `sdd-implement` reapplies its edits to the orchestrator, or to `implementer` when they concerned how a task is built.
@@ -81,6 +86,8 @@ In a project created from the template, this file is template residue: delete it
   - A project whose own skills, agents or scripts drive `playwright-local` keeps its stanza, allow rule and `.playwright` ignore lines; `git grep -i playwright` finds what still names it.
     Otherwise delete the local `.playwright/` directory, which held that server's browser profile.
   - A project that passed flags to `chrome-devtools` carries them onto the new pin, or moves machine-specific ones such as `executablePath` into `~/.config/cd4a/config.json`.
+  - A project that edited `sdd-outline` or section 7 of its SDD document merges the playback step and the interview rules by hand, then runs `.claude/sdd/bin/sdd templates sync` and `.claude/sdd/bin/sdd check-refs`.
+    Specs already drafted still lint, since no heading changed.
 
 ## v0.2.0 — 2026-10-22
 

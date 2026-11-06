@@ -323,19 +323,31 @@ Anything you can learn by reading the code, standard language conventions, tutor
 3. **Ground yourself in the code.**
    Read the project context (section 6).
    Explore the relevant code without changing anything, and identify existing behavior, the patterns to follow and the interfaces to reuse.
+   Establish what happens today and why, including how each system involved behaves, from its code, logs or documentation (the vendor's, for a third-party system).
+   Research only what explains the problem; options for changing it are the plan's research (section 8).
    In a large codebase, delegate exploration to subagents and keep only their conclusions.
    Don't move on until you can name the files, interfaces and existing behavior involved.
-4. **Interview the user** when the brief is thin.
+4. **Play back the problem** in the conversation before asking anything, in plain words: the current state, who is affected, the evidence, and each distinct problem on its own line (for a bug, each cause).
+   Mark each problem confirmed or hypothesis, and say where what you found contradicts the brief.
+   When a problem's behavior decides which options exist, confirm it before any interview question, from code or documentation where they answer it and otherwise by asking in the playback, because every option built on a wrong cause is wrong.
+   When problems differ in actor, fix or owner, say how many problems there are and ask which belong in this spec.
+   Each one left out gets a line under Non-goals, the Goals cover only the ones kept, and what remains is sized again (section 3).
+   End your turn after the playback, since a question dialog can hide text written earlier in the same turn, and interview only once the user confirms or corrects it.
+   A hypothesis still open after that becomes a clarification marker, or an assumption the user accepts.
+   Skip this step when resuming a spec whose problem the user already confirmed, or when revising one without changing its problem.
+5. **Interview the user** when the brief is thin.
    Ask about the hard parts: edge cases, failure behavior, trade-offs, constraints, who the work is for and what success looks like.
    Don't ask anything the code can tell you.
    Ask in focused batches.
-5. **Draft `spec.md`** from the template (Appendix A), following the rules below.
-6. **Check it.**
+   Write each option as behavior or a hard constraint (see Where a detail belongs, below); anything else is a plan decision.
+   When the right answer would differ per problem, ask once per problem and name the problem in the question.
+6. **Draft `spec.md`** from the template (Appendix A), following the rules below.
+7. **Check it.**
    Run the readiness checklist and `sdd lint <slug> spec`.
    For medium or larger changes, run an adversarial review in a fresh context.
    That review looks for contradictions, ambiguous terms, hidden dependencies, claims that can't be tested, missing failure modes, and criteria that could pass without meeting the intent.
    Turn what it finds into fixes or clarification markers.
-7. **Gate.**
+8. **Gate.**
    No clarification markers remain, the checklist passes, and the user approves.
    Record the approval, then name `sdd-plan` as the next step.
 
@@ -352,7 +364,7 @@ Otherwise it goes in the plan.
 | ------------------------------- | ------------------------ | ----------------------------------------------------------------------------- |
 | Frontmatter                     | Always                   | Title, slug, branch, status, owner, dates, approval hash, description         |
 | Summary                         | Always                   | One paragraph; see the rules below                                            |
-| Problem and context             | Always                   | Current state, who is affected and how, evidence with sources                 |
+| Problem and context             | Always                   | Current state, who is affected, each distinct problem, evidence with sources  |
 | Goals                           | Always                   | Outcomes, measurable where possible                                           |
 | Non-goals                       | Always                   | What is explicitly out of scope                                               |
 | User scenarios                  | Medium and larger        | Prioritized stories, each testable on its own                                 |
@@ -846,7 +858,7 @@ description: <1–2 sentences; see section 7>
 
 ## Problem and context
 
-<Current state, who is affected and how, and evidence (metrics, incidents, user reports) with sources.>
+<Current state, who is affected and how, each distinct problem on its own line (for a bug, each cause), and evidence (metrics, incidents, user reports) with sources.>
 
 ## Goals
 
