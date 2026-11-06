@@ -1,6 +1,6 @@
 # Adversarial spec review prompt
 
-Use for step 5 of `sdd-outline`.
+Use for step 6 of `sdd-outline`.
 Dispatch a general-purpose subagent through the Agent tool with the text below the line as its prompt, placeholders filled in.
 The subagent must not see the interview; it gets the files and nothing else.
 
@@ -29,7 +29,7 @@ Read the spec in full first, then the project context.
 5. Missing failure modes: an input, state or dependency failure with no stated behavior.
 6. Weak criteria: an acceptance criterion that could pass while the intent is missed.
 7. Mislabeled existing behavior: a description of today's system that reads as a new requirement, or a reuse the spec should name and does not.
-8. Scope: a goal with no requirement behind it, or a requirement with no goal.
+8. Scope: a goal with no requirement behind it, a requirement with no goal, a problem under Problem and context that no requirement addresses and no non-goal excludes, or a goal that an excluded problem still blocks.
 
 ## Rules
 

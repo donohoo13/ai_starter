@@ -18,7 +18,7 @@ description: <1–2 sentences; see section 7>
 
 ## Problem and context
 
-<Current state, who is affected and how, and evidence (metrics, incidents, user reports) with sources.>
+<Current state, who is affected and how, each distinct problem on its own line (for a bug, each cause), and evidence (metrics, incidents, user reports) with sources.>
 
 ## Goals
 

@@ -1,6 +1,6 @@
 ---
 name: sdd-outline
-description: Turn an idea, brief, ticket or bug into an approved spec.md under docs/sdd/. Size the change, ground in the code, interview in focused batches, run an adversarial review, then gate on the user's approval. Use when the user says "spec this out", "outline a feature", "write a spec", "start SDD", or brings a new feature idea. Phase 1 of spec-driven development, section 7 of .claude/sdd/spec-driven-development.md.
+description: Turn an idea, brief, ticket or bug into an approved spec.md under docs/sdd/. Size the change, ground in the code, play the problem back for the user to confirm, interview in focused batches, run an adversarial review, then gate on the user's approval. Use when the user says "spec this out", "outline a feature", "write a spec", "start SDD", or brings a new feature idea. Phase 1 of spec-driven development, section 7 of .claude/sdd/spec-driven-development.md.
 argument-hint: "[slug] [brief]"
 allowed-tools: Bash(.claude/sdd/bin/sdd *)
 ---
@@ -40,21 +40,25 @@ The first token is the slug when it contains a hyphen or names an existing `docs
    Explore read-only.
    Delegate wide searches to Explore subagents and keep their conclusions.
    Before writing, name the files, interfaces and existing behavior involved.
-2. **Interview** when the brief is thin, with the AskUserQuestion tool, in batches of two to four related questions, the most load-bearing first, each with a recommended option listed first.
+   Establish why the problem happens, reading how each system involved behaves, its vendor's documentation included when it is third-party.
+2. **Play back the problem** in the conversation as section 7 (Outline) Steps describes, then end your turn.
+   Interview only after the user confirms or corrects the playback.
+3. **Interview** when the brief is thin, with the AskUserQuestion tool, in batches of two to four related questions, the most load-bearing first, each with a recommended option listed first.
    Ask only what the code cannot tell you: edge cases, failure behavior, trade-offs, constraints, who the work is for, what success looks like.
+   Keep options to behavior or hard constraints, and ask once per problem when the answer differs per problem.
    An assumption the user accepts goes under Assumptions with their name.
    Anything unresolved becomes `[NEEDS CLARIFICATION: <specific question>]`.
-3. **Draft `spec.md`** in place, keeping the frontmatter `init` wrote.
+4. **Draft `spec.md`** in place, keeping the frontmatter `init` wrote.
    Follow section 7 (Outline) for the description, summary, requirements, scenarios, invariants and existing behavior.
    Delete every placeholder you do not fill, including the sample clarification line under Open questions, and drop the optional sections the sections table does not call for; lint reports every `<...>` placeholder left from the template as an error.
    When revising an approved spec, add a dated entry under Changelog with the reason.
-4. **Check it.**
+5. **Check it.**
    Run the spec readiness checklist from section 7 (Outline) and `.claude/sdd/bin/sdd lint <slug> spec`.
    Fix every error; answer every warning with a number or a rewrite.
-5. **Adversarial review.**
+6. **Adversarial review.**
    Dispatch a general-purpose subagent with the prompt in [references/adversarial-review.md](references/adversarial-review.md), its three placeholders filled in: the spec path, the project context paths, and the repository root.
    Turn each finding into a fix or a clarification marker, then lint again.
-6. **Interview again** for the markers the review raised, then clear them.
+7. **Interview again** for the markers the review raised, then clear them.
 
 ## Outputs
 

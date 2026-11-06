@@ -17,7 +17,7 @@ Working files live in `docs/sdd/<slug>/` and are committed on the feature branch
 [`.claude/sdd/README.md`](../sdd/README.md) explains the helper and how to change the document.
 
 - **sdd-outline** (`/sdd-outline [slug] [brief]`): phase 1, an idea to an approved `spec.md`.
-  Sizes the change first and sends trivial or small work to `tdd` instead, grounds in the code read-only, interviews in batches of coupled questions with a recommendation each, drafts numbered requirements with acceptance criteria, runs an adversarial review in a fresh subagent, and gates on the user's approval.
+  Sizes the change first and sends trivial or small work to `tdd` instead, grounds in the code read-only, plays the problem back and waits for the user to confirm it, interviews in batches of coupled questions with a recommendation each, drafts numbered requirements with acceptance criteria, runs an adversarial review in a fresh subagent, and gates on the user's approval.
 - **sdd-plan** (`/sdd-plan [slug]`): phase 2, an approved spec to an approved `plan.md`.
   Researches with sources (`research-analyst` for a question that would stall the conversation), presents each significant decision as options with a recommendation, names the seam each slice's tests run at in the vocabulary `tdd` discovers for the repo, checks the plan against `CLAUDE.md` and `docs/standards/`, and fills the traceability table.
 - **sdd-task** (`/sdd-task [slug]`): phase 3, an approved plan to an approved `tasks.md`.
