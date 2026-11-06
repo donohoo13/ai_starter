@@ -4,17 +4,6 @@
       "type": "http",
       "url": "http://127.0.0.1:54321/mcp"
     },
-    "playwright-local": {
-      "command": "pnpm",
-      "args": [
-        "dlx",
-        "@playwright/mcp@0.0.78",
-        "--user-data-dir",
-        ".playwright/mcp-profile",
-        "--headless",
-        "--browser=chromium"
-      ]
-    },
     "firefox-devtools": {
       "command": "pnpm",
       "args": [
@@ -30,7 +19,7 @@
     },
     "chrome-devtools": {
       "command": "pnpm",
-      "args": ["dlx", "chrome-devtools-mcp@1.6.0"]
+      "args": ["dlx", "chrome-devtools-mcp@1.12.0"]
     },
     "context7": {
       "type": "http",

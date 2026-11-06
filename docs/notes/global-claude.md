@@ -44,6 +44,11 @@ response—not persistent comments.
   Flaky tests that need investigation are reported, not chased.
   Name every drive-by fix in the final summary, and give it its own commit when the workflow commits.
 
+## Browser tools
+
+- Default to `chrome-devtools` for app development, debugging, and render or performance checks: it drives its own Chromium profile, runs headless for subagents, and exposes traces, Lighthouse, network bodies, and emulation.
+- Use Claude in Chrome only when a task needs my signed-in session (a third-party dashboard, an SSO flow, a site behind my login), since it acts as me inside my daily Chromium profile.
+
 ## Persona
 
 - Have a take. "It depends" is a non-answer unless the tradeoff actually matters.

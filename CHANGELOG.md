@@ -41,6 +41,8 @@ In a project created from the template, this file is template residue: delete it
     `node-dev-server.battery.mjs` delays the wrapper's async file I/O, so an ordering that only holds on a fast machine fails every run instead of some CI runs.
   - `check-install.mjs` keeps its pnpm-only gate and its pin-agreement check, and drops the wrong-Node check and the pnpm 10-and-older `engineStrict` deadlock check; its battery shrinks to match.
   - `code-review-settings.battery.mjs` is removed.
+  - The `playwright-local` MCP server leaves `.mcp.json`, along with its `settings.json` allow rule and the `.playwright` lines in `.gitignore` and `.prettierignore`.
+    The `chrome-devtools` server moves from `chrome-devtools-mcp@1.6.0` to `1.12.0`.
 - **Why**: the design restructure gets better results from design sessions.
   Role-named tokens and component bindings give a building session exact values to compose from instead of prose to interpret, and the linter catches broken references and contrast failures before a surface ships.
   `DESIGN.md` is the filename the format's spec and tooling use, and the skill that fills it now carries the same name.
@@ -51,6 +53,8 @@ In a project created from the template, this file is template residue: delete it
   `refine` rewrote finished code to the standards `sdd-review` then judged again, so standards now hold inside each slice and the review is the single pass; render passes are slow and token-heavy, so only the user starts one.
   The `[P]` marker had no consumer once slices build one at a time, and the battery keeps the suite's structural rules from drifting the way the skill counts did.
   A git hook guards every commit and push, from any author or tool, where the Claude Code hooks guarded only Claude's Bash calls and parsed shell text to do it.
+  `chrome-devtools` covers what `playwright-local` did in a render or debug pass and adds performance traces, Lighthouse audits and network bodies, so a second Chromium driver only split sessions across overlapping tools and cost a ~100MB browser download on first launch.
+  `chrome-devtools-mcp` 1.11.0 and later read a machine-level `~/.config/cd4a/config.json`, so one file can point every project's server at a chosen browser binary without a per-project flag.
 - **Adaptation notes**:
   - A `docs/specs/*.md` spec in flight finishes under the old skills before taking this release, or is outlined again with `sdd-outline` into `docs/sdd/<slug>/`; nothing migrates it.
   - A project that edited `sdd-implement` reapplies its edits to the orchestrator, or to `implementer` when they concerned how a task is built.
@@ -74,6 +78,9 @@ In a project created from the template, this file is template residue: delete it
   - A project still on pnpm 10 or older loses the preinstall stop on an `engineStrict` and `devEngines` pairing: turn `engineStrict` off, or get onto the `packageManager` pin with `mise install`.
   - A project that deleted its `devEngines` block and skips mise no longer gets a hard stop on the wrong Node; `doctor.sh` still warns on drift during `prepare`.
   - A project that adds `Skill` denies, `disableBundledSkills`, or `skillOverrides` to `.claude/settings.json` has nothing left to flag a block on `/code-review`, which `review` and `preflight` run; confirm it still runs after such an edit.
+  - A project whose own skills, agents or scripts drive `playwright-local` keeps its stanza, allow rule and `.playwright` ignore lines; `git grep -i playwright` finds what still names it.
+    Otherwise delete the local `.playwright/` directory, which held that server's browser profile.
+  - A project that passed flags to `chrome-devtools` carries them onto the new pin, or moves machine-specific ones such as `executablePath` into `~/.config/cd4a/config.json`.
 
 ## v0.2.0 — 2026-10-22
 
