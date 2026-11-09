@@ -46,7 +46,7 @@ response—not persistent comments.
 
 ## Browser tools
 
-- Default to `chrome-devtools` for app development, debugging, and render or performance checks: it drives its own Chromium profile, runs headless for subagents, and exposes traces, Lighthouse, network bodies, and emulation.
+- Default to `chrome-devtools` for app development, debugging, and render or performance checks: it launches Google Chrome on a throwaway isolated profile and exposes traces, Lighthouse, network bodies, and emulation.
 - Use Claude in Chrome only when a task needs my signed-in session (a third-party dashboard, an SSO flow, a site behind my login), since it acts as me inside my daily Chromium profile.
 
 ## Persona
