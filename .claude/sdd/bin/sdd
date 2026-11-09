@@ -138,6 +138,14 @@ def content_hash(text: str) -> str:
     return hashlib.sha256(normalized_body(text).encode("utf-8")).hexdigest()[:12]
 
 
+def approval_hash(name: str, text: str, based_on: str) -> str:
+    """The hash an approval records; a design's also covers its based_on, so re-approving it against a new spec stales the plan."""
+    covered = normalized_body(text)
+    if name == "design":
+        covered += "based_on: %s\n" % based_on
+    return hashlib.sha256(covered.encode("utf-8")).hexdigest()[:12]
+
+
 # --- command registry --------------------------------------------------------
 
 COMMANDS: list[tuple[str, str, list, object]] = []
@@ -357,7 +365,7 @@ def artifact_state(slug: str, name: str, upstream: dict | None) -> dict:
     status = fields.get("status", "")
     approved_hash = fields.get("approved_hash", "")
     based_on = fields.get("based_on", "")
-    current = content_hash(text)
+    current = approval_hash(name, text, based_on)
     changed = name != "review" and status in APPROVED_STATUSES and approved_hash != current
     stale = False
     if upstream is not None and name in UPSTREAM:
@@ -1038,10 +1046,11 @@ def cmd_approve(args: argparse.Namespace) -> int:
     fields, body, text = found
     if name == "design":
         require_design_record(fields)
-    updates = {"status": "approved", "approved_hash": content_hash(text), "updated": today()}
+    updates = {"status": "approved", "updated": today()}
     if name in UPSTREAM:
         upstream = artifact_state(slug, upstream_of(slug, name), None)
         updates["based_on"] = upstream["approved_hash"] or ""
+    updates["approved_hash"] = approval_hash(name, text, updates.get("based_on", ""))
     write_artifact(slug, name, set_frontmatter(text, updates))
     print("%s.md approved; approved_hash %s" % (name, updates["approved_hash"]))
     return 0

@@ -18,6 +18,19 @@ class DesignRequestTests(SddCase):
         self.assertIn("\n# Invoice thumbnails design\n", self.read_artifact("design"))
         self.assertIn("## Prompt", self.read_artifact("design"))
 
+    def test_a_stale_approved_design_can_be_requested_again(self):
+        self.approve_ui_spec()
+        self.request_design()
+        self.record_design()
+        self.run_sdd("approve", SLUG, "design")
+        self.write_artifact("spec", self.read_artifact("spec").replace("under 10 minutes", "under 9 minutes"))
+        self.run_sdd("approve", SLUG, "spec")
+        code, out, err = self.run_sdd("set-status", SLUG, "design", "requested")
+        self.assertEqual(code, 0, out + err)
+        fields = self.frontmatter("design")
+        self.assertEqual(fields["status"], "requested")
+        self.assertEqual(fields["based_on"], self.frontmatter("spec")["approved_hash"])
+
     def test_a_design_cannot_be_requested_before_the_spec_is_approved(self):
         self.approve_ui_spec()
         self.set_fields("spec", status="draft")
@@ -195,6 +208,36 @@ class PlanOnDesignTests(SddCase):
         self.assertTrue(data["artifacts"]["plan"]["stale"])
         self.assertTrue(data["artifacts"]["tasks"]["stale"])
         self.assertEqual(data["phase"], "3. Plan")
+
+    def test_reapproving_an_unchanged_design_against_a_new_spec_stales_the_plan_and_tasks(self):
+        self.approve_ui_spec()
+        self.approve_design()
+        self.write_plan()
+        self.approve("plan")
+        self.write_tasks()
+        self.approve("tasks")
+        self.write_artifact("spec", self.read_artifact("spec").replace("under 10 minutes", "under 9 minutes"))
+        self.approve("spec")
+        self.set_fields("design", based_on=self.frontmatter("spec")["approved_hash"])
+        self.approve("design")
+        data = self.status_json()
+        self.assertFalse(data["artifacts"]["design"]["changed"])
+        self.assertFalse(data["artifacts"]["design"]["stale"])
+        self.assertTrue(data["artifacts"]["plan"]["stale"])
+        self.assertTrue(data["artifacts"]["tasks"]["stale"])
+        self.assertEqual(data["phase"], "3. Plan")
+
+    def test_an_approved_design_whose_based_on_is_edited_needs_reapproval(self):
+        self.approve_ui_spec()
+        self.approve_design()
+        self.write_plan()
+        self.approve("plan")
+        self.write_artifact("spec", self.read_artifact("spec").replace("under 10 minutes", "under 9 minutes"))
+        self.approve("spec")
+        self.set_fields("design", based_on=self.frontmatter("spec")["approved_hash"])
+        data = self.status_json()
+        self.assertTrue(data["artifacts"]["design"]["changed"])
+        self.assertEqual(data["phase"], "2. Design")
 
     def test_a_design_approved_after_the_plan_stales_the_plan(self):
         self.approve_ui_spec()

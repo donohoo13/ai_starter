@@ -72,7 +72,7 @@ class ApproveTests(SddCase):
         self.assertEqual(code, 0, out + err)
         fields = self.frontmatter("design")
         self.assertEqual(fields["status"], "approved")
-        self.assertEqual(fields["approved_hash"], self.cli.content_hash(self.read_artifact("design")))
+        self.assertEqual(fields["approved_hash"], self.status_json()["artifacts"]["design"]["hash"])
         self.assertEqual(fields["based_on"], spec_hash)
 
     def test_a_design_with_an_unfilled_template_is_not_approved(self):
