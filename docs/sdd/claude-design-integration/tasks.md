@@ -217,6 +217,4 @@ Every task that edits `CLAUDE.md`, a `README.md`, a `docs/standards/` file or th
 
 ## Follow-ups (out of scope)
 
-- `docs/standards/transactional-email.md` line 28 calls its 44×44px CTA target "the `ux-standards.md` touch-target floor"; once T017 sets the floor at 24×24 and 38×38px as a starting value, that cross-reference is wrong, and no task touches the file.
-- `docs/standards/frontend-styling.md` line 9 links `[DESIGN.md](../../DESIGN.md)`, which resolves to nothing in the template now that the root DESIGN.md is gone, and resolves again in a project once `design-init` writes it; no task in this slice touches that file.
-- `.claude/skills/design-init/references/brand-research.md` lines 13 and 21 still call the mood board a "gate"; `design-init` now treats the board as an optional input that never stops a run, and no task in this slice touches that file.
+- None

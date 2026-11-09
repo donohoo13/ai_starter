@@ -6,7 +6,7 @@ applies-to:
 # Frontend styling conventions
 
 How this project writes styles.
-The usability floors these styles must clear live in [`ux-standards.md`](./ux-standards.md); the palette, type scale, spacing rhythm, and motion character they express live in [`DESIGN.md`](../../DESIGN.md), whose front-matter tokens are the source of truth the app's theme CSS mirrors.
+The usability floors these styles must clear live in [`ux-standards.md`](./ux-standards.md); the palette, type scale, spacing rhythm, and motion character they express live in `DESIGN.md`, whose front-matter tokens are the source of truth the app's theme CSS mirrors.
 Where `DESIGN.md` is absent, still holds bracket placeholders, or is silent on a value, this file's starting values apply, and brand decisions such as palette, type and voice stay undecided until `design-init` runs.
 
 **On an email path, [`transactional-email.md`](./transactional-email.md) wins over this file.**

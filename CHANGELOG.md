@@ -17,7 +17,7 @@ In a project created from the template, this file is template residue: delete it
   - `skeptic` argues a proposed trunk change from its brief instead of the index, since nothing is built until the user approves it.
   - `refine` and the `refiner` and `code-reviewer` agents are removed; `render-check`, a skill only the user can start, now runs `render-checker`.
   - The `[P]` task marker leaves `tasks.md`, its template, `sdd-task` and the helper's lint.
-  - `scripts/test/process-suite.battery.mjs` fails CI when the implementer's frontmatter drifts, a skill other than `render-check` names `render-checker`, an agent has no skill naming it, or a tracked file outside `docs/sdd/` and this changelog names a removed skill or agent.
+  - `scripts/test/process-suite.battery.mjs` fails CI when the implementer's frontmatter drifts, a skill other than `render-check` or `sdd-implement` names `render-checker`, an agent has no skill naming it, or a tracked file outside `docs/sdd/` and this changelog names a removed skill or agent.
   - `template-sync` and `template-feedback` are removed; a project takes a release by diffing against its `.ai-starter.yaml` base by hand.
   - The `guard-main` and `guard-secret-read` Claude Code hooks, their `settings.json` registrations and `guard-main.battery.mjs` are removed.
     `.husky/pre-commit` now refuses a commit on the default branch (read from `origin/HEAD`, else `main`) and a new `.husky/pre-push` refuses a push to it, letting tags through; `husky-guard.battery.mjs` runs both against a throwaway repo.
@@ -35,7 +35,7 @@ In a project created from the template, this file is template residue: delete it
   - The design doc is now the source of truth for token values and the app's theme CSS mirrors it, the reverse of before; `frontend-styling.md` says so.
   - Positioning and messaging pillars leave the design doc for `docs/company/company-overview.md`; audience, primary job, and promise stay as the Overview's product context.
   - `brand-init` is renamed `design-init`, after the file it fills.
-    It walks the new structure, reads the mood board from `docs/design/moodboard/` instead of `docs/branding/moodboard/`, and runs the lint until it is clean before offering to delete itself.
+    It walks the new structure, reads the mood board from `docs/design/moodboard/` instead of `docs/branding/moodboard/`, runs the lint until it is clean, and then offers to build the project's Design System in Claude.
   - `CLAUDE.md`, `README.md`, the skills, and the agents name `DESIGN.md` and `design-init` wherever they named `BRANDING.md` and `brand-init`.
   - `pnpm dev` clears `.logs/dev-server.log` before it records the new server's pid, so the log beside a fresh pid is always that run's.
     `node-dev-server.battery.mjs` delays the wrapper's async file I/O, so an ordering that only holds on a fast machine fails every run instead of some CI runs.
