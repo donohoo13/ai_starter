@@ -30,7 +30,7 @@ The skills live beside this folder:
 | `sdd-review`    | 6. Validate                | 13      | `review.md` and a PR description draft, or a chat report without a spec |
 
 `tdd` knows nothing about SDD; the `implementer` agent and `sdd-review` hand it one behavior at a time.
-The agents in `.claude/agents/` are dispatched by the skills: `implementer` and `skeptic` by `sdd-implement`, `implementer` and `standards-reviewer` by `sdd-review`, `research-analyst` by `sdd-plan`, and `render-checker` by `sdd-implement` once before QA for the surfaces the user picked, as well as by the user-only `render-check`.
+The agents in `.claude/agents/` are dispatched by the skills: `implementer` and `skeptic` by `sdd-implement`, `implementer` and `standards-reviewer` by `sdd-review`, `research-analyst` by `sdd-plan` and `design-init`, and `render-checker` by `sdd-implement` once before QA for the surfaces the user picked, as well as by the user-only `render-check`.
 `sdd-design` writes the design prompt and records the result, but never runs the design conversation, which the user holds in Claude Design.
 
 ## How to start

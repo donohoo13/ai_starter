@@ -35,7 +35,7 @@ It maps DESIGN.md's content onto that artifact; how the artifact is written belo
 
 ## Build, re-sync and refusal
 
-- **Build**: when DESIGN.md has no `## Claude Design System` link, create the system as the type's instructions describe, then record its link as the section's `- Link:` line.
+- **Build**: when DESIGN.md records no `## Claude Design System` link (its `- Link:` line reads `not built yet`, or the section is gone), create the system as the type's instructions describe, then record its link as the section's `- Link:` line.
 - **Re-sync**: when DESIGN.md records a link, read that system first, warn the user that any edit made to it in Claude will be replaced, and proceed only on their word.
   Then revise it as the type's instructions describe, changing only what differs from DESIGN.md.
 - **Refusal**: report the refusal and the reason it gave.

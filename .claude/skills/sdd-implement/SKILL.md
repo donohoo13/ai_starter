@@ -18,7 +18,7 @@ Arguments: `$ARGUMENTS`, an optional slug.
 Only these, so that every line of code and test comes from an agent whose work this session then checks:
 
 - `tasks.md`'s `status` field and each slice's close-out box.
-- `tasks.md`'s `render_check` frontmatter key, the user's render-check answer.
+- `tasks.md`'s `render_check` and `render_check_asked` frontmatter keys, the user's render-check answer and the UI IDs it covers.
 - The spec's `branch` field.
 - Git staging and commits.
 - The processes it starts and stops.
@@ -58,11 +58,11 @@ Never take the next step until the report is in; when it has not arrived, end th
    On a different feature branch: ask whether to switch to the spec's branch or record the current one the same way.
 2. **Mark in progress**: `.claude/sdd/bin/sdd set-status <slug> tasks in-progress` (a no-op when already in progress).
    When this or step 1 changed `tasks.md` or `spec.md`, stage those files by explicit path and commit them before the first dispatch, so every later diff holds only an agent's work.
-3. **Settle render checks** when the spec's `## UI surfaces` section lists a surface and `tasks.md`'s frontmatter has no `render_check` key, whether this is the first start or a resume after slices were committed.
+3. **Settle render checks** when the spec's `## UI surfaces` section lists a UI ID that `tasks.md`'s `render_check_asked` frontmatter key does not, whether this is the first start or a resume after slices were committed, since a spec re-approved mid-build can add a surface.
    A render pass costs minutes and many tokens, so the user picks the surfaces worth it.
-   List the surfaces and recommend each one that meets a criterion, with a one-line reason naming the criterion that applies: a new surface, a surface with an approved design in `design.md`, a layout that changes between the mobile and desktop widths, or a color pairing no existing surface uses.
+   List only those surfaces and recommend each one that meets a criterion, with a one-line reason naming the criterion that applies: a new surface, a surface with an approved design in `design.md`, a layout that changes between the mobile and desktop widths, or a color pairing no existing surface uses.
    Ask the user to approve any, all or none, and wait for the answer.
-   Record it in `tasks.md`'s frontmatter as `render_check: UI-001, UI-003` or `render_check: none`; frontmatter sits outside the content hash, so the tasks stay approved.
+   Record it in `tasks.md`'s frontmatter: append the approved IDs to `render_check` (`render_check: UI-001, UI-003`, replacing `none`, or `render_check: none` while no surface is approved) and every ID asked about to `render_check_asked`; frontmatter sits outside the content hash, so the tasks stay approved.
    Stage `docs/sdd/<slug>/tasks.md` by explicit path and commit it before the next dispatch, so a later session reads the answer instead of asking again.
    With `none`, `render-checker` is never dispatched in this build.
 4. **For each slice from the resume point**, in order, finish one before dispatching the next:

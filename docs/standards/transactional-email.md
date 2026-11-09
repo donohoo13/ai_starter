@@ -32,5 +32,5 @@ A project that sends no templated mail deletes this file.
 - **Plain-text part always**: every email ships a `multipart/alternative` plain-text version, where auth links appear as literal URLs — phishing resistance for exactly the emails we send.
 - **Authored preheader**: the preview line after the subject is deliberate copy, never whatever text happens to render first (Litmus preheader guidance).
 - **Stay under the clip**: total HTML stays well below Gmail's ~102KB clipping threshold (Litmus), which truncates mid-markup and can break the layout it cuts.
-- **Accessible like the app**: semantic headings, `lang` on the root element, `16px` body-copy floor, WCAG AA contrast per the `ux-standards.md` Standards.
+- **Accessible like the app**: semantic headings, `lang` on the root element, `16px` body-copy floor, WCAG AA contrast per the `ux-standards.md` Floors.
 - **Banned in email**: JavaScript, forms, video, CSS positioning, negative margins, and checkbox/hover interactivity hacks; every one is stripped or silently breaks somewhere in the client set (caniemail.com).

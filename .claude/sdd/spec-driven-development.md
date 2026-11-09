@@ -162,14 +162,14 @@ If you are torn between two rows, choose the lighter one and tell the user.
 
 ## 4. The workflow
 
-| Phase                | Skill                        | Starts when                                                                                          | Produces                                                      | Exit gate                                                                                                                                       | Next                                                                                            |
-| -------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| 1. Outline           | `sdd-outline`                | The user brings an idea, brief, ticket or bug big enough for the chain                               | `spec.md`                                                     | Readiness checklist passes, no clarification markers, **user approves**                                                                         | `sdd-design` when the spec lists a UI surface and the user wants a design, otherwise `sdd-plan` |
-| 2. Design (optional) | `sdd-design`                 | The spec is approved, lists a UI surface, and the user asks for a design                             | `design.md` and the snapshot under `design/`                  | Every miss and gap answered, **user approves**; or the user skips                                                                               | `sdd-plan`                                                                                      |
-| 3. Plan              | `sdd-plan`                   | The spec is approved and unchanged since approval, and any design is approved and current or skipped | `plan.md`                                                     | Every requirement traces to the plan and a seam, **user approves**                                                                              | `sdd-task`                                                                                      |
-| 4. Tasks             | `sdd-task`                   | The plan is approved and unchanged                                                                   | `tasks.md`                                                    | Every requirement has a task, every task has a seam and a check, **user approves**                                                              | `sdd-implement`                                                                                 |
-| 5. Implement         | `sdd-implement`, using `tdd` | The tasks are approved and unchanged; on a feature branch                                            | Code, tests, one commit per verified slice                    | Every task is checked off, each slice's full suite is green apart from recorded pre-existing failures, the user confirmed QA, the tree is clean | `sdd-review`                                                                                    |
-| 6. Validate          | `sdd-review`                 | All tasks are done, on a feature branch with a clean tree                                            | `review.md`, the fixes the user picks, a PR description draft | **User accepts**                                                                                                                                | Done                                                                                            |
+| Phase                | Skill                        | Starts when                                                                                                                           | Produces                                                      | Exit gate                                                                                                                                       | Next                                                                                            |
+| -------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 1. Outline           | `sdd-outline`                | The user brings an idea, brief, ticket or bug big enough for the chain                                                                | `spec.md`                                                     | Readiness checklist passes, no clarification markers, **user approves**                                                                         | `sdd-design` when the spec lists a UI surface and the user wants a design, otherwise `sdd-plan` |
+| 2. Design (optional) | `sdd-design`                 | The spec is approved, lists a UI surface, and the user asks for a design                                                              | `design.md` and the snapshot under `design/`                  | Every miss and gap answered, **user approves**; or the user skips                                                                               | `sdd-plan`                                                                                      |
+| 3. Plan              | `sdd-plan`                   | The spec is approved and unchanged since approval, and any design is approved and current or skipped covering every listed UI surface | `plan.md`                                                     | Every requirement traces to the plan and a seam, **user approves**                                                                              | `sdd-task`                                                                                      |
+| 4. Tasks             | `sdd-task`                   | The plan is approved and unchanged                                                                                                    | `tasks.md`                                                    | Every requirement has a task, every task has a seam and a check, **user approves**                                                              | `sdd-implement`                                                                                 |
+| 5. Implement         | `sdd-implement`, using `tdd` | The tasks are approved and unchanged; on a feature branch                                                                             | Code, tests, one commit per verified slice                    | Every task is checked off, each slice's full suite is green apart from recorded pre-existing failures, the user confirmed QA, the tree is clean | `sdd-review`                                                                                    |
+| 6. Validate          | `sdd-review`                 | All tasks are done, on a feature branch with a clean tree                                                                             | `review.md`, the fixes the user picks, a PR description draft | **User accepts**                                                                                                                                | Done                                                                                            |
 
 ### State
 
@@ -189,7 +189,7 @@ The current phase follows from these states:
 | ---------------------------------------------------------------------------------------------------------------------- | ------------ | --------------- |
 | No `spec.md`, a draft spec, or open clarification markers                                                              | 1. Outline   | `sdd-outline`   |
 | Design requested; an approved design changed or stale; or a skipped design that misses a UI surface the spec now lists | 2. Design    | `sdd-design`    |
-| Spec approved, design absent, skipped, or approved and current; plan missing or draft                                  | 3. Plan      | `sdd-plan`      |
+| Spec approved, design absent, skipped covering every listed UI surface, or approved and current; plan missing or draft | 3. Plan      | `sdd-plan`      |
 | Plan approved; tasks missing or draft                                                                                  | 4. Tasks     | `sdd-task`      |
 | Tasks approved or in progress                                                                                          | 5. Implement | `sdd-implement` |
 | Tasks done; review missing or open                                                                                     | 6. Validate  | `sdd-review`    |
@@ -357,7 +357,8 @@ Anything you can learn by reading the code, standard language conventions, tutor
 8. **Gate.**
    No clarification markers remain, the checklist passes, and the user approves.
    Record the approval, then name the next step.
-   When the UI surfaces section lists a surface, name each surface and offer `sdd-design` (section 8), with `sdd-plan` as the alternative; a skip the user chooses is recorded in `design.md` with their name, the date and the surfaces it covers.
+   When `design.md` exists, offer no skip and name the skill `sdd status` reports: `sdd-design` at `2. Design` for a requested or approved design, which it re-checks against the revised spec, or for a skip that misses a surface the spec now lists.
+   When `design.md` is absent and the UI surfaces section lists a surface, name each surface and offer `sdd-design` (section 8), with `sdd-plan` as the alternative; a skip the user chooses is recorded in `design.md` with their name, the date and the surfaces it covers.
    Otherwise name `sdd-plan`, and write no `design.md`.
 
 ### Where a detail belongs
@@ -511,12 +512,12 @@ It works like a unit test for the spec.
 The phase is optional.
 A spec whose UI surfaces section is absent or empty never enters it, and no `design.md` is written.
 The design conversation runs outside the SDD session, in a Claude chat or a Claude Code `/design` session the user drives.
-This phase writes the prompt for it and records its result; it never invokes `/design`, never publishes a Design artifact, and never steers the conversation.
+This phase writes the prompt for it and records its result; it never invokes `/design`, never publishes a Design artifact (the spec's mockup, not the Design System artifact `design-init` builds), and never steers the conversation.
 
 ### State
 
 - **`requested`**: the prompt is out and the chain waits.
-  `sdd status` reports `2. Design`, and Plan, Tasks and Implement refuse to start and name `sdd-design`.
+  `sdd status` reports `2. Design`, and Plan, Tasks, Implement and Validate refuse to start and name `sdd-design`.
   A design requested mid-build stops `sdd-implement` at its next start.
 - **`skipped`**: the user declined a design or cancelled a requested one.
   `decided_by` (the git `user.name`), `surfaces` (the UI IDs the skip covers) and the date are recorded, and the reason goes under Skip reason.
@@ -558,7 +559,7 @@ It carries:
 - The devices or widths the spec requires.
 - The spec's non-goals, restated in product terms as things not to design.
 - The design system: the Claude design system link DESIGN.md records, restating none of its tokens; otherwise DESIGN.md's Overview, Key Characteristics and Do's and Don'ts text; otherwise, when DESIGN.md is absent or still holds bracket placeholders, a statement that the project has no design decisions yet.
-- The WCAG 2.2 AA floors, the target size, reading width and motion timing DESIGN.md sets or the standards' starting values where it is absent or silent, and that customer-facing copy contains no em-dash.
+- The WCAG 2.2 AA floors, the target size, reading width and motion timing DESIGN.md sets or the standards' starting values where it is absent, still holds bracket placeholders, or is silent on one, and that customer-facing copy contains no em-dash.
 - The process: two or three directions on one named primary screen first, then the complete design in the direction the user picks, with one artboard per screen and state titled with both, such as `UI-001 Settings / empty`.
 - A closing line asking the user to bring the approved design's link back.
 
@@ -597,7 +598,7 @@ Stage `design.md` and `design/` by explicit path, propose a commit message, and 
 ## 9. Phase 3: Plan (`sdd-plan`)
 
 **Purpose:** decide how the approved spec, and its approved design when there is one, will be built.
-**Starts when:** `spec.md` is approved, unchanged since approval, and has no clarification markers, and `design.md` is absent, skipped, or approved and current.
+**Starts when:** `spec.md` is approved, unchanged since approval, and has no clarification markers, and `design.md` is absent, skipped covering every listed UI surface, or approved and current.
 **Produces:** `plan.md`, approved.
 
 ### Steps
@@ -701,7 +702,7 @@ Name `sdd-implement` as the next step, and recommend starting it in a fresh sess
 **Produces:** code and tests, one commit per slice plus any trunk commits, and `tasks.md` checked off with status `done`.
 
 The session running `sdd-implement` is the **orchestrator**.
-It dispatches, verifies, commits and talks to the user, and writes nothing but `tasks.md`'s status, close-out boxes and `render_check` frontmatter key, the spec's `branch` field, git commits and the processes it starts.
+It dispatches, verifies, commits and talks to the user, and writes nothing but `tasks.md`'s status, close-out boxes and `render_check` and `render_check_asked` frontmatter keys, the spec's `branch` field, git commits and the processes it starts.
 Every line of code, test and task evidence comes from an `implementer` in a fresh context, so the build follows the approved artifacts instead of the memory of the conversation that produced them.
 
 ### Steps
@@ -712,9 +713,9 @@ Every line of code, test and task evidence comes from an `implementer` in a fres
 2. **Resume** at the first slice whose close-out item is unchecked, and set `tasks.md` to `in-progress`.
    If there are uncommitted changes, list them and let the user choose between handing them to a fresh `implementer` to continue that slice and setting them aside by hand; never discard them.
 3. **Render checks.**
-   When the spec lists a UI surface and `tasks.md` records no render-check answer, on the first start or any resume, list the surfaces and recommend each that is new, has an approved design, changes layout between the mobile and desktop widths, or uses a color pairing no existing surface uses, naming the criterion in one line.
-   The user approves any, all or none; record the answer as `tasks.md`'s `render_check` frontmatter key, the approved UI IDs comma-separated or `none`, and commit it before the next dispatch.
-   Frontmatter sits outside the content hash, so the tasks stay approved, and a recorded answer is never asked again.
+   When the spec lists a UI ID that `tasks.md`'s `render_check_asked` frontmatter key does not, on the first start or any resume, since a spec re-approved mid-build can add a surface, list those surfaces and recommend each that is new, has an approved design, changes layout between the mobile and desktop widths, or uses a color pairing no existing surface uses, naming the criterion in one line.
+   The user approves any, all or none; append the approved UI IDs to `tasks.md`'s `render_check` frontmatter key, comma-separated and replacing `none`, or `none` while no surface is approved, append every ID asked about to `render_check_asked`, and commit both before the next dispatch.
+   Frontmatter sits outside the content hash, so the tasks stay approved, and no surface is asked about twice.
    With `none`, no render check runs.
 4. **For each slice, one at a time:**
    1. **Dispatch** a fresh `implementer` with a brief of pointers only: the slug, the slice heading, the facts earlier slices reported as notes, and the user's decisions for this slice.
@@ -773,11 +774,11 @@ The `implementer` reports `BLOCKED` and the orchestrator asks the user when:
 The `tdd` skill owns this discipline and stands on its own.
 Use it for any change a test can lock down, inside the SDD chain or as a one-shot for a small task.
 It knows nothing about SDD: the `implementer` agent and `sdd-review` hand it one behavior at a time.
-This section summarizes what SDD relies on; the skill and its repo references are the full version.
+This section summarizes what SDD relies on; the skill and its references are the full version.
 
-- **Read the repo's test reference first,** selected by the repo's git remote.
-  It names the commands, the helpers to reuse, and the shape each type of test takes in that repo.
-  An unfamiliar repo gets a discovery pass that finds its commands and test shapes before the first test.
+- **Discover the repo first.**
+  Before the first test, `tdd` finds the repo's commands, frameworks, test locations, one living example of each test type and how collaborators are doubled, from the repo's own files, and never invents a command.
+  It skips the discovery when `CLAUDE.md` or an earlier run in the session already holds those facts.
 - **A good test** checks behavior through a public interface, never implementation detail.
   It reads like a specification ("rejects a draw with no line items"), survives a refactor that changes no behavior, and uses independent literal expected values, never values recomputed the way the code computes them.
 - **Seams.**

@@ -97,9 +97,9 @@ Later brand changes are edits to `DESIGN.md`, or a fresh run of this skill to re
 
 ## The Design System in Claude
 
-Then offer to build the project's Design System artifact in Claude from `DESIGN.md`, or to re-sync it when the `## Claude Design System` section records a link, so a design conversation can use the project's tokens, brand book and component guidelines.
+Then offer to build the project's Design System artifact in Claude from `DESIGN.md`, or to re-sync it when the `## Claude Design System` section records a link rather than `not built yet`, so a design conversation can use the project's tokens, brand book and component guidelines.
 On the user's word, read `references/claude-design-system.md` and follow it.
 
-- A successful build records the artifact's link as the section's `- Link:` line.
-- When no link is recorded and the user declines, the session has no Artifact tool, or the first build is refused, delete the `## Claude Design System` section, so `DESIGN.md` never records a link that does not read.
+- A successful build replaces `not built yet` on the section's `- Link:` line with the artifact's link.
+- When the line still reads `not built yet` and the user declines, the session has no Artifact tool, or the first build is refused, delete the `## Claude Design System` section, so `DESIGN.md` never records a link that does not read.
 - A declined or refused re-sync leaves `DESIGN.md` and its link as they were.

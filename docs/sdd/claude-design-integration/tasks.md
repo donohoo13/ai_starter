@@ -217,4 +217,4 @@ Every task that edits `CLAUDE.md`, a `README.md`, a `docs/standards/` file or th
 
 ## Follow-ups (out of scope)
 
-- None
+- `sdd-review`'s conformance review hands its subagent the spec, plan and tasks only, so an approved `design.md`'s Accepted misses and Not built list are checked against the build only by the implementer's self-check and an opted-in render check; a later spec should have Validate read `design.md`.

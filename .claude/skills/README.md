@@ -7,7 +7,7 @@ The six SDD skills end by naming the next phase as the handoff, and start it onl
 The keystone: ceremony scales with size, engineering discipline never does.
 A one-line chore still gets a failing test first and a real validation run; what collapses for small work is artifacts, never rigor.
 
-Headless runs (`claude -p`) of the skills that dispatch agents (`sdd-outline`, `sdd-plan`, `sdd-implement`, `sdd-review`, `render-check`) set `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0`, or the session exits after 600s of waiting while a worker is still running.
+Headless runs (`claude -p`) of the skills that dispatch agents (`sdd-outline`, `sdd-plan`, `sdd-implement`, `sdd-review`, `render-check`, `design-init`) set `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0`, or the session exits after 600s of waiting while a worker is still running.
 
 ## Spec-driven development
 
@@ -56,7 +56,7 @@ Working files live in `docs/sdd/<slug>/` and are committed on the feature branch
   It judges a branch diff only against `CLAUDE.md` and the `docs/standards/` files its paths match, leaves correctness to the other reviewer, and reports findings that quote the standards line each fails, plus what the change does well; read-only by the same instruction.
 - **skeptic** (`.claude/agents/`): argues whether a proposed trunk change the spec did not decide should exist at all, returning `keep`, `revise`, or `drop` with the strongest case against it and a costed alternative.
   `sdd-implement` dispatches it before putting the change to the user; read-only by the same instruction.
-- **research-analyst** (`.claude/agents/`): a background evidence fetcher `sdd-plan` dispatches to answer one scoped question with sourced, tiered claims while the conversation continues, using Context7 IDs the brief pins. Read-only; returns evidence, never advice.
+- **research-analyst** (`.claude/agents/`): a background evidence fetcher `sdd-plan` and `design-init` dispatch to answer one scoped question with sourced, tiered claims while the conversation continues, using Context7 IDs the brief pins. Read-only; returns evidence, never advice.
 
 ## Standards
 

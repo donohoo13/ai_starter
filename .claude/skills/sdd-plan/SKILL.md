@@ -15,7 +15,7 @@ Arguments: `$ARGUMENTS`, an optional slug.
 
 ## Preconditions
 
-- `.claude/sdd/bin/sdd status <slug> --json` reports `phase` `3. Plan`: the spec is approved, unchanged since approval, with no clarification markers, and any design is approved and current or skipped.
+- `.claude/sdd/bin/sdd status <slug> --json` reports `phase` `3. Plan`: the spec is approved, unchanged since approval, with no clarification markers, and any design is approved and current or skipped covering every listed UI surface.
 - An earlier phase, `2. Design` included: stop, tell the user the phase and the skill `status` names (`sdd-design` for a design that is requested, changed or stale), and do no other phase's work.
   A later phase means the plan is approved and current: ask whether the user wants to revise it (section 14 (Changing course)), warn that the tasks go stale, and continue only on yes.
 - `3. Plan` on a spec whose UI surfaces section lists a surface, with no `design.md`: before any other step, ask whether to run `sdd-design` first or skip the design, recommending `sdd-design` when a surface is new.

@@ -31,7 +31,7 @@ Judge against three sources, and nothing else:
    Switch themes through the app's own control or attribute when it has one, otherwise by emulating `prefers-color-scheme`.
 4. Measure the floors and `DESIGN.md`'s values on the rendered page by script evaluation rather than by eye:
    - Text contrast from the computed foreground and the effective background behind it, against the ratio for its size.
-   - Every interactive element's bounding box against `DESIGN.md`'s target size, or the 38×38px starting value when it sets none, and never below the 24×24 CSS px floor of success criterion 2.5.8.
+   - Every interactive element's bounding box against `DESIGN.md`'s target size, or, when it sets none, the target-size starting value read from `docs/standards/ux-standards.md` at run time, and never below the 24×24 CSS px floor of success criterion 2.5.8.
    - Focus order and visible focus, by tabbing through the surface.
    - No horizontal page scroll at mobile width.
 5. For each designed surface, check every artboard state was reached and each control and labeled field it names is present, skipping Not built items.

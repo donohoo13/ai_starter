@@ -27,7 +27,7 @@ The first token is the slug when it contains a hyphen or names an existing `docs
 1. Read sections 1–5 of the document once per session, then section 7 (Outline).
 2. Resolve the slug: the argument; else `.claude/sdd/bin/sdd find`; else, on a feature branch, the branch name in kebab-case (section 5 (Working files)); else list the folders `find` prints and, when none fits, propose a short kebab-case slug and confirm it.
 3. Run `.claude/sdd/bin/sdd status <slug> --json`.
-   When a spec exists and `phase` is later than `1. Outline`, the spec is approved: ask whether the user wants to revise it (section 14 (Changing course)), warn that the plan and tasks go stale, and continue only on yes.
+   When a spec exists and `phase` is later than `1. Outline`, the spec is approved: ask whether the user wants to revise it (section 14 (Changing course)), warn that the design, plan and tasks built on it go stale, and continue only on yes.
 4. Create the folder when it is missing.
    On the default branch or another shared branch, propose `feature/<slug>` (the `<type>/<kebab-slug>` convention in `CLAUDE.md`) and record it: `.claude/sdd/bin/sdd init <slug> --branch <name>`.
    Otherwise `.claude/sdd/bin/sdd init <slug>`.
@@ -74,7 +74,8 @@ The first token is the slug when it contains a hyphen or names an existing `docs
    Never approve on their behalf.
    Then stage `docs/sdd/<slug>/spec.md` by explicit path and propose a commit message in the repo's convention; the user commits.
 4. Name the next skill.
-   When the UI surfaces section lists a surface, name each listed surface and offer `sdd-design` for a Claude Design mockup before planning, with `sdd-plan` as the alternative.
+   When `design.md` exists, offer no skip and name the skill `sdd status` reports: `sdd-design` at `2. Design` for a requested or approved design, which it re-checks against the revised spec, or for a skip that misses a surface the spec now lists.
+   When `design.md` is absent and the UI surfaces section lists a surface, name each listed surface and offer `sdd-design` for a Claude Design mockup before planning, with `sdd-plan` as the alternative.
    When the user skips the design, run `.claude/sdd/bin/sdd set-status <slug> design skipped`, which records their git `user.name`, the date and the surfaces the skip covers; write their reason under `design.md`'s Skip reason and "None" under every other section, then stage `docs/sdd/<slug>/design.md` by explicit path and propose a commit message.
    Record a skip only on the user's word, never by default.
    When the spec lists no UI surface, name `sdd-plan` only and write no `design.md`.
@@ -82,4 +83,4 @@ The first token is the slug when it contains a hyphen or names an existing `docs
 
 ## Next
 
-`sdd-design` when the spec lists a UI surface and the user wants a design, otherwise `sdd-plan`, with `docs/sdd/<slug>/` as the handoff.
+`sdd-design` when `sdd status` reports `2. Design`, or the spec lists a UI surface and the user wants a design, otherwise `sdd-plan`, with `docs/sdd/<slug>/` as the handoff.

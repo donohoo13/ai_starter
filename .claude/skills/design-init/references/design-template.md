@@ -681,7 +681,7 @@ Every Don't names its replacement and the section that grants it, e.g. "Don't so
 
 ## Claude Design System
 
-<!-- design-init keeps this section only after it builds the project's Design System artifact in Claude, and deletes it when the user declines the build or the first build is refused.
+<!-- The link reads `not built yet` until design-init builds the project's Design System artifact in Claude and records its link here; design-init deletes this section when the user declines the build or the first build is refused.
 The artifact is built and re-synced from this file; edits made to it in Claude never flow back here. -->
 
-- Link: [claude.ai artifact link of the Design System built from this file]
+- Link: not built yet

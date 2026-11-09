@@ -87,4 +87,4 @@ End with this report, so a caller can record the evidence:
 - **Green**: the passing output for the bounded checks, and for the full suite when this unit of work ran it.
 - **Files touched**: every file created or changed.
 - **Appearance assertions removed**: each one, and where its guarantee now lives, or "none".
-- **Pre-existing failures**: any failure that existed before the change, shown by stash, rerun and compare, or "none".
+- **Pre-existing failures**: any failure that existed before the change, shown by running the same test at `HEAD` in a temporary git worktree, leaving the working tree untouched, and comparing, or "none".

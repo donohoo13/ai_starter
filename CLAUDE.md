@@ -20,7 +20,7 @@ The full company perspective lives in [docs/company/company-overview.md](./docs/
 - Memory from previous conversations is a hint, not ground truth: verify any remembered file, command, or convention against the current code or with the user before acting on it.
 - Use LSP tools for code navigation, symbol searches, and diagnostics; fall back to terminal commands when a real LSP call reports the file type unsupported, not before.
 - Read `DESIGN.md` before any brand or surface decision, then follow it. It is not imported, so it is not in context until a session opens it.
-  While it is absent or still holds bracket placeholders, the starting values in `docs/standards/` apply and brand decisions are undecided until the `design-init` skill writes it.
+  While it is absent, still holds bracket placeholders, or is silent on a value, the starting values in `docs/standards/` apply and brand decisions are undecided until the `design-init` skill writes it.
 - Confirm with the user to address root causes, not symptoms.
 - Evidence before completion claims: do not state something passes, builds, is fixed, or was checked and found clean without running the command that proves it or directing the user to run guided QA steps to confirm the fix.
 - No em-dashes (U+2014) in customer-facing text (UI, emails, marketing, AI prompts). Use commas, periods, or rephrasing instead. Hyphens (U+002D) and en-dashes (U+2013) are fine. Internal dev artifacts (code comments, CLAUDE.md, PRs) exempt.
