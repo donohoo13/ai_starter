@@ -1068,6 +1068,17 @@ def new_design_text(slug: str) -> str:
     return re.sub(r"^# .*$", "# " + title, text, count=1, flags=re.MULTILINE)
 
 
+REREQUEST_CLEARED_FIELDS = DESIGN_RECORD_FIELDS + ("design_system", "approved_hash")
+
+
+def clear_recorded_design(text: str) -> str:
+    """Reset the fields naming a read or approved design to the template's empty `key:` form."""
+    keys = "|".join(REREQUEST_CLEARED_FIELDS)
+    frontmatter_end = text.index("\n---\n", 4)
+    frontmatter = re.sub(r"^(%s):.*$" % keys, r"\1:", text[:frontmatter_end], flags=re.MULTILINE)
+    return frontmatter + text[frontmatter_end:]
+
+
 def set_design_status(slug: str, status: str) -> int:
     """Record a design request or skip against the approved spec, creating design.md when absent."""
     if status not in DESIGN_TRANSITIONS:
@@ -1091,7 +1102,10 @@ def set_design_status(slug: str, status: str) -> int:
     if status == "skipped":
         updates["decided_by"] = git("config", "user.name") or ""
         updates["surfaces"] = ", ".join(surfaces)
-    write_artifact(slug, "design", set_frontmatter(text, updates))
+    text = set_frontmatter(text, updates)
+    if status == "requested":
+        text = clear_recorded_design(text)
+    write_artifact(slug, "design", text)
     print("design.md is now %s" % status)
     return 0
 

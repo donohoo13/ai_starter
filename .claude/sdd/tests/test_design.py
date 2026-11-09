@@ -31,6 +31,23 @@ class DesignRequestTests(SddCase):
         self.assertEqual(fields["status"], "requested")
         self.assertEqual(fields["based_on"], self.frontmatter("spec")["approved_hash"])
 
+    def test_rerequesting_an_approved_design_clears_the_recorded_design(self):
+        self.approve_ui_spec()
+        self.request_design()
+        self.record_design()
+        code, out, err = self.run_sdd("approve", SLUG, "design")
+        self.assertEqual(code, 0, out + err)
+        code, out, err = self.run_sdd("set-status", SLUG, "design", "requested")
+        self.assertEqual(code, 0, out + err)
+        fields = self.frontmatter("design")
+        self.assertEqual(fields["status"], "requested")
+        for key in ("link", "version", "read", "design_system", "approved_hash"):
+            self.assertEqual(fields[key], "", key)
+        self.assertRegex(self.read_artifact("design"), r"\nlink:\nversion:\nread:\ndesign_system:\n")
+        code, out, err = self.run_sdd("approve", SLUG, "design")
+        self.assertEqual(code, 1)
+        self.assertIn("design.md has no link", err)
+
     def test_a_design_cannot_be_requested_before_the_spec_is_approved(self):
         self.approve_ui_spec()
         self.set_fields("spec", status="draft")

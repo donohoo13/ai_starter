@@ -51,7 +51,7 @@ Each step that writes `design.md` runs only on the user's word in the conversati
 
 ### Request
 
-1. Run `.claude/sdd/bin/sdd set-status <slug> design requested`, which creates `design.md` from its template and records `based_on`.
+1. Run `.claude/sdd/bin/sdd set-status <slug> design requested`, which creates `design.md` from its template and records `based_on`; on an existing `design.md` it also clears the recorded `link`, `version`, `read`, `design_system` and approval, so the old design cannot be approved as the new one.
 2. Write the prompt by the template in [references/design-prompt.md](references/design-prompt.md) under `## Prompt`, and write "None" under every other section.
 3. Show the same text in the conversation as one fenced block the user can copy whole, so the committed prompt and the one they run never differ.
    Tell them to run it after `/design` in Claude Code or paste it into a Claude chat with Design selected, iterate there, and bring back the approved design's link, in this session or any later one.

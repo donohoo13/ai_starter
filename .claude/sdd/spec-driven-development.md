@@ -534,7 +534,7 @@ The committed `design.md` is the handoff: any later session running `sdd-design`
 `sdd-design` reads `design.md`'s state and does the one step it calls for.
 
 1. **Request.**
-   On the user's word, run `sdd set-status <slug> design requested`, which creates `design.md` from Appendix B when absent and records `based_on`.
+   On the user's word, run `sdd set-status <slug> design requested`, which creates `design.md` from Appendix B when absent, records `based_on`, and on an existing `design.md` clears the recorded `link`, `version`, `read`, `design_system` and approval, so the old design cannot be approved as the new one.
    Write the prompt (below) under Prompt, show the same text in the conversation as one copyable block, and tell the user to run it after `/design` in Claude Code or paste it into a Claude chat with Design selected, then bring the approved design's link back.
 2. **Skip or cancel.**
    On the user's word, run `sdd set-status <slug> design skipped` and write the reason under Skip reason.
