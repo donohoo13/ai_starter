@@ -61,6 +61,7 @@ Each file's `applies-to:` globs name the paths it governs, and a file without th
 - `html-tables.md`: the markup and CSS floor for a plain `<table>`.
 - `transactional-email.md`: email templates, winning over the styling and tables files on email paths.
 - `javascript-typescript.md`: tooling, types, and language conventions.
+- `ruby.md`: Ruby tooling, RBS types, and language conventions, plus Rails rules where the project uses Rails.
 - `agent-facing-output.md`: the output floors for scripts, hooks, and CLIs an agent runs.
 - `code-legibility.md`: names, function size, control flow, and tests that read as specifications, whatever the language; it carries no key.
 - `design-principles.md`: KISS, DRY, YAGNI, deep modules behind small interfaces, and SOLID where a class hierarchy calls for it; it carries no key.
