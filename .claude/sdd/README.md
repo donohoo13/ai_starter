@@ -8,7 +8,7 @@ The six `sdd-*` skills under `.claude/skills/` read from it by repository-relati
 - `spec-driven-development.md`: the SDD document, the single source of truth.
   The skills point into it by section number and title and never restate its rules.
   Section 4 (The workflow) defines the state machine and the start and finish protocols; section 5 (Working files) defines the files under `docs/sdd/`; sections 7 to 13 define each phase.
-- `templates/`: `spec.md`, `plan.md`, `tasks.md` and `review.md`, generated from the document's appendices by `.claude/sdd/bin/sdd templates sync`.
+- `templates/`: `spec.md`, `design.md`, `plan.md`, `tasks.md` and `review.md`, generated from the document's appendices by `.claude/sdd/bin/sdd templates sync`.
   Never edit them by hand; edit the appendix and sync.
   Prettier skips the folder so the files stay byte-identical to the appendices.
 - `bin/sdd`: the helper CLI, Python 3 standard library only, run directly as a script.
@@ -30,11 +30,13 @@ The skills live beside this folder:
 | `sdd-review`    | 6. Validate                | 13      | `review.md` and a PR description draft, or a chat report without a spec |
 
 `tdd` knows nothing about SDD; the `implementer` agent and `sdd-review` hand it one behavior at a time.
-The agents in `.claude/agents/` are dispatched by the skills: `implementer` and `skeptic` by `sdd-implement`, `standards-reviewer` by `sdd-review`, and `research-analyst` by `sdd-plan`.
+The agents in `.claude/agents/` are dispatched by the skills: `implementer` and `skeptic` by `sdd-implement`, `implementer` and `standards-reviewer` by `sdd-review`, `research-analyst` by `sdd-plan`, and `render-checker` by `sdd-implement` once before QA for the surfaces the user picked, as well as by the user-only `render-check`.
+`sdd-design` writes the design prompt and records the result, but never runs the design conversation, which the user holds in Claude Design.
 
 ## How to start
 
 - A feature worth a spec: run `/sdd-outline <slug> <brief>`.
+  A spec that lists UI surfaces is offered `/sdd-design` before planning, or a recorded skip.
   Each phase ends by naming the next skill; you run it when you are ready, in a fresh session before `sdd-implement`.
 - A small change: `/tdd <what to build>` as a one-shot, then `/sdd-review` before the PR.
 - Where am I: `.claude/sdd/bin/sdd status` prints each artifact's state, the task progress, the phase and the skill to run.
