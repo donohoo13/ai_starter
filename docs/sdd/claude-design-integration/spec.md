@@ -6,7 +6,7 @@ status: approved
 owner: Conner Donohoo
 created: 2026-11-09
 updated: 2026-11-09
-approved_hash: eb9fb0dc5a14
+approved_hash: c260a1996326
 description: Adds an optional Design phase to the SDD chain that hands a spec to Claude Design and records the approved mockups, and moves fixed design values from the standards into DESIGN.md. The result is approved designs before planning, project-owned design values and opt-in render checks.
 ---
 
@@ -263,7 +263,7 @@ Independent test: the template file checks of FR-037, and the user's gut-check r
 
 ### Non-functional
 
-- NFR-001: Every new or changed skill body measures at most 5000 tokens, frontmatter excluded, per `.claude/rules/skill-authoring.md`.
+- NFR-001: Removed: the skill body token cap was dropped from `.claude/rules/skill-authoring.md`, decided by Conner Donohoo.
 - NFR-002: A render check returns to the `sdd-implement` orchestrator only `render-checker`'s report (verdict, per-surface results, the not-reached list and screenshot paths), never screenshot images.
 - NFR-003: `pnpm format:check` and `pnpm test:scripts` pass, and the helper's tests cover every design status and every phase transition FR-002 to FR-006 and FR-011 describe.
 
@@ -327,3 +327,7 @@ These exist today and are not new requirements; reuse them.
 | Gap                     | Something the design shows that no requirement covers                                                        |
 | Miss                    | A listed surface or named state that no artboard shows                                                       |
 | `{slug}`                | The spec's folder name under `docs/sdd/`                                                                     |
+
+## Changelog
+
+- 2026-11-09: Removed NFR-001, because the project dropped the skill body token cap; no other requirement changed.
