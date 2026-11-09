@@ -67,7 +67,7 @@ Each file's `applies-to:` globs name the paths it governs, and a file without th
 - `design-principles.md`: KISS, DRY, YAGNI, deep modules behind small interfaces, and SOLID where a class hierarchy calls for it; it carries no key.
 
 A rule every implementer must hold from the first line, because getting it wrong first costs more than a refactor, lives in `CLAUDE.md` instead.
-`.claude/rules/skill-authoring.md` stays a path-scoped rule, loading when a session reads a skill file: the 5000-token body ceiling, the description as trigger, and gut-check prompts for a fresh session.
+`.claude/rules/skill-authoring.md` stays a path-scoped rule, loading when a session reads a skill file: bodies as long as their job needs, the description as trigger, and gut-check prompts for a fresh session.
 
 ## SDD lifecycle
 
