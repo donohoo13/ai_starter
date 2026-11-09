@@ -103,13 +103,17 @@ function namesWord(path, word) {
   return new RegExp(`(^|[^\\w-])${word}([^\\w-]|$)`).test(readRepoFile(path));
 }
 
-function checkRenderCheckerHasOneDispatcher() {
-  const allowed = [".claude/skills/render-check/SKILL.md", ".claude/agents/render-checker.md"];
+function checkRenderCheckerDispatchers() {
+  const allowed = [
+    ".claude/skills/render-check/SKILL.md",
+    ".claude/skills/sdd-implement/SKILL.md",
+    ".claude/agents/render-checker.md",
+  ];
   const others = suiteFiles().filter(function namesRenderChecker(path) {
     return !allowed.includes(path) && namesWord(path, "render-checker");
   });
   check(
-    "only render-check dispatches render-checker",
+    "only render-check and sdd-implement dispatch render-checker",
     others.length === 0,
     `also named in ${others.join(", ")}`,
   );
@@ -179,7 +183,7 @@ function checkNoRemovedNames() {
 
 checkImplementer();
 checkRenderCheckIsUserOnly();
-checkRenderCheckerHasOneDispatcher();
+checkRenderCheckerDispatchers();
 checkNoOrphanAgents();
 checkNoRemovedNames();
 

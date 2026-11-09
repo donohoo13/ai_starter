@@ -701,7 +701,7 @@ Name `sdd-implement` as the next step, and recommend starting it in a fresh sess
 **Produces:** code and tests, one commit per slice plus any trunk commits, and `tasks.md` checked off with status `done`.
 
 The session running `sdd-implement` is the **orchestrator**.
-It dispatches, verifies, commits and talks to the user, and writes nothing but `tasks.md`'s status and close-out boxes, the spec's `branch` field, git commits and the processes it starts.
+It dispatches, verifies, commits and talks to the user, and writes nothing but `tasks.md`'s status, close-out boxes and `render_check` frontmatter key, the spec's `branch` field, git commits and the processes it starts.
 Every line of code, test and task evidence comes from an `implementer` in a fresh context, so the build follows the approved artifacts instead of the memory of the conversation that produced them.
 
 ### Steps
@@ -711,7 +711,12 @@ Every line of code, test and task evidence comes from an `implementer` in a fres
    If you're on the default or a shared branch, propose creating it and ask first; if the user picks another name, update the spec's `branch` field, which sits outside the hash.
 2. **Resume** at the first slice whose close-out item is unchecked, and set `tasks.md` to `in-progress`.
    If there are uncommitted changes, list them and let the user choose between handing them to a fresh `implementer` to continue that slice and setting them aside by hand; never discard them.
-3. **For each slice, one at a time:**
+3. **Render checks.**
+   When the spec lists a UI surface and `tasks.md` records no render-check answer, on the first start or any resume, list the surfaces and recommend each that is new, has an approved design, changes layout between the mobile and desktop widths, or uses a color pairing no existing surface uses, naming the criterion in one line.
+   The user approves any, all or none; record the answer as `tasks.md`'s `render_check` frontmatter key, the approved UI IDs comma-separated or `none`, and commit it before the next dispatch.
+   Frontmatter sits outside the content hash, so the tasks stay approved, and a recorded answer is never asked again.
+   With `none`, no render check runs.
+4. **For each slice, one at a time:**
    1. **Dispatch** a fresh `implementer` with a brief of pointers only: the slug, the slice heading, the facts earlier slices reported as notes, and the user's decisions for this slice.
       The agent loads its tasks, requirements, plan sections and seams itself, builds each task through `tdd` (section 12), checks off each task with one `- Evidence:` line, and checks its diff against the matching `docs/standards/` files before it reports.
    2. **Blocked.**
@@ -724,10 +729,11 @@ Every line of code, test and task evidence comes from an `implementer` in a fres
       Any other failure goes back to the same agent once; a second failure stops the run with the evidence and no commit.
    5. **Commit** the verified slice: check its close-out item, stage by explicit path, including `docs/sdd/<slug>/tasks.md` so the progress log lands with the slice, and commit with the agent's judgment calls in the body.
       Never use `git add -A` or `git add .`, and never push.
-4. **QA.**
+5. **QA.**
    When every slice is checked off, run `sdd lint <slug>`, start the app when the change has a runnable surface, and hand the user one QA script whose every observation maps to a "Done when" check or an acceptance criterion.
+   When `render_check` names surfaces, dispatch `render-checker` once for all of them before handing over the script, and put each failure into the script with its evidence and screenshot path; only the failures the user picks go to a fresh `implementer` as QA bugs.
    A bug the user finds goes to a fresh `implementer` as a red-first fix, which the orchestrator verifies and commits before QA resumes.
-5. **Finish.**
+6. **Finish.**
    When the user confirms QA, set `tasks.md` to `done` and commit that change, stop the processes the session started, and report what was built, where the build stopped and how each stop was resolved, the judgment calls made, any pre-existing failures, and the follow-ups.
    Recommend `sdd-review` next in the same session, since its reviewers run in fresh contexts of their own; the user may still choose a fresh session.
 

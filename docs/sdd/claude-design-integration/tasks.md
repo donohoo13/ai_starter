@@ -108,24 +108,27 @@ Every task that edits `CLAUDE.md`, a `README.md`, a `docs/standards/` file or th
 
 ## P2: Opt into render checks when the build starts
 
-- [ ] T014 Ask for render-check surfaces at the start of a build, recommend by criterion, record the answer in `tasks.md`'s frontmatter, and allow `sdd-implement` to name `render-checker` in the process-suite battery
+- [x] T014 Ask for render-check surfaces at the start of a build, recommend by criterion, record the answer in `tasks.md`'s frontmatter, and allow `sdd-implement` to name `render-checker` in the process-suite battery
   - Requirements: FR-028, FR-029, FR-030, FR-035
   - Seam: skill and agent text
   - Files: .claude/skills/sdd-implement/SKILL.md, .claude/sdd/spec-driven-development.md, scripts/test/process-suite.battery.mjs
   - Done when: the process battery fails once the skill names `render-checker` before the allowlist change, passes after it, and still fails for a scratch skill naming `render-checker`, which is then removed, all three runs in the Evidence line; reading the skill and the Implement section meets the three acceptance criteria, including the amended write list and the commit before the next dispatch; the helper battery passes
-- [ ] T015 Dispatch `render-checker` once before QA for the approved surfaces and put its failures into the QA script
+  - Evidence: process battery red with the skill naming `render-checker` ("FAIL only render-check dispatches render-checker — also named in .claude/skills/sdd-implement/SKILL.md", exit 1), green after the allowlist change (exit 0), red again for scratch `.claude/skills/zz-scratch/SKILL.md` (exit 1, then removed); sdd-implement Steps step 3 and section 11 step 3 ask on first start or resume with the four criteria, record `render_check` in frontmatter, commit before the next dispatch, run nothing on `none` (FR-028 to FR-030), both write lists amended; helper battery all 3 checks passed
+- [x] T015 Dispatch `render-checker` once before QA for the approved surfaces and put its failures into the QA script
   - Requirements: FR-031, FR-032, NFR-002
   - Seam: skill and agent text
   - Files: .claude/skills/sdd-implement/SKILL.md
   - Depends on: T014
   - Done when: reading the skill meets the acceptance criteria and NFR-002; the process battery passes
-- [ ] T016 Judge render checks against the floors, DESIGN.md and the design snapshot, and accept both dispatchers
+  - Evidence: sdd-implement QA step 3 dispatches `render-checker` once for every approved surface before the script, with the URL, UI IDs with states from the spec and Artboards lines, themes from DESIGN.md and the app's theme styles, and the FR-033 bar (FR-031), skipped with no render results on `none`; step 4 lists each failure with evidence and screenshot path and QA bug sends only picked failures, one fresh `implementer` each (FR-032); the brief asks for the report with paths and never images, kept off this session (NFR-002); `pnpm exec node scripts/test/process-suite.battery.mjs` all process-suite checks passed
+- [x] T016 Judge render checks against the floors, DESIGN.md and the design snapshot, and accept both dispatchers
   - Requirements: FR-033, FR-034, FR-043
   - Seam: skill and agent text
   - Files: .claude/agents/render-checker.md, .claude/skills/render-check/SKILL.md
   - Depends on: T014
   - Done when: reading both files meets FR-033 and FR-034's acceptance criteria and states the absent-DESIGN.md case; `grep -n "Design Requirements\|44×44" .claude/agents/render-checker.md` prints nothing; the process battery passes
-- [ ] P2 close: full suite green, changes staged by explicit path, slice verified and committed
+  - Evidence: the grep printed nothing (exit 1); render-checker's bar names the WCAG 2.2 AA floors, DESIGN.md or the starting values with the absent-or-unfilled case and brand decisions undecided until `design-init` (FR-043), and the snapshot's states, controls and labeled fields minus Not built, measures targets against DESIGN.md or 38×38px with the 24×24 floor, and compares no copy, sample data or pixels (FR-033); its description names both dispatchers, `/render-check` keeps its arguments and its bar step names the same sources plus the spec's UI surfaces and states (FR-034); process battery all process-suite checks passed
+- [x] P2 close: full suite green, changes staged by explicit path, slice verified and committed
 
 ## P3: Design values each project decides
 
@@ -203,4 +206,4 @@ Every task that edits `CLAUDE.md`, a `README.md`, a `docs/standards/` file or th
 
 ## Follow-ups (out of scope)
 
-- None
+- `docs/standards/transactional-email.md` line 28 calls its 44×44px CTA target "the `ux-standards.md` touch-target floor"; once T017 sets the floor at 24×24 and 38×38px as a starting value, that cross-reference is wrong, and no task touches the file.
