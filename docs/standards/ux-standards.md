@@ -5,18 +5,27 @@ applies-to:
 
 # UX standards
 
-The usability and accessibility floors every user-facing surface meets.
+The usability and accessibility bar every user-facing surface meets.
+A floor is set by WCAG 2.2 AA or a Core Web Vitals threshold, and no project goes below it.
+A starting value is a choice `DESIGN.md` decides, and applies wherever `DESIGN.md` is absent, still holds bracket placeholders, or is silent on it.
 
 ## Floors
 
-- **Touch targets** at least 44×44px.
-- **Contrast** WCAG AA: 4.5:1 body text, 3:1 large text, per theme.
-- **Accessibility** WCAG 2.1 AA: keyboard-navigable, focus order matches visual order, visible focus, `aria-label` on icon-only controls.
-- **Interaction states**: visible hover, focus, pressed, and disabled; pressed never shifts layout; every hover-only action also has a tap path.
-- **Performance**: Core Web Vitals "good" at p75 (LCP ≤2.5s, INP ≤200ms, CLS ≤0.1).
-- **Icons**: one SVG family, one stroke width; emoji never serve as icons.
-- **Choices**: chunk, group, and disclose progressively instead of capping option counts.
-- **Scanning**: front-loaded headings, short paragraphs; reading text caps near `70ch`.
+Every surface meets WCAG 2.2 AA in every theme; these are the success criteria a surface misses most often.
+
+- **Target size**: every pointer target is at least 24×24 CSS px (2.5.8 Target Size (Minimum)).
+- **Contrast**: text is at least 4.5:1, or 3:1 when large (1.4.3 Contrast (Minimum)); control boundaries, icons and focus indicators are at least 3:1 (1.4.11 Non-text Contrast).
+- **Keyboard**: every action works from the keyboard (2.1.1 Keyboard), focus order matches visual order (2.4.3 Focus Order), and focus is visible (2.4.7 Focus Visible) and never hidden behind sticky content (2.4.11 Focus Not Obscured (Minimum)).
+- **Names**: an icon-only control carries an accessible name, such as `aria-label` (4.1.2 Name, Role, Value).
+- **Performance**: Core Web Vitals "good" at p75: LCP ≤2.5s, INP ≤200ms, CLS ≤0.1.
+
+## Starting values
+
+- **Target size**: 38×38px.
+- **Reading width**: reading text caps near `70ch`.
+- **Motion timing**: 100–300ms for state changes, with enter slower than exit.
+- **Feedback timing**: acknowledge every action within 100ms; show nothing for a wait under 1s, an indicator past 1s, and determinate progress plus cancel past 10s.
+- **Data tables**: numerics set in a monospaced family, and rows separated by hairline dividers rather than a box per cell.
 
 ## Composition
 
@@ -24,24 +33,33 @@ The usability and accessibility floors every user-facing surface meets.
 - Information ranks into a verdict tier and a reference tier, visually distinct in scale or weight.
 - Secondary information sits behind hover, expansion, or a drawer, at most two levels deep.
 - Every figure is interpretable in place: unit and meaning adjacent, never only in a distant header.
+- Headings front-load their point, and paragraphs stay short.
+- Choices are chunked, grouped and disclosed progressively instead of capped by count.
 - Spacing comes from the project's scale; within a group tighter than between groups; borders are the last grouping tool after spacing and tone.
+- Icons come from one SVG family at one stroke width; emoji never serve as icons.
 
 ## Forms and controls
 
+- Every control shows hover, focus, pressed and disabled states; pressed never shifts layout, and every hover-only action also has a tap path.
 - Labels persistent and above the field; a placeholder is never the label.
 - Single column; validate on blur or submit, never per keystroke; errors adjacent, in plain language, linked via `aria-describedby`; required and optional both marked.
-- Known exact value: text entry with `inputmode`. Small adjustment: stepper. Approximate range: slider. Units live on the control. Native number spinners never ship.
-- Personal-data fields carry `autocomplete` tokens. Destructive actions confirm.
+- Known exact value: text entry with `inputmode`.
+  Small adjustment: stepper.
+  Approximate range: slider.
+  Units live on the control.
+  Native number spinners never ship.
+- Personal-data fields carry `autocomplete` tokens.
+  Destructive actions confirm.
 
 ## Feedback and motion
 
-- Acknowledge every action within ~100ms; over 1s shows an indicator, over 10s determinate progress plus cancel. Skeletons for initial loads, inline spinners for refreshes, nothing for sub-second waits.
+- Every action is acknowledged and every wait shows its progress, on the feedback timing above: skeletons for initial loads, inline spinners for refreshes.
 - Modals only for decisions that must block; toasts carry short confirmations via `aria-live="polite"`, never errors.
 - Empty states name the state and carry the action that fills it.
-- Motion explains change: 100–300ms for state changes, enter slower than exit, only `transform` and `opacity` animated, `prefers-reduced-motion` honored, high-frequency actions never animated.
+- Motion explains change: only `transform` and `opacity` animate, `prefers-reduced-motion` is honored, and high-frequency actions never animate.
 
 ## Data tables
 
-- Text left, numerics right in a monospaced family with consistent decimals; hairline row dividers, never a box per cell.
+- Text aligns left and numerics right, with consistent decimals.
 - Sticky headers, frozen identity column, persisted column controls; row actions on hover and focus; bulk actions appear once a selection exists.
 - Virtualize large sets with server-side sort and filter; row detail in a drawer, never a navigation away; overflow always signaled; narrow screens move data, never drop it.

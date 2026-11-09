@@ -40,6 +40,9 @@ Before you report, judge your own diff the way the branch's reviewer will:
 1. List every path you changed (`git status --porcelain`).
 2. Read every `docs/standards/` file whose `applies-to:` globs match one of those paths, where a file with no `applies-to:` key applies to every change.
    `CLAUDE.md` wins wherever it and a standard differ.
+   When a changed path matches the `applies-to:` globs of `docs/standards/ux-standards.md`, `DESIGN.md` joins the bar for the values the standards leave to it, such as target size, reading width, motion timing, units and table styling.
+   Where `DESIGN.md` is absent, still holds bracket placeholders, or is silent on a value, the standards' starting values are the bar, and brand decisions are undecided until `design-init` runs, so invent none.
+   A `DESIGN.md` value below its WCAG 2.2 AA floor gives way to the floor: build to the floor and name the `DESIGN.md` line in your report.
 3. Check your diff against each and fix what fails, rerunning the touched tests after each fix.
    A fix never weakens a test.
 

@@ -132,28 +132,32 @@ Every task that edits `CLAUDE.md`, a `README.md`, a `docs/standards/` file or th
 
 ## P3: Design values each project decides
 
-- [ ] T017 Rewrite `ux-standards.md` to WCAG 2.2 AA floors and labeled starting values
+- [x] T017 Rewrite `ux-standards.md` to WCAG 2.2 AA floors and labeled starting values
   - Requirements: FR-036, FR-040, INV-005
   - Seam: the standards and agent files themselves
   - Files: docs/standards/ux-standards.md
   - Done when: reading the file meets FR-036 and FR-040's acceptance criteria; `grep -n "WCAG 2.1" docs/standards/ux-standards.md` prints nothing; `pnpm format:check` passes
-- [ ] T018 Rewrite `frontend-styling.md`'s units as a principle and state that designs are references
+  - Evidence: `grep -n "WCAG 2.1"` printed nothing (exit 1; red first: line 14 matched); Floors cite WCAG 2.2 AA SCs 2.5.8 (24×24 CSS px), 1.4.3, 1.4.11, 2.1.1, 2.4.3, 2.4.7, 2.4.11, 4.1.2 and the Core Web Vitals thresholds, Starting values label 38×38px target size, `70ch` reading width, 100–300ms motion, feedback timing and the Data tables monospaced numerics and hairline dividers (FR-036, INV-005), the absent/placeholder/silent statement appears once (FR-040); `prettier --check` passes on the file, and `pnpm format:check` fails only on the pre-existing `design-init/references/design-template.md`
+- [x] T018 Rewrite `frontend-styling.md`'s units as a principle and state that designs are references
   - Requirements: FR-038, FR-040, FR-041, FR-043, INV-003
   - Seam: the standards and agent files themselves
   - Files: docs/standards/frontend-styling.md
   - Done when: reading the file meets each listed acceptance criterion, keeps the `svh`-first rule with its fixed-or-sticky caveat, and states the absent-DESIGN.md case; `pnpm format:check` passes
-- [ ] T019 Rewrite `html-tables.md` to keep markup floors and label styling choices as starting values
+  - Evidence: "Do not use px" and "never with `vh`" removed (ban grep exit 1); units principle names rem, em, %, `clamp()`, `svh` and `dvh` (FR-038), the `svh`-first rule with its fixed-or-sticky caveat and one-line reason is a labeled starting value, the absent/placeholder/silent statement appears once with brand decisions undecided until `design-init` (FR-040, FR-043), Designs are references states snapshots and Claude Design markup are references built from tokens and components and bars `<x-dc>`, `<dc-import>`, `data-dc-script` and `support.js` (FR-041, INV-003); `prettier --check` passes on the file, `pnpm format:check` fails only on the pre-existing design-template.md
+- [x] T019 Rewrite `html-tables.md` to keep markup floors and label styling choices as starting values
   - Requirements: FR-038, FR-039, FR-040
   - Seam: the standards and agent files themselves
   - Files: docs/standards/html-tables.md
   - Done when: reading the file meets each listed acceptance criterion; `grep -n "never \`px\`" docs/standards/html-tables.md`prints nothing;`pnpm format:check` passes
-- [ ] T020 Have the `implementer` self-check and `standards-reviewer` judge surface diffs against DESIGN.md, the floors and runtime markup
+  - Evidence: the Done-when never-px grep printed nothing (exit 1; red first: line 24 matched); Markup and Layout read as requirements (caption, `th` scope, no layout tables), Styling (starting values) labels cell padding, row separation, header treatment and caption, units follow the scaling principle with `%`, `ch`, `clamp()`, `em` and `rem`, and a viewport-height scroll wrapper takes `svh`, or `dvh` only without a sticky or fixed descendant, as a labeled starting value (FR-038, FR-039); the absent/placeholder/silent statement appears once (FR-040); `prettier --check` passes on the file, `pnpm format:check` fails only on the pre-existing design-template.md
+- [x] T020 Have the `implementer` self-check and `standards-reviewer` judge surface diffs against DESIGN.md, the floors and runtime markup
   - Requirements: FR-042, FR-043, INV-003, INV-005
   - Seam: the standards and agent files themselves
   - Files: .claude/agents/implementer.md, .claude/agents/standards-reviewer.md
   - Depends on: T017
   - Done when: reading both files meets FR-042's acceptance criterion, states the absent-DESIGN.md case, and `standards-reviewer` names `<x-dc>`, `<dc-import>`, `data-dc-script` and `support.js` as findings; the process battery passes
-- [ ] P3 close: full suite green, changes staged by explicit path, slice verified and committed
+  - Evidence: implementer's Check against the standards step 2 and standards-reviewer's Method step 5 add `DESIGN.md` to the bar on a `ux-standards.md` path, the starting values when it is absent, holds bracket placeholders or is silent with brand decisions undecided until `design-init`, and the floor with the `DESIGN.md` line named when a value falls below it (FR-042, FR-043, INV-005); standards-reviewer reports `<x-dc>`, `<dc-import>`, `data-dc-script` and `support.js` in a surface path as a finding (INV-003); `pnpm exec node scripts/test/process-suite.battery.mjs` all process-suite checks passed
+- [x] P3 close: full suite green, changes staged by explicit path, slice verified and committed
 
 ## P4: Generate DESIGN.md from the skill's own template
 
