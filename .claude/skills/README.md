@@ -78,7 +78,7 @@ A rule every implementer must hold from the first line, because getting it wrong
 
 ## SDD lifecycle
 
-`docs/sdd/<slug>/` holds `spec.md`, `plan.md` and `tasks.md`, each `draft` until the user approves it (`approved`, with its content hash recorded), `tasks.md` moving to `in-progress` and `done` under `sdd-implement`, and `review.md` moving from `open` to `accepted` under `sdd-review`.
+`docs/sdd/<slug>/` holds `spec.md`, `plan.md` and `tasks.md`, each `draft` until the user approves it (`approved`, with its approval hash recorded), `tasks.md` moving to `in-progress` and `done` under `sdd-implement`, and `review.md` moving from `open` to `accepted` under `sdd-review`.
 A spec with UI surfaces adds `design.md`, `requested`, `approved` or `skipped` under `sdd-design`, with the approved design's snapshot under `design/`.
 An approved artifact edited afterwards counts as changed and everything downstream as stale, and `.claude/sdd/bin/sdd status` names the phase and the skill to run.
 The folder is the tracker: no GitHub issues, one commit per slice as the audit trail, and each artifact committed beside the code at the gate that approved it.

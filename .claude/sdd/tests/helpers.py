@@ -651,8 +651,10 @@ class SddCase(unittest.TestCase):
     def mark_approved(self, name, based_on=None, slug=SLUG):
         """Set an artifact approved by hand, without going through `sdd approve`."""
         text = self.read_artifact(name, slug)
-        updates = {"status": "approved", "approved_hash": self.cli.content_hash(text)}
-        if based_on is not None:
+        if based_on is None:
+            based_on = self.cli.parse_frontmatter(text)[0].get("based_on", "")
+        updates = {"status": "approved", "approved_hash": self.cli.approval_hash(name, text, based_on)}
+        if name in self.cli.UPSTREAM:
             updates["based_on"] = based_on
         self.write_artifact(name, self.cli.set_frontmatter(text, updates), slug)
         return updates["approved_hash"]

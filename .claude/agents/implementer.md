@@ -31,7 +31,7 @@ For each unchecked task of your slice, in order:
    Put anything you found that is out of scope under `## Follow-ups (out of scope)`.
 
 Those are your only `tasks.md` edits.
-Leave the slice's close-out box, the frontmatter, and every other slice's tasks alone: the close-out belongs to the orchestrator, and any other edit changes the approved content hash and sends the tasks back for re-approval.
+Leave the slice's close-out box, the frontmatter, and every other slice's tasks alone: the close-out belongs to the orchestrator, and any other edit changes the approval hash and sends the tasks back for re-approval.
 
 ## Check against the standards
 

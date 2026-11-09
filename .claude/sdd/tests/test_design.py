@@ -244,6 +244,23 @@ class PlanOnDesignTests(SddCase):
         self.assertTrue(data["artifacts"]["tasks"]["stale"])
         self.assertEqual(data["phase"], "3. Plan")
 
+    def test_reapproving_an_unchanged_plan_against_a_new_design_stales_the_tasks(self):
+        self.approve_ui_spec()
+        self.approve_design()
+        self.write_plan()
+        self.approve("plan")
+        self.write_tasks()
+        self.approve("tasks")
+        self.write_artifact("design", self.read_artifact("design").replace("## Not built\n- None", "## Not built\n- Bulk delete: no requirement covers it"))
+        self.approve("design")
+        self.set_fields("plan", based_on=self.frontmatter("design")["approved_hash"])
+        self.approve("plan")
+        data = self.status_json()
+        self.assertFalse(data["artifacts"]["plan"]["changed"])
+        self.assertFalse(data["artifacts"]["plan"]["stale"])
+        self.assertTrue(data["artifacts"]["tasks"]["stale"])
+        self.assertEqual(data["phase"], "4. Tasks")
+
     def test_an_approved_design_whose_based_on_is_edited_needs_reapproval(self):
         self.approve_ui_spec()
         self.approve_design()

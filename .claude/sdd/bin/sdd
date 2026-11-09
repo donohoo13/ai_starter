@@ -139,11 +139,16 @@ def content_hash(text: str) -> str:
 
 
 def approval_hash(name: str, text: str, based_on: str) -> str:
-    """The hash an approval records; a design's also covers its based_on, so re-approving it against a new spec stales the plan."""
+    """The hash an approval records; one with an upstream also covers its based_on, so re-approving it against a new upstream stales what follows."""
     covered = normalized_body(text)
-    if name == "design":
+    if name in UPSTREAM:
         covered += "based_on: %s\n" % based_on
     return hashlib.sha256(covered.encode("utf-8")).hexdigest()[:12]
+
+
+def is_current_approval(approved_hash: str, current: str, text: str) -> bool:
+    """An approval recorded before approval_hash covered based_on holds the body hash alone, and still counts."""
+    return approved_hash in (current, content_hash(text))
 
 
 # --- command registry --------------------------------------------------------
@@ -366,7 +371,7 @@ def artifact_state(slug: str, name: str, upstream: dict | None) -> dict:
     approved_hash = fields.get("approved_hash", "")
     based_on = fields.get("based_on", "")
     current = approval_hash(name, text, based_on)
-    changed = name != "review" and status in APPROVED_STATUSES and approved_hash != current
+    changed = name != "review" and status in APPROVED_STATUSES and not is_current_approval(approved_hash, current, text)
     stale = False
     if upstream is not None and name in UPSTREAM:
         upstream_hash = upstream["approved_hash"] or ""

@@ -38,7 +38,7 @@ class ApproveTests(SddCase):
         fields = self.frontmatter("plan")
         self.assertEqual(fields["status"], "approved")
         self.assertEqual(fields["based_on"], self.frontmatter("spec")["approved_hash"])
-        self.assertEqual(fields["approved_hash"], self.cli.content_hash(self.read_artifact("plan")))
+        self.assertEqual(fields["approved_hash"], self.status_json()["artifacts"]["plan"]["hash"])
 
     def test_plan_is_refused_when_the_spec_changed_since_approval(self):
         self.approve_chain("spec")
@@ -148,9 +148,6 @@ class SetStatusTests(SddCase):
         self.assertEqual(code, 1)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class StaleUpstreamTests(SddCase):
     def make_plan_stale(self):
@@ -180,3 +177,40 @@ class StaleUpstreamTests(SddCase):
         self.assertEqual(code, 0, out + err)
         self.assertFalse(self.status_json()["artifacts"]["plan"]["stale"])
         self.assertEqual(self.status_json()["phase"], "4. Tasks")
+
+    def test_reapproving_an_unchanged_plan_against_a_new_spec_stales_the_tasks(self):
+        self.approve_chain("tasks")
+        self.write_artifact("spec", self.read_artifact("spec").replace("under 10 minutes", "under 9 minutes"))
+        self.run_sdd("approve", SLUG, "spec")
+        self.set_fields("plan", based_on=self.frontmatter("spec")["approved_hash"])
+        code, out, err = self.run_sdd("approve", SLUG, "plan")
+        self.assertEqual(code, 0, out + err)
+        data = self.status_json()
+        self.assertFalse(data["artifacts"]["plan"]["changed"])
+        self.assertFalse(data["artifacts"]["plan"]["stale"])
+        self.assertTrue(data["artifacts"]["tasks"]["stale"])
+        self.assertEqual(data["phase"], "4. Tasks")
+
+    def test_an_approved_plan_whose_based_on_is_edited_needs_reapproval(self):
+        self.approve_chain("plan")
+        self.write_artifact("spec", self.read_artifact("spec").replace("under 10 minutes", "under 9 minutes"))
+        self.run_sdd("approve", SLUG, "spec")
+        self.set_fields("plan", based_on=self.frontmatter("spec")["approved_hash"])
+        data = self.status_json()
+        self.assertTrue(data["artifacts"]["plan"]["changed"])
+        self.assertEqual(data["phase"], "3. Plan")
+
+    def test_approvals_recorded_as_a_body_only_hash_stay_current(self):
+        self.approve_chain("tasks")
+        plan_body_hash = self.cli.content_hash(self.read_artifact("plan"))
+        self.set_fields("plan", approved_hash=plan_body_hash)
+        self.set_fields("tasks", based_on=plan_body_hash, approved_hash=self.cli.content_hash(self.read_artifact("tasks")))
+        data = self.status_json()
+        for name in ("plan", "tasks"):
+            self.assertFalse(data["artifacts"][name]["changed"], name)
+            self.assertFalse(data["artifacts"][name]["stale"], name)
+        self.assertEqual(data["phase"], "5. Implement")
+
+
+if __name__ == "__main__":
+    unittest.main()

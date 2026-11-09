@@ -199,7 +199,8 @@ The current phase follows from these states:
 An approved artifact whose content no longer matches its `approved_hash` counts as changed, and it needs re-approval.
 Every artifact downstream of it becomes **stale** because its `based_on` no longer matches, and the work routes back to the skill that produces the stale artifact.
 The plan's upstream is the design while the design is approved and the spec otherwise, so a design approved after the plan, a re-approved design, or a spec change that stales the design all make the plan stale.
-The hash covers the body below the frontmatter, so checking off tasks in `tasks.md`, the single `- Evidence:` line under a task, and the Follow-ups section do not count as a change.
+The approval hash covers the body below the frontmatter plus the artifact's `based_on`, so a re-approval against a changed upstream always records a new hash and stales what follows.
+Checking off tasks in `tasks.md`, the single `- Evidence:` line under a task, and the Follow-ups section still do not count as a change.
 A draft's `based_on` may stay empty until approval records it.
 Once set, it must match: refreshing a stale artifact means revising it against its upstream and setting `based_on` to the new hash before re-approval.
 

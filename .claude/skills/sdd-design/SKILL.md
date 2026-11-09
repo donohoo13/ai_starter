@@ -81,7 +81,7 @@ A gap the user adds to the spec ends this run: name `sdd-outline`, and leave the
 
 The spec changed after a design was recorded.
 Run the misses-and-gaps check of `references/record-design.md` against the revised spec and the committed snapshot, without reading the link again and without writing a new prompt; write a new prompt through Request only when the user asks for one.
-Then set `based_on` in `design.md`'s frontmatter to the spec's new `approved_hash`, which sits outside the content hash, since Approve's lint fails on a `based_on` behind the spec before `approve` could record the new one, and go to Approve.
+Then set `based_on` in `design.md`'s frontmatter to the spec's new `approved_hash`, since Approve's lint checks this hand-set value before `approve` recomputes the approval hash, which covers `based_on`, and go to Approve.
 
 ### Approve
 
