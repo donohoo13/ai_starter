@@ -1,4 +1,5 @@
 import datetime
+import hashlib
 import unittest
 
 from helpers import SLUG, SddCase
@@ -48,6 +49,18 @@ class DesignRequestTests(SddCase):
         self.assertEqual(code, 1)
         self.assertIn("design.md has no link", err)
 
+    def test_requesting_a_skipped_design_clears_the_skip(self):
+        self.approve_ui_spec()
+        code, out, err = self.run_sdd("set-status", SLUG, "design", "skipped")
+        self.assertEqual(code, 0, out + err)
+        code, out, err = self.run_sdd("set-status", SLUG, "design", "requested")
+        self.assertEqual(code, 0, out + err)
+        fields = self.frontmatter("design")
+        self.assertEqual(fields["status"], "requested")
+        self.assertEqual(fields["decided_by"], "")
+        self.assertEqual(fields["surfaces"], "")
+        self.assertRegex(self.read_artifact("design"), r"\ndecided_by:\nsurfaces:\n")
+
     def test_a_design_cannot_be_requested_before_the_spec_is_approved(self):
         self.approve_ui_spec()
         self.set_fields("spec", status="draft")
@@ -92,6 +105,20 @@ class DesignSkipTests(SddCase):
         self.assertEqual(code, 0, out + err)
         self.assertEqual(self.frontmatter("design")["status"], "skipped")
         self.assertEqual(self.frontmatter("design")["surfaces"], "UI-001")
+
+    def test_a_requested_design_is_cancelled_with_no_surfaces_after_the_spec_drops_them_all(self):
+        self.approve_ui_spec()
+        self.request_design()
+        self.write_artifact("spec", self.read_artifact("spec").replace("## UI surfaces\n- UI-001: Settings screen (new)\n\n", ""))
+        code, out, err = self.run_sdd("approve", SLUG, "spec")
+        self.assertEqual(code, 0, out + err)
+        code, out, err = self.run_sdd("set-status", SLUG, "design", "skipped")
+        self.assertEqual(code, 0, out + err)
+        fields = self.frontmatter("design")
+        self.assertEqual(fields["status"], "skipped")
+        self.assertEqual(fields["surfaces"], "")
+        self.assertEqual(fields["based_on"], self.frontmatter("spec")["approved_hash"])
+        self.assertEqual(self.status_json()["phase"], "3. Plan")
 
     def test_an_approved_design_cannot_be_skipped(self):
         self.approve_ui_spec()
@@ -194,31 +221,13 @@ class SkipCoverageTests(SddCase):
 
 
 class PlanOnDesignTests(SddCase):
-    def approve_design(self):
-        self.request_design()
-        self.record_design()
-        code, out, err = self.run_sdd("approve", SLUG, "design")
-        assert code == 0, out + err
-
-    def approve(self, name):
-        code, out, err = self.run_sdd("approve", SLUG, name)
-        self.assertEqual(code, 0, out + err)
-
     def test_plan_approval_records_the_design_hash(self):
-        self.approve_ui_spec()
-        self.approve_design()
-        self.write_plan()
-        self.approve("plan")
+        self.approve_design_chain("plan")
         self.assertEqual(self.frontmatter("plan")["based_on"], self.frontmatter("design")["approved_hash"])
         self.assertFalse(self.status_json()["artifacts"]["plan"]["stale"])
 
     def test_a_reapproved_design_stales_the_plan_and_tasks(self):
-        self.approve_ui_spec()
-        self.approve_design()
-        self.write_plan()
-        self.approve("plan")
-        self.write_tasks()
-        self.approve("tasks")
+        self.approve_design_chain()
         self.write_artifact("design", self.read_artifact("design").replace("## Not built\n- None", "## Not built\n- Bulk delete: no requirement covers it"))
         self.approve("design")
         data = self.status_json()
@@ -226,13 +235,20 @@ class PlanOnDesignTests(SddCase):
         self.assertTrue(data["artifacts"]["tasks"]["stale"])
         self.assertEqual(data["phase"], "3. Plan")
 
+    def test_rerecording_an_approved_design_at_a_new_version_stales_the_plan_and_tasks(self):
+        self.approve_design_chain()
+        self.record_design(version="v8", read="2026-11-10")
+        data = self.status_json()
+        self.assertTrue(data["artifacts"]["design"]["changed"])
+        self.assertEqual(data["phase"], "2. Design")
+        self.approve("design")
+        data = self.status_json()
+        self.assertTrue(data["artifacts"]["plan"]["stale"])
+        self.assertTrue(data["artifacts"]["tasks"]["stale"])
+        self.assertEqual(data["phase"], "3. Plan")
+
     def test_reapproving_an_unchanged_design_against_a_new_spec_stales_the_plan_and_tasks(self):
-        self.approve_ui_spec()
-        self.approve_design()
-        self.write_plan()
-        self.approve("plan")
-        self.write_tasks()
-        self.approve("tasks")
+        self.approve_design_chain()
         self.write_artifact("spec", self.read_artifact("spec").replace("under 10 minutes", "under 9 minutes"))
         self.approve("spec")
         self.set_fields("design", based_on=self.frontmatter("spec")["approved_hash"])
@@ -245,12 +261,7 @@ class PlanOnDesignTests(SddCase):
         self.assertEqual(data["phase"], "3. Plan")
 
     def test_reapproving_an_unchanged_plan_against_a_new_design_stales_the_tasks(self):
-        self.approve_ui_spec()
-        self.approve_design()
-        self.write_plan()
-        self.approve("plan")
-        self.write_tasks()
-        self.approve("tasks")
+        self.approve_design_chain()
         self.write_artifact("design", self.read_artifact("design").replace("## Not built\n- None", "## Not built\n- Bulk delete: no requirement covers it"))
         self.approve("design")
         self.set_fields("plan", based_on=self.frontmatter("design")["approved_hash"])
@@ -262,16 +273,28 @@ class PlanOnDesignTests(SddCase):
         self.assertEqual(data["phase"], "4. Tasks")
 
     def test_an_approved_design_whose_based_on_is_edited_needs_reapproval(self):
-        self.approve_ui_spec()
-        self.approve_design()
-        self.write_plan()
-        self.approve("plan")
+        self.approve_design_chain("plan")
         self.write_artifact("spec", self.read_artifact("spec").replace("under 10 minutes", "under 9 minutes"))
         self.approve("spec")
         self.set_fields("design", based_on=self.frontmatter("spec")["approved_hash"])
         data = self.status_json()
         self.assertTrue(data["artifacts"]["design"]["changed"])
         self.assertEqual(data["phase"], "2. Design")
+
+    def test_a_design_approved_under_an_earlier_hash_form_stays_current(self):
+        self.approve_design_chain("design")
+        text = self.read_artifact("design")
+        body = self.cli.normalized_body(text)
+        earlier_forms = {
+            "body only": body,
+            "body and based_on": body + "based_on: %s\n" % self.frontmatter("design")["based_on"],
+        }
+        for form, covered in earlier_forms.items():
+            with self.subTest(form=form):
+                self.set_fields("design", approved_hash=hashlib.sha256(covered.encode("utf-8")).hexdigest()[:12])
+                data = self.status_json()
+                self.assertFalse(data["artifacts"]["design"]["changed"])
+                self.assertEqual(data["phase"], "3. Plan")
 
     def test_a_design_approved_after_the_plan_stales_the_plan(self):
         self.approve_ui_spec()

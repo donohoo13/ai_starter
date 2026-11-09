@@ -603,39 +603,56 @@ class SddCase(unittest.TestCase):
     def write_review(self, text=None, slug=SLUG):
         return self.write_artifact("review", text or VALID_REVIEW % {"slug": slug}, slug)
 
+    def approve(self, name):
+        code, out, err = self.run_sdd("approve", SLUG, name)
+        self.assertEqual(code, 0, out + err)
+
     def approve_chain(self, upto="tasks"):
         """Write and approve spec, then plan, then tasks as far as `upto`."""
         self.write_spec()
-        code, out, err = self.run_sdd("approve", SLUG, "spec")
-        assert code == 0, err
+        self.approve("spec")
         if upto == "spec":
             return
+        self.approve_plan_and_tasks(upto)
+
+    def approve_design_chain(self, upto="tasks"):
+        """Approve a spec listing one UI surface and its recorded design, then plan, then tasks as far as `upto`."""
+        self.approve_ui_spec()
+        self.approve_design()
+        if upto == "design":
+            return
+        self.approve_plan_and_tasks(upto)
+
+    def approve_plan_and_tasks(self, upto):
         self.write_plan()
-        code, out, err = self.run_sdd("approve", SLUG, "plan")
-        assert code == 0, err
+        self.approve("plan")
         if upto == "plan":
             return
         self.write_tasks()
-        code, out, err = self.run_sdd("approve", SLUG, "tasks")
-        assert code == 0, err
+        self.approve("tasks")
 
     def approve_ui_spec(self, *surfaces):
         """Write and approve a spec listing UI surfaces, by default one settings screen; returns its hash."""
         surfaces = surfaces or ("- UI-001: Settings screen (new)",)
         self.write_spec(with_ui_surfaces(VALID_SPEC % {"slug": SLUG, "branch": BRANCH}, *surfaces))
-        code, out, err = self.run_sdd("approve", SLUG, "spec")
-        assert code == 0, out + err
+        self.approve("spec")
         return self.frontmatter("spec")["approved_hash"]
 
     def request_design(self):
         code, out, err = self.run_sdd("set-status", SLUG, "design", "requested")
-        assert code == 0, out + err
+        self.assertEqual(code, 0, out + err)
+
+    def approve_design(self):
+        """Request, record and approve the design on an approved spec that lists a UI surface."""
+        self.request_design()
+        self.record_design()
+        self.approve("design")
 
     def record_design(self, **fields):
         """Fill a requested design as `sdd-design` does after reading the artifact: the body, then the read fields."""
         text = self.read_artifact("design")
-        frontmatter_end = text.index("\n---\n", 4) + len("\n---\n")
-        self.write_artifact("design", text[:frontmatter_end] + RECORDED_DESIGN_BODY)
+        _, body = self.cli.parse_frontmatter(text)
+        self.write_artifact("design", text[: len(text) - len(body)] + RECORDED_DESIGN_BODY)
         recorded = {
             "link": "https://claude.ai/artifact/abc123",
             "version": "v7",
@@ -665,5 +682,5 @@ class SddCase(unittest.TestCase):
 
     def status_json(self, slug=SLUG):
         code, out, err = self.run_sdd("status", slug, "--json")
-        assert code == 0, err
+        self.assertEqual(code, 0, err)
         return json.loads(out)

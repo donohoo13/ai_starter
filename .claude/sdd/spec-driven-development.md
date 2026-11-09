@@ -200,6 +200,7 @@ An approved artifact whose content no longer matches its `approved_hash` counts 
 Every artifact downstream of it becomes **stale** because its `based_on` no longer matches, and the work routes back to the skill that produces the stale artifact.
 The plan's upstream is the design while the design is approved and the spec otherwise, so a design approved after the plan, a re-approved design, or a spec change that stales the design all make the plan stale.
 The approval hash covers the body below the frontmatter plus the artifact's `based_on`, so a re-approval against a changed upstream always records a new hash and stales what follows.
+A design's hash also covers its recorded `version`, so re-recording a changed canvas needs a new approval.
 Checking off tasks in `tasks.md`, the single `- Evidence:` line under a task, and the Follow-ups section still do not count as a change.
 A draft's `based_on` may stay empty until approval records it.
 Once set, it must match: refreshing a stale artifact means revising it against its upstream and setting `based_on` to the new hash before re-approval.
@@ -535,7 +536,7 @@ The committed `design.md` is the handoff: any later session running `sdd-design`
 `sdd-design` reads `design.md`'s state and does the one step it calls for.
 
 1. **Request.**
-   On the user's word, run `sdd set-status <slug> design requested`, which creates `design.md` from Appendix B when absent, records `based_on`, and on an existing `design.md` clears the recorded `link`, `version`, `read`, `design_system` and approval, so the old design cannot be approved as the new one.
+   On the user's word, run `sdd set-status <slug> design requested`, which creates `design.md` from Appendix B when absent, records `based_on`, and on an existing `design.md` clears the recorded `link`, `version`, `read`, `design_system` and approval, and a skip's `decided_by` and `surfaces`, so the old design cannot be approved as the new one.
    Write the prompt (below) under Prompt, show the same text in the conversation as one copyable block, and tell the user to run it after `/design` in Claude Code or paste it into a Claude chat with Design selected, then bring the approved design's link back.
 2. **Skip or cancel.**
    On the user's word, run `sdd set-status <slug> design skipped` and write the reason under Skip reason.
@@ -548,6 +549,7 @@ The committed `design.md` is the handoff: any later session running `sdd-design`
 6. **Re-check.**
    When the spec is re-approved after a design was recorded, check the recorded design against the revised spec through misses and gaps, without writing a new prompt unless the user asks for one, then set `based_on` to the spec's new `approved_hash` before the gate.
 7. **Gate.**
+   Once every miss and gap is answered, `sdd lint <slug> design` passes and the user approves, record it with `sdd approve <slug> design` (Gate, below).
 
 ### The prompt
 
@@ -715,7 +717,10 @@ Every line of code, test and task evidence comes from an `implementer` in a fres
    If there are uncommitted changes, list them and let the user choose between handing them to a fresh `implementer` to continue that slice and setting them aside by hand; never discard them.
 3. **Render checks.**
    When the spec lists a UI ID that `tasks.md`'s `render_check_asked` frontmatter key does not, on the first start or any resume, since a spec re-approved mid-build can add a surface, list those surfaces and recommend each that is new, has an approved design, changes layout between the mobile and desktop widths, or uses a color pairing no existing surface uses, naming the criterion in one line.
-   The user approves any, all or none; append the approved UI IDs to `tasks.md`'s `render_check` frontmatter key, comma-separated and replacing `none`, or `none` while no surface is approved, append every ID asked about to `render_check_asked`, and commit both before the next dispatch.
+   The user approves any, all or none.
+   Write the approved UI IDs to `tasks.md`'s `render_check` frontmatter key, comma-separated, or `none` while no surface is approved, and every ID asked about to `render_check_asked`.
+   Each key is written on the first answer and extended on later ones, since no template or helper writes them; an approved ID replaces a recorded `none`.
+   Commit both before the next dispatch.
    Frontmatter sits outside the content hash, so the tasks stay approved, and no surface is asked about twice.
    With `none`, no render check runs.
 4. **For each slice, one at a time:**
@@ -734,6 +739,7 @@ Every line of code, test and task evidence comes from an `implementer` in a fres
 5. **QA.**
    When every slice is checked off, run `sdd lint <slug>`, start the app when the change has a runnable surface, and hand the user one QA script whose every observation maps to a "Done when" check or an acceptance criterion.
    When `render_check` names surfaces, dispatch `render-checker` once for all of them before handing over the script, and put each failure into the script with its evidence and screenshot path; only the failures the user picks go to a fresh `implementer` as QA bugs.
+   Each surface or state its report lists under Not reached goes into the script with its reason, as an item the user checks by hand.
    A bug the user finds goes to a fresh `implementer` as a red-first fix, which the orchestrator verifies and commits before QA resumes.
 6. **Finish.**
    When the user confirms QA, set `tasks.md` to `done` and commit that change, stop the processes the session started, and report what was built, where the build stopped and how each stop was resolved, the judgment calls made, any pre-existing failures, and the follow-ups.

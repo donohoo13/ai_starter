@@ -87,6 +87,16 @@ class LintSpecTests(SddCase):
         self.assertEqual(code, 1)
         self.assertIn("duplicate UI surface id UI-001", out)
 
+    def test_a_ui_surface_without_a_colon_after_its_id_is_an_error(self):
+        code, out, err = self.lint(with_ui_surfaces(SPEC, "- UI-001 Settings screen (new)"))
+        self.assertEqual(code, 1)
+        self.assertIn("UI surface UI-001 has no colon after its ID", out)
+
+    def test_a_bullet_under_ui_surfaces_without_a_ui_id_is_an_error(self):
+        code, out, err = self.lint(with_ui_surfaces(SPEC, "- Settings screen (new)"))
+        self.assertEqual(code, 1)
+        self.assertIn("does not start with a UI ID", out)
+
     def test_every_fr_needs_an_acceptance_line(self):
         no_acceptance = SPEC.replace("  - Acceptance: Given an invoice with 300 attachments, when the PDF renders, then every thumbnail appears within 10 seconds.\n", "")
         code, out, err = self.lint(no_acceptance)

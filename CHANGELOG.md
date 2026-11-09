@@ -58,6 +58,10 @@ In a project created from the template, this file is template residue: delete it
     The plan builds on the approved design, so a design approved or changed after the plan stales the plan and tasks, and the `implementer` builds a designed surface from the project's tokens and components with the artboards as reference, building nothing recorded as not built.
     The phases renumber to `1. Outline`, `2. Design`, `3. Plan`, `4. Tasks`, `5. Implement` and `6. Validate`, and the SDD document's sections and appendices renumber to match.
   - The approval hash of `design.md`, `plan.md` and `tasks.md` covers the body plus `based_on`, so re-approving one against a changed upstream always records a new hash and stales what builds on it; `spec.md` hashes its body alone as before.
+    A design's hash also covers its recorded `version`, so re-recording a changed canvas needs a new approval and stales the plan.
+    `set-status <slug> design` on an existing `design.md` no longer refuses when the spec lists no UI surface, so a requested design can still be cancelled after a re-approved spec drops its surfaces.
+    A repeat request also clears a skip's `decided_by` and `surfaces`.
+    `sdd lint` rejects any bullet under a spec's `## UI surfaces` that is not a `UI-` line with a colon after its ID.
   - `sdd-implement` asks, at the first start or at a resume that meets a new UI ID, which listed surfaces get a render check, recommending each by criterion: a new surface, an approved design, a layout that changes between mobile and desktop widths, or a color pairing no existing surface uses.
     It records the answer in `tasks.md`'s frontmatter as `render_check` (the approved IDs, or `none`) and `render_check_asked` (every ID asked about), outside the content hash, so the tasks stay approved.
     When every slice is committed and a surface was approved, it dispatches `render-checker` once before QA, puts each failure in the QA script with its evidence, and sends only the failures the user picks to a fresh `implementer`.

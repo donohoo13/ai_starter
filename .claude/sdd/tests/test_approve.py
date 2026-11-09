@@ -88,11 +88,12 @@ class ApproveTests(SddCase):
         self.approve_ui_spec()
         self.request_design()
         for missing in ("link", "version", "read"):
-            self.record_design(**{missing: ""})
-            code, out, err = self.run_sdd("approve", SLUG, "design")
-            self.assertEqual(code, 1, missing)
-            self.assertIn(missing, err)
-            self.assertEqual(self.frontmatter("design")["status"], "requested")
+            with self.subTest(missing=missing):
+                self.record_design(**{missing: ""})
+                code, out, err = self.run_sdd("approve", SLUG, "design")
+                self.assertEqual(code, 1)
+                self.assertIn(missing, err)
+                self.assertEqual(self.frontmatter("design")["status"], "requested")
 
     def test_missing_artifact_is_a_refusal(self):
         self.write_spec()
@@ -207,8 +208,9 @@ class StaleUpstreamTests(SddCase):
         self.set_fields("tasks", based_on=plan_body_hash, approved_hash=self.cli.content_hash(self.read_artifact("tasks")))
         data = self.status_json()
         for name in ("plan", "tasks"):
-            self.assertFalse(data["artifacts"][name]["changed"], name)
-            self.assertFalse(data["artifacts"][name]["stale"], name)
+            with self.subTest(artifact=name):
+                self.assertFalse(data["artifacts"][name]["changed"])
+                self.assertFalse(data["artifacts"][name]["stale"])
         self.assertEqual(data["phase"], "5. Implement")
 
 

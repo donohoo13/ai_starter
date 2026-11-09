@@ -101,10 +101,15 @@ def set_frontmatter(text: str, updates: dict[str, str]) -> str:
     for index, line in enumerate(lines):
         key = line.split(":", 1)[0].strip()
         if key in pending:
-            lines[index] = "%s: %s" % (key, pending.pop(key))
+            lines[index] = frontmatter_entry(key, pending.pop(key))
     for key, value in pending.items():
-        lines.append("%s: %s" % (key, value))
+        lines.append(frontmatter_entry(key, value))
     return "---\n" + "\n".join(lines) + text[end:]
+
+
+def frontmatter_entry(key: str, value: str) -> str:
+    """`key: value`, or a bare `key:` for an empty value, as the templates write it."""
+    return "%s: %s" % (key, value) if value else "%s:" % key
 
 
 # --- hashing -----------------------------------------------------------------
@@ -134,21 +139,30 @@ def normalized_body(text: str) -> str:
     return "\n".join(kept) + "\n"
 
 
-def content_hash(text: str) -> str:
-    return hashlib.sha256(normalized_body(text).encode("utf-8")).hexdigest()[:12]
-
-
-def approval_hash(name: str, text: str, based_on: str) -> str:
-    """The hash an approval records; one with an upstream also covers its based_on, so re-approving it against a new upstream stales what follows."""
-    covered = normalized_body(text)
-    if name in UPSTREAM:
-        covered += "based_on: %s\n" % based_on
+def digest(covered: str) -> str:
     return hashlib.sha256(covered.encode("utf-8")).hexdigest()[:12]
 
 
-def is_current_approval(approved_hash: str, current: str, text: str) -> bool:
-    """An approval recorded before approval_hash covered based_on holds the body hash alone, and still counts."""
-    return approved_hash in (current, content_hash(text))
+def content_hash(text: str) -> str:
+    return digest(normalized_body(text))
+
+
+def approval_hash(name: str, text: str, based_on: str) -> str:
+    """The hash an approval records: the body, plus based_on for an artifact with an upstream, plus a design's recorded version, so a re-approval against a new upstream or a re-read canvas stales what follows."""
+    covered = normalized_body(text)
+    if name in UPSTREAM:
+        covered += "based_on: %s\n" % based_on
+    if name == "design":
+        covered += "version: %s\n" % parse_frontmatter(text)[0].get("version", "")
+    return digest(covered)
+
+
+def is_current_approval(name: str, approved_hash: str, text: str, based_on: str) -> bool:
+    """An approval recorded under an earlier approval_hash still counts: the body alone, or a design's body and based_on without its version."""
+    accepted = {approval_hash(name, text, based_on), content_hash(text)}
+    if name == "design":
+        accepted.add(digest(normalized_body(text) + "based_on: %s\n" % based_on))
+    return approved_hash in accepted
 
 
 # --- command registry --------------------------------------------------------
@@ -371,7 +385,7 @@ def artifact_state(slug: str, name: str, upstream: dict | None) -> dict:
     approved_hash = fields.get("approved_hash", "")
     based_on = fields.get("based_on", "")
     current = approval_hash(name, text, based_on)
-    changed = name != "review" and status in APPROVED_STATUSES and not is_current_approval(approved_hash, current, text)
+    changed = name != "review" and status in APPROVED_STATUSES and not is_current_approval(name, approved_hash, text, based_on)
     stale = False
     if upstream is not None and name in UPSTREAM:
         upstream_hash = upstream["approved_hash"] or ""
@@ -669,21 +683,21 @@ def lint_requirements(lint: Lint, body: str, offset: int) -> None:
                 lint.error("%s has no Acceptance line" % rid, line)
 
 
-UI_SURFACE_LINE = re.compile(r"^- ([^\s:]+):")
+UI_SURFACE_LINE = re.compile(r"^- ([^\s:]*)(:?)")
 UI_SURFACE_ID = re.compile(r"^UI-\d{3}$")
 
 
-def ui_surface_lines(body: str) -> list[tuple[str, int]]:
-    """(id, body line) for each `- UI-001: ...` bullet under `## UI surfaces`."""
+def ui_surface_lines(body: str) -> list[tuple[str, bool, int]]:
+    """(leading word, whether a colon follows it, body line) for each top-level bullet under `## UI surfaces`."""
     section = find_section(sections(body), "UI surfaces")
     if not section:
         return []
     heading_line, lines = section
-    found: list[tuple[str, int]] = []
+    found: list[tuple[str, bool, int]] = []
     for index, line in enumerate(lines, start=1):
         match = UI_SURFACE_LINE.match(line)
         if match:
-            found.append((match.group(1), heading_line + index))
+            found.append((match.group(1), bool(match.group(2)), heading_line + index))
     return found
 
 
@@ -692,7 +706,7 @@ def spec_ui_surface_ids(slug: str) -> list[str]:
     found = read_artifact(slug, "spec")
     if not found:
         return []
-    ids = [surface_id for surface_id, _ in ui_surface_lines(found[1]) if UI_SURFACE_ID.match(surface_id)]
+    ids = [surface_id for surface_id, _, _ in ui_surface_lines(found[1]) if UI_SURFACE_ID.match(surface_id)]
     return list(dict.fromkeys(ids))
 
 
@@ -704,11 +718,16 @@ def uncovered_surfaces(slug: str, design_fields: dict[str, str]) -> list[str]:
 
 def lint_ui_surfaces(lint: Lint, body: str, offset: int) -> None:
     seen: dict[str, int] = {}
-    for surface_id, body_line in ui_surface_lines(body):
+    for surface_id, has_colon, body_line in ui_surface_lines(body):
         line = body_line + offset
+        if not surface_id.startswith("UI-"):
+            lint.error("bullet under UI surfaces does not start with a UI ID (expected `- UI-001: ...`)", line)
+            continue
         if not UI_SURFACE_ID.match(surface_id):
             lint.error("malformed UI surface id %s (expected UI-001)" % surface_id, line)
             continue
+        if not has_colon:
+            lint.error("UI surface %s has no colon after its ID (expected `- %s: ...`)" % (surface_id, surface_id), line)
         if surface_id in seen:
             lint.error("duplicate UI surface id %s (first at line %d)" % (surface_id, seen[surface_id]), line)
             continue
@@ -1073,15 +1092,7 @@ def new_design_text(slug: str) -> str:
     return re.sub(r"^# .*$", "# " + title, text, count=1, flags=re.MULTILINE)
 
 
-REREQUEST_CLEARED_FIELDS = DESIGN_RECORD_FIELDS + ("design_system", "approved_hash")
-
-
-def clear_recorded_design(text: str) -> str:
-    """Reset the fields naming a read or approved design to the template's empty `key:` form."""
-    keys = "|".join(REREQUEST_CLEARED_FIELDS)
-    frontmatter_end = text.index("\n---\n", 4)
-    frontmatter = re.sub(r"^(%s):.*$" % keys, r"\1:", text[:frontmatter_end], flags=re.MULTILINE)
-    return frontmatter + text[frontmatter_end:]
+REREQUEST_CLEARED_FIELDS = DESIGN_RECORD_FIELDS + ("design_system", "approved_hash", "decided_by", "surfaces")
 
 
 def set_design_status(slug: str, status: str) -> int:
@@ -1092,9 +1103,9 @@ def set_design_status(slug: str, status: str) -> int:
     if spec["status"] != "approved" or spec["changed"]:
         raise Refusal("spec.md must be approved and unchanged since approval before a design is %s" % status)
     surfaces = spec_ui_surface_ids(slug)
-    if not surfaces:
-        raise Refusal("spec.md lists no UI surface, so it takes no design")
     found = read_artifact(slug, "design")
+    if not found and not surfaces:
+        raise Refusal("spec.md lists no UI surface, so it takes no design")
     if found:
         current = found[0].get("status", "")
         if current not in DESIGN_TRANSITIONS[status]:
@@ -1107,10 +1118,9 @@ def set_design_status(slug: str, status: str) -> int:
     if status == "skipped":
         updates["decided_by"] = git("config", "user.name") or ""
         updates["surfaces"] = ", ".join(surfaces)
-    text = set_frontmatter(text, updates)
     if status == "requested":
-        text = clear_recorded_design(text)
-    write_artifact(slug, "design", text)
+        updates.update(dict.fromkeys(REREQUEST_CLEARED_FIELDS, ""))
+    write_artifact(slug, "design", set_frontmatter(text, updates))
     print("design.md is now %s" % status)
     return 0
 
