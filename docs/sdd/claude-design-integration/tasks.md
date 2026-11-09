@@ -1,7 +1,7 @@
 ---
 title: Claude design integration tasks
 slug: claude-design-integration
-status: in-progress
+status: done
 updated: 2026-11-09
 based_on: cdcad58a478f
 approved_hash: b625a3cfc01a
