@@ -48,16 +48,16 @@ The folder stays after the merge as the record of the change.
 ## The helper
 
 ```
-sdd root                                   project root and its docs/sdd/ path
-sdd init <slug> [--branch <name>]          create spec.md from the template
-sdd find                                   the slug whose spec branch is the current branch
-sdd status [slug] [--json]                 artifact states, task progress, phase, next skill
-sdd hash <file>                            content hash of the body below the frontmatter
-sdd lint <slug> [spec|design|plan|tasks|review]   structure, traceability and unfilled template placeholders; no artifact means every one present
-sdd approve <slug> <spec|design|plan|tasks>       record the user's approval (only after they give it); refused on lint errors, and a design without its link, version and read
+sdd root                                              project root and its docs/sdd/ path
+sdd init <slug> [--branch <name>]                     create spec.md from the template
+sdd find                                              the slug whose spec branch is the current branch
+sdd status [slug] [--json]                            artifact states, task progress, phase, next skill
+sdd hash <file>                                       content hash of the body below the frontmatter
+sdd lint <slug> [spec|design|plan|tasks|review]       structure, traceability and unfilled template placeholders; no artifact means every one present
+sdd approve <slug> <spec|design|plan|tasks>           record the user's approval (only after they give it); refused on lint errors, and a design without its link, version and read
 sdd set-status <slug> <design|tasks|review> <status>  design to requested or skipped; tasks to in-progress or done; review to accepted, refused while review lint has errors
-sdd templates sync [--check]               regenerate templates from Appendix A (Spec template) to Appendix E (Review report template)
-sdd check-refs                             every section reference in the skills and this README matches a heading
+sdd templates sync [--check]                          regenerate templates from Appendix A (Spec template) to Appendix E (Review report template)
+sdd check-refs                                        every section reference in the skills and this README matches a heading
 ```
 
 The content hash ignores frontmatter, checkbox ticks, `- Evidence:` sub-bullets, the `## Follow-ups` section and trailing whitespace, so progress notes never count as a change to an approved artifact.

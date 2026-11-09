@@ -18,8 +18,8 @@ Transactional emails (verification, password reset, email-change confirmation) a
 The accessibility floors in [`ux-standards.md`](./ux-standards.md) apply to the rendered message, since that file carries the contrast ratio this one defers to and states nowhere else.
 
 **On an email path, this file wins over [`frontend-styling.md`](./frontend-styling.md) and [`html-tables.md`](./html-tables.md).**
-They contradict it by design: they say no `px` for layout, no inline styles, and tables for data only, while an email client needs nested layout tables, inline styles, and a `600px` column.
-Email clients are the reason, so the email rules win here and only here.
+They contradict it by design: they ask for units that scale with the user's settings and the viewport, no inline styles, and tables for data only, while an email client needs nested layout tables, inline styles, and a fixed `600px` column.
+Email clients strip or only partly support the style blocks, media queries, and flex or grid layout that scaling styles rely on (caniemail.com), so the email rules win here and only here.
 A project that sends no templated mail deletes this file.
 
 - **Tables carry layout, inline CSS carries style**: layout is nested tables with `role="presentation"`, never flex/grid — partial support in Gmail and Outlook at best (caniemail.com) — and every load-bearing style is inline. A `<style>` block is progressive enhancement only (media queries, dark mode): Gmail drops the entire block past 8,192 characters or on a single CSS parse error (caniemail.com).

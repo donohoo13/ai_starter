@@ -25,7 +25,11 @@ Every surface meets WCAG 2.2 AA in every theme; these are the success criteria a
 - **Reading width**: reading text caps near `70ch`.
 - **Motion timing**: 100–300ms for state changes, with enter slower than exit.
 - **Feedback timing**: acknowledge every action within 100ms; show nothing for a wait under 1s, an indicator past 1s, and determinate progress plus cancel past 10s.
+- **Loading indicators**: a skeleton for an initial load, and an inline spinner for a refresh.
+- **Overlays**: a modal only for a decision that must block, and a toast only for a short confirmation, never an error.
+- **Icons**: one SVG family at one stroke width, and never emoji as icons.
 - **Data tables**: numerics set in a monospaced family, and rows separated by hairline dividers rather than a box per cell.
+  Headers stick, the identity column stays frozen, and column controls persist.
 
 ## Composition
 
@@ -36,7 +40,6 @@ Every surface meets WCAG 2.2 AA in every theme; these are the success criteria a
 - Headings front-load their point, and paragraphs stay short.
 - Choices are chunked, grouped and disclosed progressively instead of capped by count.
 - Spacing comes from the project's scale; within a group tighter than between groups; borders are the last grouping tool after spacing and tone.
-- Icons come from one SVG family at one stroke width; emoji never serve as icons.
 
 ## Forms and controls
 
@@ -53,13 +56,13 @@ Every surface meets WCAG 2.2 AA in every theme; these are the success criteria a
 
 ## Feedback and motion
 
-- Every action is acknowledged and every wait shows its progress, on the feedback timing above: skeletons for initial loads, inline spinners for refreshes.
-- Modals only for decisions that must block; toasts carry short confirmations via `aria-live="polite"`, never errors.
+- Every action is acknowledged and every wait shows its progress, on the feedback timing and loading indicators above.
+- A toast announces itself through `aria-live="polite"` (4.1.3 Status Messages).
 - Empty states name the state and carry the action that fills it.
 - Motion explains change: only `transform` and `opacity` animate, `prefers-reduced-motion` is honored, and high-frequency actions never animate.
 
 ## Data tables
 
 - Text aligns left and numerics right, with consistent decimals.
-- Sticky headers, frozen identity column, persisted column controls; row actions on hover and focus; bulk actions appear once a selection exists.
+- Row actions appear on hover and focus, and bulk actions appear once a selection exists.
 - Virtualize large sets with server-side sort and filter; row detail in a drawer, never a navigation away; overflow always signaled; narrow screens move data, never drop it.

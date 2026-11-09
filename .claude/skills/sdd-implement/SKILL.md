@@ -62,7 +62,10 @@ Never take the next step until the report is in; when it has not arrived, end th
    A render pass costs minutes and many tokens, so the user picks the surfaces worth it.
    List only those surfaces and recommend each one that meets a criterion, with a one-line reason naming the criterion that applies: a new surface, a surface with an approved design in `design.md`, a layout that changes between the mobile and desktop widths, or a color pairing no existing surface uses.
    Ask the user to approve any, all or none, and wait for the answer.
-   Record it in `tasks.md`'s frontmatter: append the approved IDs to `render_check` (`render_check: UI-001, UI-003`, replacing `none`, or `render_check: none` while no surface is approved) and every ID asked about to `render_check_asked`; frontmatter sits outside the content hash, so the tasks stay approved.
+   Record it in `tasks.md`'s frontmatter, writing each key on the first answer and extending it on later ones, since no template or helper writes them.
+   `render_check` holds the approved IDs (`render_check: UI-001, UI-003`), or `render_check: none` while no surface is approved; an approved ID replaces a recorded `none`.
+   `render_check_asked` holds every ID asked about.
+   Frontmatter sits outside the content hash, so the tasks stay approved.
    Stage `docs/sdd/<slug>/tasks.md` by explicit path and commit it before the next dispatch, so a later session reads the answer instead of asking again.
    With `none`, `render-checker` is never dispatched in this build.
 4. **For each slice from the resume point**, in order, finish one before dispatching the next:
@@ -142,6 +145,7 @@ Green checks prove the code does what the tests say; only the user confirms it d
 4. Hand over one QA script: exact commands, URLs and actions, each observation mapped to a Done-when check or an acceptance criterion it confirms.
    When there is no runnable surface or the app did not start, the script names the commands to run and the files to read instead.
    Each render failure goes into the script as its own numbered item with the requirement it breaks, its evidence and its screenshot path, and the script asks which failures to fix.
+   Each surface or state the render report lists under Not reached goes into the script as its own numbered item with its reason, for the user to check by hand.
 5. Stop and wait for the user.
 
 ### QA bug
