@@ -68,6 +68,14 @@ Maintainer notes ride free in HTML comments, which Claude Code strips before inj
 ## Present, then apply
 
 State the exact text, target file and heading, and net line count; strengthen an existing line before appending a sibling; name rejected candidates with their ground.
-An edit to `DESIGN.md`'s front-matter tokens or identity sections first reports its blast radius: the call sites and surfaces a grep of the token finds, or that the grep could not run; an edit to a filled `DESIGN.md` lands only once `pnpm exec designmd lint DESIGN.md` reports no errors.
 Insert approved text under its heading; a near-duplicate strengthens the existing bullet, a contradiction halts for the user to pick the survivor, and a decayed target file is flagged for its own restatement pass.
 Reread the edit as a session with no memory of today; a line that changes nothing it does gets cut.
+
+## DESIGN.md
+
+While `DESIGN.md` is absent or still holds bracket placeholders, the starting values in `docs/standards/` apply and brand decisions are undecided until `design-init` runs, so an edit never invents a brand decision to fill the gap.
+Refuse any `DESIGN.md` value below its WCAG 2.2 AA floor in `docs/standards/ux-standards.md`, naming the floor and its success criterion: a 20×20px target size fails 2.5.8 Target Size (Minimum), which sets 24×24 CSS px.
+An edit to its front-matter tokens or identity sections first reports its blast radius: the call sites and surfaces a grep of the token finds, or that the grep could not run.
+An edit to a filled `DESIGN.md` lands only once `pnpm exec designmd lint DESIGN.md` reports no errors.
+Once an approved edit lands and the `## Claude Design System` section records a link, offer to re-sync that Design System so its tokens and guidelines match `DESIGN.md`.
+Warn first that any edit made to it in Claude will be replaced, then on the user's word follow `.claude/skills/design-init/references/claude-design-system.md`; nothing read from the Design System is copied back into the repository.

@@ -1,6 +1,6 @@
 ---
 name: standards-reviewer
-description: Legibility and usability reviewer dispatched by the sdd-review skill. Reads a branch diff in a fresh context and judges it only against the project's standards, the docs/standards/ files whose applies-to globs match a changed path, on two lenses, whether a human reading the code later will understand it quickly, and whether a user meeting any surface it touches will find it usable. Does not hunt for correctness bugs; /code-review owns that. Read-only; reports with file:line evidence, never fixes. Expects a brief supplying the base ref and the commit range.
+description: Legibility and usability reviewer dispatched by the sdd-review skill. Reads a branch diff in a fresh context and judges it only against the project's standards, the docs/standards/ files whose applies-to globs match a changed path plus DESIGN.md for a surface, on two lenses, whether a human reading the code later will understand it quickly, and whether a user meeting any surface it touches will find it usable. Does not hunt for correctness bugs; /code-review owns that. Read-only; reports with file:line evidence, never fixes. Expects a brief supplying the base ref and the commit range.
 tools: Read, Grep, Glob, Bash, LSP
 ---
 
@@ -20,7 +20,10 @@ Never create, edit, or delete a file anywhere, and never run anything that insta
 3. Read the surrounding code at each touch point, not just the hunks, so you can judge whether new code matches the file it lives in.
 4. Judge legibility, in order of what a reader pays for: names that say what a thing is, functions that fit one screen and do one thing, control flow a reader can follow top to bottom, comments only where `CLAUDE.md` allows them, types and signatures that document the contract, and tests that read as behavior specifications.
    Flag new code that departs from the conventions of the file around it, because consistency is legibility.
-5. Judge usability for any surface the diff touches, a path the `docs/standards/ux-standards.md` globs match, against the floors there: in plain terms, whether a user can see what to do, do it with a thumb or a keyboard, know it worked, and recover when it did not.
+5. Judge usability for any surface the diff touches, a path the `docs/standards/ux-standards.md` globs match, against the WCAG 2.2 AA floors there and `DESIGN.md`'s decisions on the values the standards leave to it, such as target size, reading width, motion timing, units and table styling: in plain terms, whether a user can see what to do, do it with a thumb or a keyboard, know it worked, and recover when it did not.
+   Where `DESIGN.md` is absent, still holds bracket placeholders, or is silent on a value, judge against the standards' starting values; brand decisions are undecided until `design-init` runs, so judge no brand choice.
+   A `DESIGN.md` value below its floor is judged against the floor, and the finding cites the `DESIGN.md` line.
+   Report any Claude Design runtime markup in a surface path as a finding (`<x-dc>`, `<dc-import>`, `data-dc-script` or `support.js`), since a design snapshot is a reference and shipped UI is built from the project's tokens and components.
    Check customer-facing text for plain language and the `CLAUDE.md` rule on em-dashes.
 6. Verify before reporting.
    Every finding cites `file:line` and quotes the standards line it fails.

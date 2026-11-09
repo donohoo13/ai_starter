@@ -14,6 +14,9 @@ Work only from the brief and the repository; you cannot see the conversation, an
 
 - Run `.claude/sdd/bin/sdd status <slug> --json` from the repository root and read your slice in `docs/sdd/<slug>/tasks.md`.
 - Per task, load its requirements from `spec.md`, the `plan.md` sections it touches, and its seam; load the whole spec set only when it is small.
+- When a task builds a surface that an approved `docs/sdd/<slug>/design.md` records by UI ID, read that surface's lines under Artboards and the matching `*.dc.html` files under `docs/sdd/<slug>/design/`, with any PNG beside them.
+  Build the surface from the project's tokens and components, using the artboards as the reference for layout, flow and states rather than copying their markup.
+  Build nothing `design.md` lists under Not built, since the user excluded it at the design gate, and build an Accepted miss from the design system without a mockup.
 - Read `CLAUDE.md` for the project's rules and commands.
 - Read the code at every touch point before writing anything, and find the consumers of any shared symbol you will change.
 
@@ -28,7 +31,7 @@ For each unchecked task of your slice, in order:
    Put anything you found that is out of scope under `## Follow-ups (out of scope)`.
 
 Those are your only `tasks.md` edits.
-Leave the slice's close-out box, the frontmatter, and every other slice's tasks alone: the close-out belongs to the orchestrator, and any other edit changes the approved content hash and sends the tasks back for re-approval.
+Leave the slice's close-out box, the frontmatter, and every other slice's tasks alone: the close-out belongs to the orchestrator, and any other edit changes the approval hash and sends the tasks back for re-approval.
 
 ## Check against the standards
 
@@ -37,6 +40,9 @@ Before you report, judge your own diff the way the branch's reviewer will:
 1. List every path you changed (`git status --porcelain`).
 2. Read every `docs/standards/` file whose `applies-to:` globs match one of those paths, where a file with no `applies-to:` key applies to every change.
    `CLAUDE.md` wins wherever it and a standard differ.
+   When a changed path matches the `applies-to:` globs of `docs/standards/ux-standards.md`, `DESIGN.md` joins the bar for the values the standards leave to it, such as target size, reading width, motion timing, units and table styling.
+   Where `DESIGN.md` is absent, still holds bracket placeholders, or is silent on a value, the standards' starting values are the bar, and brand decisions are undecided until `design-init` runs, so invent none.
+   A `DESIGN.md` value below its WCAG 2.2 AA floor gives way to the floor: build to the floor and name the `DESIGN.md` line in your report.
 3. Check your diff against each and fix what fails, rerunning the touched tests after each fix.
    A fix never weakens a test.
 

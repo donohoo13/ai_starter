@@ -1,6 +1,6 @@
 import unittest
 
-from helpers import SLUG, SddCase, VALID_SPEC, BRANCH
+from helpers import SLUG, SddCase, VALID_SPEC, BRANCH, with_ui_surfaces
 
 SPEC = VALID_SPEC % {"slug": SLUG, "branch": BRANCH}
 
@@ -71,6 +71,31 @@ class LintSpecTests(SddCase):
         code, out, err = self.lint(malformed)
         self.assertEqual(code, 1)
         self.assertIn("INV-1", out)
+
+    def test_a_well_formed_ui_surface_passes(self):
+        code, out, err = self.lint(with_ui_surfaces(SPEC, "- UI-001: Settings screen (new)", "- UI-002: Invoice header (edited)"))
+        self.assertEqual(code, 0, out + err)
+        self.assertIn("0 errors", out)
+
+    def test_a_malformed_ui_surface_id_is_an_error(self):
+        code, out, err = self.lint(with_ui_surfaces(SPEC, "- UI-1: Settings screen (new)"))
+        self.assertEqual(code, 1)
+        self.assertIn("malformed UI surface id UI-1", out)
+
+    def test_a_duplicate_ui_surface_id_is_an_error(self):
+        code, out, err = self.lint(with_ui_surfaces(SPEC, "- UI-001: Settings screen (new)", "- UI-001: Profile screen (new)"))
+        self.assertEqual(code, 1)
+        self.assertIn("duplicate UI surface id UI-001", out)
+
+    def test_a_ui_surface_without_a_colon_after_its_id_is_an_error(self):
+        code, out, err = self.lint(with_ui_surfaces(SPEC, "- UI-001 Settings screen (new)"))
+        self.assertEqual(code, 1)
+        self.assertIn("UI surface UI-001 has no colon after its ID", out)
+
+    def test_a_bullet_under_ui_surfaces_without_a_ui_id_is_an_error(self):
+        code, out, err = self.lint(with_ui_surfaces(SPEC, "- Settings screen (new)"))
+        self.assertEqual(code, 1)
+        self.assertIn("does not start with a UI ID", out)
 
     def test_every_fr_needs_an_acceptance_line(self):
         no_acceptance = SPEC.replace("  - Acceptance: Given an invoice with 300 attachments, when the PDF renders, then every thumbnail appears within 10 seconds.\n", "")

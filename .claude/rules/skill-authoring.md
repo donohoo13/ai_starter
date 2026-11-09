@@ -15,9 +15,9 @@ Mine the session before interviewing: the conversation that triggered the change
 
 ## Rules
 
-- **The body runs at most 5000 tokens**, frontmatter excluded, measured before landing.
-  Lines count only on a body written one sentence per line, per `CLAUDE.md`'s Markdown rule, since a paragraph held on one line hides its real length; a substantive edit reflows a body still in paragraph lines before measuring it, and a typo or link fix leaves the format alone.
-  Under the ceiling there is no target: a body is as long as its job needs, and gating, chaining, or rationale that belongs in a reference file or nowhere is cut at any length.
+- **A body is as long as its job needs.**
+  Gating, chaining, or rationale that belongs in a reference file or nowhere is cut at any length.
+  A substantive edit reflows a body still in paragraph lines to one sentence per line, per `CLAUDE.md`'s Markdown rule; a typo or link fix leaves the format alone.
 - **The description is the trigger.** Third person, stating what the skill does and when to use it, with concrete contexts and trigger phrases spelled out. Phrase triggers around session state as well as user intent ("use when editing any file under X") so mid-task situations fire. Undertriggering is the default failure mode; specificity is the cure.
 - **Progressive disclosure.** Metadata sits in the listing, the body loads on invocation and stays for the session, references load on demand. Push long or fragile detail into `references/` exactly one hop from SKILL.md; every bundled file states its mode, run or read.
 - **Explain why over MUST.** Imperative voice with the reasoning attached; all-caps ALWAYS/NEVER is a yellow flag that the reasoning is missing. Generalize past the motivating example.
@@ -33,4 +33,4 @@ The session that wrote a skill is too warm to judge how it behaves cold. Close e
 
 ## Landing
 
-A change lands when the suite is coherent: the skill's entry in `.claude/skills/README.md` matches its behavior and triggering, the body measures under budget, and the gut-check prompts are handed over.
+A change lands when the suite is coherent: the skill's entry in `.claude/skills/README.md` matches its behavior and triggering, and the gut-check prompts are handed over.

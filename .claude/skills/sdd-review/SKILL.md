@@ -1,17 +1,17 @@
 ---
 name: sdd-review
-description: Review the current branch before a PR. With a spec it runs the full Validate phase: evidence, spec conformance in a fresh subagent, the code-review skill for correctness and the standards-reviewer agent for legibility and usability, then one review.md report and a PR description draft. Without a spec it runs only the correctness and standards reviews and reports in the conversation. Use when the user says "review", "review this branch", "final review", "run the reviews", "sdd review", or wants a branch checked before opening or marking a PR. Phase 5 of spec-driven development, section 12 of .claude/sdd/spec-driven-development.md.
+description: Review the current branch before a PR. With a spec it runs the full Validate phase: evidence, spec conformance in a fresh subagent, the code-review skill for correctness and the standards-reviewer agent for legibility and usability, then one review.md report and a PR description draft. Without a spec it runs only the correctness and standards reviews and reports in the conversation. Use when the user says "review", "review this branch", "final review", "run the reviews", "sdd review", or wants a branch checked before opening or marking a PR. Phase 6 of spec-driven development, section 13 of .claude/sdd/spec-driven-development.md.
 argument-hint: "[slug] [effort low|medium|high|xhigh|max] [--max-findings n] [base]"
 allowed-tools: Bash(.claude/sdd/bin/sdd *)
 ---
 
-# SDD Review (phase 5)
+# SDD Review (phase 6)
 
 Two reviewers, two purposes, one report, plus the spec's own evidence when there is a spec.
 Correctness belongs to the `code-review` skill; legibility and usability belong to the `standards-reviewer` agent.
 Neither is skipped, and no finding is dropped quietly.
 This session orchestrates and may be the one that ran the build: every reviewer runs in a fresh context on a brief of pointers only, so its judgment never inherits this session's reasoning, and every fix is built by a fresh `implementer`.
-The rules live in section 12 (Validate) of `.claude/sdd/spec-driven-development.md`; this file is only the procedure.
+The rules live in section 13 (Validate) of `.claude/sdd/spec-driven-development.md`; this file is only the procedure.
 Where the two differ, the document wins.
 
 Arguments: `$ARGUMENTS`.
@@ -20,17 +20,17 @@ Arguments: `$ARGUMENTS`.
 
 Parse the arguments: a token is the slug only when `docs/sdd/<token>/` exists; one of `low`, `medium`, `high`, `xhigh`, `max` is the effort; `--max-findings n` is the findings cap; the remaining token, if any, is the base.
 
-- **Spec mode** when a slug was given, or when `.claude/sdd/bin/sdd find` resolves one and `.claude/sdd/bin/sdd status <slug> --json` reports `phase` `5. Validate`.
+- **Spec mode** when a slug was given, or when `.claude/sdd/bin/sdd find` resolves one and `.claude/sdd/bin/sdd status <slug> --json` reports `phase` `6. Validate`.
   Runs the full Validate phase inside the start and finish protocols of section 4 (The workflow).
-  When `find` resolves a spec that is not at `5. Validate`, say so, name the phase and skill `status` reports, and ask before reviewing without it.
+  When `find` resolves a spec that is not at `6. Validate`, say so, name the phase and skill `status` reports, and ask before reviewing without it.
 - **Review-only mode** otherwise: a pre-PR review of any branch, for example after a `tdd` one-shot.
   It skips the protocols and every step marked _(spec only)_, writes no file, and reports in the conversation.
 
 State which mode you are in, and why, as your first line.
 
-## Preconditions (section 12 (Validate), Gate)
+## Preconditions (section 13 (Validate), Gate)
 
-- Spec mode: `status` reports `5. Validate`, so every task is done.
+- Spec mode: `status` reports `6. Validate`, so every task is done.
   Anything else: stop, tell the user the phase and the skill `status` names, and do no other phase's work.
 - A feature branch with a clean tree: `git status --porcelain` prints nothing.
   Otherwise list the paths and stop; uncommitted work would be reviewed as if it ships.
@@ -40,11 +40,11 @@ State which mode you are in, and why, as your first line.
 
 ## Start _(spec only)_ (section 4 (The workflow), start protocol)
 
-1. Read sections 1–5 of the document once per session, then section 12 (Validate).
+1. Read sections 1–5 of the document once per session, then section 13 (Validate).
 2. Load the spec, the plan's Traceability table and seams, and the tasks.
    Load the repo's test-running skill when it has one.
 
-## Run (section 12 (Validate), Run), in parallel where possible
+## Run (section 13 (Validate), Run), in parallel where possible
 
 1. **Evidence** _(spec only)_: run the full suite once on the clean tree with the repo's test tiers, from the commands `CLAUDE.md` names, or the ones the `tdd` discovery in `.claude/skills/tdd/references/discover.md` finds for this repo.
    Map each acceptance criterion to the test that proves it, by file and test name.
@@ -56,7 +56,7 @@ State which mode you are in, and why, as your first line.
    Keep its findings verbatim.
 4. **Standards**: dispatch the `standards-reviewer` agent through the Agent tool with two inputs: the base ref and the commit range `<base>..HEAD`. It judges legibility, tests as documentation, usability floors and customer-facing text against `CLAUDE.md` and the `docs/standards/` files whose globs match the changed paths.
 
-## Triage (section 12 (Validate), Triage)
+## Triage (section 13 (Validate), Triage)
 
 Every finding is input, not a verdict.
 Judge each one yourself.
@@ -64,7 +64,7 @@ Reject a finding you judge false, with evidence, and still show it to the user.
 Drop findings the linter already owns.
 Do not pad the report with style preferences.
 
-## Report, then wait (section 12 (Validate), Report, then wait)
+## Report, then wait (section 13 (Validate), Report, then wait)
 
 - Spec mode: write `docs/sdd/<slug>/review.md` from `.claude/sdd/templates/review.md`, with `base`, `range`, `effort`, `max_findings` and `updated` filled in and every section populated from the runs above, with no template placeholder left in them.
   Leave the PR description draft section as the template wrote it: its placeholders stay until acceptance, and `lint` reports them until then.
@@ -73,7 +73,7 @@ Do not pad the report with style preferences.
 
 Then stop and wait for the user.
 
-## Fixes (section 12 (Validate), Fixes)
+## Fixes (section 13 (Validate), Fixes)
 
 The user picks which findings to fix.
 For each one, dispatch a fresh `implementer` through the Agent tool with the slug when there is one, the finding verbatim with its `file:line`, and the requirement IDs it touches, to fix it red-first; this session never writes the fix itself.
@@ -83,7 +83,7 @@ Never push.
 Record each fix under Fixes in the report.
 Offer to rerun the review when the fixes are substantial.
 
-## Confirm intent and close (section 12 (Validate), Confirm intent and close)
+## Confirm intent and close (section 13 (Validate), Confirm intent and close)
 
 1. Restate in plain language what was built and ask the user to confirm it is what they meant.
    Passing tests prove the code matches the spec, not that the spec matched the intent.

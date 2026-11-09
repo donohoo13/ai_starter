@@ -8,7 +8,7 @@ disable-model-invocation: true
 # Render check
 
 A render pass drives a browser through every state of every touched surface, at two widths, in every theme, so it costs minutes and many tokens.
-It runs only when the user asks for it, and never from another skill.
+This skill runs only when the user asks for it, and never from another skill; `sdd-implement` dispatches the same agent itself before QA for the surfaces the user approved at the start of a build.
 This session finds the scope, owns the app server, and reports; the `render-checker` agent drives the browser in its own context, so the screenshots never fill this one.
 It reports and never fixes: a failure goes back to the user, who routes it to a build or a review.
 
@@ -23,13 +23,17 @@ Arguments: `$ARGUMENTS`, optional surfaces to check and an optional `--base <ref
 2. **Surfaces**, from the first source that yields any:
    - The surfaces the argument names.
    - The changed paths since the base, committed or not, that match the `applies-to:` globs of `docs/standards/ux-standards.md`, mapped to the screens that render them.
-   - A `docs/sdd/<slug>/spec.md` the change touches whose user scenarios or requirements name a surface.
+   - A `docs/sdd/<slug>/spec.md` the change touches whose `## UI surfaces` section lists a surface, or whose user scenarios or requirements name one.
 
    No surface found: say so in one line and end.
 
-3. **States** for each surface: the ones the spec's scenarios and acceptance criteria name when there is a spec, otherwise the ones the changed code renders, such as empty, loading, error and populated.
+3. **States** for each surface: with a spec, the ones its scenarios and acceptance criteria name plus each state `design.md`'s Artboards lines give the surface; without one, the ones the changed code renders, such as empty, loading, error and populated.
 4. **Themes**: every theme the app ships, from `DESIGN.md` and the app's theme styles.
-5. **Bar**: the spec's requirements when there is a spec, `DESIGN.md`, and the `docs/standards/ux-standards.md` floors measured on the rendered page.
+5. **Bar**, the same sources `render-checker` judges against:
+   - The WCAG 2.2 AA floors in `docs/standards/ux-standards.md`, measured on the rendered page.
+   - `DESIGN.md`'s decisions, or the standards' starting values where `DESIGN.md` is absent, unfilled or silent.
+   - For a surface `design.md` records, its artboard files under `docs/sdd/<slug>/design/` and the Not built list.
+   - The spec's UI surfaces and states, when there is a spec.
 
 Announce the scope in one line, "Checking N surfaces since <base>", naming the base ref and the merge-base's short sha, before launching anything, so the user can stop a wrong read.
 

@@ -19,10 +19,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-ARTIFACTS = ("spec", "plan", "tasks", "review")
-UPSTREAM = {"plan": "spec", "tasks": "plan"}
+ARTIFACTS = ("spec", "design", "plan", "tasks", "review")
+UPSTREAM = {"design": "spec", "plan": "spec", "tasks": "plan"}
 DOC_NAME = "spec-driven-development.md"
-SKILL_NAMES = ("sdd-outline", "sdd-plan", "sdd-task", "sdd-implement", "tdd", "sdd-review")
+SKILL_NAMES = ("sdd-outline", "sdd-design", "sdd-plan", "sdd-task", "sdd-implement", "tdd", "sdd-review")
 
 
 class Refusal(Exception):
@@ -101,10 +101,15 @@ def set_frontmatter(text: str, updates: dict[str, str]) -> str:
     for index, line in enumerate(lines):
         key = line.split(":", 1)[0].strip()
         if key in pending:
-            lines[index] = "%s: %s" % (key, pending.pop(key))
+            lines[index] = frontmatter_entry(key, pending.pop(key))
     for key, value in pending.items():
-        lines.append("%s: %s" % (key, value))
+        lines.append(frontmatter_entry(key, value))
     return "---\n" + "\n".join(lines) + text[end:]
+
+
+def frontmatter_entry(key: str, value: str) -> str:
+    """`key: value`, or a bare `key:` for an empty value, as the templates write it."""
+    return "%s: %s" % (key, value) if value else "%s:" % key
 
 
 # --- hashing -----------------------------------------------------------------
@@ -134,8 +139,30 @@ def normalized_body(text: str) -> str:
     return "\n".join(kept) + "\n"
 
 
+def digest(covered: str) -> str:
+    return hashlib.sha256(covered.encode("utf-8")).hexdigest()[:12]
+
+
 def content_hash(text: str) -> str:
-    return hashlib.sha256(normalized_body(text).encode("utf-8")).hexdigest()[:12]
+    return digest(normalized_body(text))
+
+
+def approval_hash(name: str, text: str, based_on: str) -> str:
+    """The hash an approval records: the body, plus based_on for an artifact with an upstream, plus a design's recorded version, so a re-approval against a new upstream or a re-read canvas stales what follows."""
+    covered = normalized_body(text)
+    if name in UPSTREAM:
+        covered += "based_on: %s\n" % based_on
+    if name == "design":
+        covered += "version: %s\n" % parse_frontmatter(text)[0].get("version", "")
+    return digest(covered)
+
+
+def is_current_approval(name: str, approved_hash: str, text: str, based_on: str) -> bool:
+    """An approval recorded under an earlier approval_hash still counts: the body alone, or a design's body and based_on without its version."""
+    accepted = {approval_hash(name, text, based_on), content_hash(text)}
+    if name == "design":
+        accepted.add(digest(normalized_body(text) + "based_on: %s\n" % based_on))
+    return approved_hash in accepted
 
 
 # --- command registry --------------------------------------------------------
@@ -181,6 +208,15 @@ def read_artifact(slug: str, name: str) -> tuple[dict[str, str], str, str] | Non
 
 def write_artifact(slug: str, name: str, text: str) -> None:
     artifact_path(slug, name).write_text(text)
+
+
+def upstream_of(slug: str, name: str) -> str:
+    """The artifact `name` builds on: the plan builds on the design while it is approved, else on the spec."""
+    if name == "plan":
+        design = read_artifact(slug, "design")
+        if design and design[0].get("status") == "approved":
+            return "design"
+    return UPSTREAM[name]
 
 
 def template(name: str) -> str:
@@ -348,8 +384,8 @@ def artifact_state(slug: str, name: str, upstream: dict | None) -> dict:
     status = fields.get("status", "")
     approved_hash = fields.get("approved_hash", "")
     based_on = fields.get("based_on", "")
-    current = content_hash(text)
-    changed = name != "review" and status in APPROVED_STATUSES and approved_hash != current
+    current = approval_hash(name, text, based_on)
+    changed = name != "review" and status in APPROVED_STATUSES and not is_current_approval(name, approved_hash, text, based_on)
     stale = False
     if upstream is not None and name in UPSTREAM:
         upstream_hash = upstream["approved_hash"] or ""
@@ -358,6 +394,8 @@ def artifact_state(slug: str, name: str, upstream: dict | None) -> dict:
             or upstream["stale"]
             or (bool(based_on) and based_on != upstream_hash)
         )
+    if name == "design" and status == "skipped":
+        stale = bool(uncovered_surfaces(slug, fields))
     return {
         "exists": True,
         "status": status,
@@ -376,24 +414,33 @@ def count_markers(slug: str) -> int:
     return sum(1 for line in found[2].splitlines() if MARKER in line)
 
 
+def design_is_open(design: dict) -> bool:
+    """A design blocks planning while requested, or approved or skipped but no longer current."""
+    if not design["exists"]:
+        return False
+    return design["status"] not in ("approved", "skipped") or design["changed"] or design["stale"]
+
+
 def derive_phase(states: dict, markers: int) -> tuple[str, str | None]:
     """The phase and skill for the current state, per the table in section 4."""
-    spec, plan, tasks, review = (states[name] for name in ARTIFACTS)
+    spec, design, plan, tasks, review = (states[name] for name in ARTIFACTS)
     if not spec["exists"] or spec["status"] != "approved" or spec["changed"] or markers:
         return "1. Outline", "sdd-outline"
+    if design_is_open(design):
+        return "2. Design", "sdd-design"
     if not plan["exists"] or plan["status"] != "approved" or plan["changed"] or plan["stale"]:
-        return "2. Plan", "sdd-plan"
+        return "3. Plan", "sdd-plan"
     if (
         not tasks["exists"]
         or tasks["status"] not in APPROVED_STATUSES
         or tasks["changed"]
         or tasks["stale"]
     ):
-        return "3. Tasks", "sdd-task"
+        return "4. Tasks", "sdd-task"
     if tasks["status"] in ("approved", "in-progress"):
-        return "4. Implement", "sdd-implement"
+        return "5. Implement", "sdd-implement"
     if not review["exists"] or review["status"] != "accepted":
-        return "5. Validate", "sdd-review"
+        return "6. Validate", "sdd-review"
     return "Done", None
 
 
@@ -401,7 +448,7 @@ def chain_states(slug: str) -> dict[str, dict]:
     """Every artifact's state, each computed against its upstream so staleness propagates."""
     states: dict[str, dict] = {}
     for name in ARTIFACTS:
-        upstream = states.get(UPSTREAM.get(name, ""))
+        upstream = states.get(upstream_of(slug, name)) if name in UPSTREAM else None
         states[name] = artifact_state(slug, name, upstream)
     return states
 
@@ -636,6 +683,57 @@ def lint_requirements(lint: Lint, body: str, offset: int) -> None:
                 lint.error("%s has no Acceptance line" % rid, line)
 
 
+UI_SURFACE_LINE = re.compile(r"^- ([^\s:]*)(:?)")
+UI_SURFACE_ID = re.compile(r"^UI-\d{3}$")
+
+
+def ui_surface_lines(body: str) -> list[tuple[str, bool, int]]:
+    """(leading word, whether a colon follows it, body line) for each top-level bullet under `## UI surfaces`."""
+    section = find_section(sections(body), "UI surfaces")
+    if not section:
+        return []
+    heading_line, lines = section
+    found: list[tuple[str, bool, int]] = []
+    for index, line in enumerate(lines, start=1):
+        match = UI_SURFACE_LINE.match(line)
+        if match:
+            found.append((match.group(1), bool(match.group(2)), heading_line + index))
+    return found
+
+
+def spec_ui_surface_ids(slug: str) -> list[str]:
+    """The well-formed UI IDs the spec lists, in order and once each."""
+    found = read_artifact(slug, "spec")
+    if not found:
+        return []
+    ids = [surface_id for surface_id, _, _ in ui_surface_lines(found[1]) if UI_SURFACE_ID.match(surface_id)]
+    return list(dict.fromkeys(ids))
+
+
+def uncovered_surfaces(slug: str, design_fields: dict[str, str]) -> list[str]:
+    """The spec's UI IDs a skipped design's `surfaces` does not list."""
+    covered = set(split_list(design_fields.get("surfaces", "")))
+    return [surface_id for surface_id in spec_ui_surface_ids(slug) if surface_id not in covered]
+
+
+def lint_ui_surfaces(lint: Lint, body: str, offset: int) -> None:
+    seen: dict[str, int] = {}
+    for surface_id, has_colon, body_line in ui_surface_lines(body):
+        line = body_line + offset
+        if not surface_id.startswith("UI-"):
+            lint.error("bullet under UI surfaces does not start with a UI ID (expected `- UI-001: ...`)", line)
+            continue
+        if not UI_SURFACE_ID.match(surface_id):
+            lint.error("malformed UI surface id %s (expected UI-001)" % surface_id, line)
+            continue
+        if not has_colon:
+            lint.error("UI surface %s has no colon after its ID (expected `- %s: ...`)" % (surface_id, surface_id), line)
+        if surface_id in seen:
+            lint.error("duplicate UI surface id %s (first at line %d)" % (surface_id, seen[surface_id]), line)
+            continue
+        seen[surface_id] = line
+
+
 def lint_spec(slug: str) -> Lint:
     lint = Lint("spec.md")
     found = read_artifact(slug, "spec")
@@ -655,6 +753,7 @@ def lint_spec(slug: str) -> Lint:
         lint_description(lint, text, fields["description"])
     lint_summary(lint, section_map, offset)
     lint_requirements(lint, body, offset)
+    lint_ui_surfaces(lint, body, offset)
     lint_placeholders(lint, "spec", text)
     for number, line in enumerate(text.splitlines(), start=1):
         if MARKER in line:
@@ -691,7 +790,7 @@ def lint_placeholders(lint: Lint, name: str, text: str) -> None:
 
 def upstream_check(lint: Lint, slug: str, name: str) -> dict | None:
     """Require the upstream artifact to exist, be approved, be unchanged and not be stale."""
-    upstream_name = UPSTREAM[name]
+    upstream_name = upstream_of(slug, name)
     state = chain_states(slug)[upstream_name]
     if not state["exists"]:
         lint.error("%s.md is missing" % upstream_name)
@@ -765,8 +864,8 @@ def lint_plan(slug: str) -> Lint:
     for title in template_headings("plan"):
         if not find_section(section_map, title):
             lint.error('missing section "%s"' % title)
-    spec_state = upstream_check(lint, slug, "plan")
-    lint_based_on(lint, text, fields, spec_state, "spec")
+    upstream_state = upstream_check(lint, slug, "plan")
+    lint_based_on(lint, text, fields, upstream_state, upstream_of(slug, "plan"))
     _, active = spec_requirement_ids(slug)
     lint_traceability(lint, section_map, offset, active)
     lint_placeholders(lint, "plan", text)
@@ -885,7 +984,34 @@ def lint_review(slug: str) -> Lint:
     return lint
 
 
-LINTERS = {"spec": lint_spec, "plan": lint_plan, "tasks": lint_tasks, "review": lint_review}
+DESIGN_STATUSES = ("requested", "approved", "skipped")
+
+
+def lint_design(slug: str) -> Lint:
+    lint = Lint("design.md")
+    found = read_artifact(slug, "design")
+    if not found:
+        lint.error("design.md is missing")
+        return lint
+    fields, body, text = found
+    for key in template_fields("design"):
+        if key not in fields:
+            lint.error('missing frontmatter field "%s"' % key)
+    section_map = sections(body)
+    for title in template_headings("design"):
+        if not find_section(section_map, title):
+            lint.error('missing section "%s"' % title)
+    status = fields.get("status", "")
+    if status not in DESIGN_STATUSES:
+        lint.error("status %r is not one of %s" % (status, ", ".join(DESIGN_STATUSES)), frontmatter_line(text, "status"))
+    spec_state = upstream_check(lint, slug, "design")
+    if status != "skipped":
+        lint_based_on(lint, text, fields, spec_state, "spec")
+    lint_placeholders(lint, "design", text)
+    return lint
+
+
+LINTERS = {"spec": lint_spec, "design": lint_design, "plan": lint_plan, "tasks": lint_tasks, "review": lint_review}
 
 
 def run_lint(slug: str, names: list[str]) -> tuple[list[Lint], bool]:
@@ -916,12 +1042,21 @@ def cmd_lint(args: argparse.Namespace) -> int:
 
 # --- approval and status changes --------------------------------------------
 
+DESIGN_RECORD_FIELDS = ("link", "version", "read")
+
+
+def require_design_record(fields: dict[str, str]) -> None:
+    """A design is approved only once the artifact it names has been read into the snapshot."""
+    missing = [key for key in DESIGN_RECORD_FIELDS if not fields.get(key)]
+    if missing:
+        raise Refusal("design.md has no %s; record the design before approving it" % ", ".join(missing))
+
 
 @command(
     "approve",
     "Record the user's approval of an artifact (run only after they approve in the conversation)",
     (["slug"], {}),
-    (["artifact"], {"choices": ["spec", "plan", "tasks"]}),
+    (["artifact"], {"choices": ["spec", "design", "plan", "tasks"]}),
 )
 def cmd_approve(args: argparse.Namespace) -> int:
     slug, name = args.slug, args.artifact
@@ -933,12 +1068,60 @@ def cmd_approve(args: argparse.Namespace) -> int:
     if lint.errors:
         raise Refusal("lint reported errors; fix them before approving %s.md" % name)
     fields, body, text = found
-    updates = {"status": "approved", "approved_hash": content_hash(text), "updated": today()}
+    if name == "design":
+        require_design_record(fields)
+    updates = {"status": "approved", "updated": today()}
     if name in UPSTREAM:
-        upstream = artifact_state(slug, UPSTREAM[name], None)
+        upstream = artifact_state(slug, upstream_of(slug, name), None)
         updates["based_on"] = upstream["approved_hash"] or ""
+    updates["approved_hash"] = approval_hash(name, text, updates.get("based_on", ""))
     write_artifact(slug, name, set_frontmatter(text, updates))
     print("%s.md approved; approved_hash %s" % (name, updates["approved_hash"]))
+    return 0
+
+
+DESIGN_TRANSITIONS = {
+    "requested": {"requested", "skipped", "approved"},
+    "skipped": {"requested", "skipped"},
+}
+
+
+def new_design_text(slug: str) -> str:
+    title = "%s design" % read_artifact(slug, "spec")[0].get("title", title_from_slug(slug))
+    text = set_frontmatter(template("design"), {"title": title, "slug": slug})
+    return re.sub(r"^# .*$", "# " + title, text, count=1, flags=re.MULTILINE)
+
+
+REREQUEST_CLEARED_FIELDS = DESIGN_RECORD_FIELDS + ("design_system", "approved_hash", "decided_by", "surfaces")
+
+
+def set_design_status(slug: str, status: str) -> int:
+    """Record a design request or skip against the approved spec, creating design.md when absent."""
+    if status not in DESIGN_TRANSITIONS:
+        raise Refusal("design.md cannot be set to %r; allowed: %s" % (status, ", ".join(DESIGN_TRANSITIONS)))
+    spec = artifact_state(slug, "spec", None)
+    if spec["status"] != "approved" or spec["changed"]:
+        raise Refusal("spec.md must be approved and unchanged since approval before a design is %s" % status)
+    surfaces = spec_ui_surface_ids(slug)
+    found = read_artifact(slug, "design")
+    if not found and not surfaces:
+        raise Refusal("spec.md lists no UI surface, so it takes no design")
+    if found:
+        current = found[0].get("status", "")
+        if current not in DESIGN_TRANSITIONS[status]:
+            raise Refusal(
+                "design.md is %r; it must be %s before %s"
+                % (current, " or ".join(sorted(DESIGN_TRANSITIONS[status])), status)
+            )
+    text = found[2] if found else new_design_text(slug)
+    updates = {"status": status, "based_on": spec["approved_hash"], "updated": today()}
+    if status == "skipped":
+        updates["decided_by"] = git("config", "user.name") or ""
+        updates["surfaces"] = ", ".join(surfaces)
+    if status == "requested":
+        updates.update(dict.fromkeys(REREQUEST_CLEARED_FIELDS, ""))
+    write_artifact(slug, "design", set_frontmatter(text, updates))
+    print("design.md is now %s" % status)
     return 0
 
 
@@ -951,12 +1134,14 @@ TRANSITIONS = {
 
 @command(
     "set-status",
-    "Move tasks.md to in-progress or done, or review.md to accepted",
+    "Record a design request or skip, move tasks.md to in-progress or done, or review.md to accepted",
     (["slug"], {}),
-    (["artifact"], {"choices": ["tasks", "review"]}),
+    (["artifact"], {"choices": ["design", "tasks", "review"]}),
     (["status"], {}),
 )
 def cmd_set_status(args: argparse.Namespace) -> int:
+    if args.artifact == "design":
+        return set_design_status(args.slug, args.status)
     key = (args.artifact, args.status)
     if key not in TRANSITIONS:
         allowed = ", ".join(status for artifact, status in TRANSITIONS if artifact == args.artifact)
@@ -992,9 +1177,10 @@ def cmd_set_status(args: argparse.Namespace) -> int:
 
 APPENDICES = (
     ("A", "Spec template", "spec"),
-    ("B", "Plan template", "plan"),
-    ("C", "Tasks template", "tasks"),
-    ("D", "Review report template", "review"),
+    ("B", "Design record template", "design"),
+    ("C", "Plan template", "plan"),
+    ("D", "Tasks template", "tasks"),
+    ("E", "Review report template", "review"),
 )
 FENCE = re.compile(r"^(`{3,})markdown\s*$")
 

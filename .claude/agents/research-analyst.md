@@ -1,6 +1,6 @@
 ---
 name: research-analyst
-description: Background evidence fetcher for spec-driven planning. Dispatched by the sdd-plan skill to answer one scoped research question with sourced claims while the conversation continues. Not a general-purpose agent; expects a brief supplying the question, why the session needs it, the source order, pinned Context7 library IDs when the repo's CLAUDE.md lists them, and a scope bound.
+description: Background evidence fetcher for spec-driven planning and brand research. Dispatched by the sdd-plan skill, and by design-init for a claim about competitors or market conventions, to answer one scoped research question with sourced claims while the conversation continues. Not a general-purpose agent; expects a brief supplying the question, why the session needs it, the source order, pinned Context7 library IDs when the repo's CLAUDE.md lists them, and a scope bound.
 tools: WebSearch, WebFetch, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: sonnet
 ---

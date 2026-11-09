@@ -10,17 +10,17 @@ Evidence grades: **studied** (a published study or primary vendor documentation)
 - OpenAI's own image-model prompting documentation recommends concrete material/texture/medium language and short labeled segments over adjective-heavy prose (OpenAI Cookbook), **studied** (primary vendor docs).
 - Named style/brand anchors ("in the style of A24 posters") carry more specific meaning than generic adjectives and narrow model output better (Lummi), **thin**, but consistent with the above.
 - Negative prompts describing undesired characteristics measurably improve generative output quality (arXiv 2403.07605, diffusion-model scope), **studied**, adjacent evidence: image models, not LLM text consumption. This is the empirical backing for the Do's and Don'ts section's weight.
-- Free-text prompting alone produced generic, brand-nonspecific creative; structured inputs, separate branding, audience, and inspiration-board panels, improved brand alignment (arXiv 2504.14320, 6-participant formative study), **studied**, low-N. This is the backing for both the structured doc and the mood-board gate.
+- Free-text prompting alone produced generic, brand-nonspecific creative; structured inputs, separate branding, audience, and inspiration-board panels, improved brand alignment (arXiv 2504.14320, 6-participant formative study), **studied**, low-N. This is the backing for both the structured doc and reading the mood board when one is present.
 - Shipped past-work examples steer output harder than trait lists (Superside), **practitioner**; the basis for the one-exemplar-per-context rule in Voice & Copy.
 - No NN/g, Baymard, or Material/Polaris/Carbon guidance exists on writing brand guidelines for LLM consumption; the field is agency/vendor-tier only, and no controlled study ranks adjectives vs anchors vs tokens vs negative constraints as steering devices. Every ranking claim above is graded accordingly, **literature gap, stated so it is not mistaken for settled science**.
 
 ## Mood boards in brand derivation
 
 - NN/g warns that boards loaded with product screenshots collapse into competitive-reference boards and prematurely focus on concrete outcomes; boards stay at mood/tone/color/texture altitude (NN/g, "Mood Boards in UX"), **studied** (primary practitioner source). This is the anti-imitation rule in the curation guidance.
-- The style-tile lineage (Samantha Warren, 2012; still the taught method) treats the mood board as deliberately vague scaffolding distilled into progressively concrete artifacts, **practitioner**, decade-plus adoption. This is the distill-and-set-aside method the gate implements.
+- The style-tile lineage (Samantha Warren, 2012; still the taught method) treats the mood board as deliberately vague scaffolding distilled into progressively concrete artifacts, **practitioner**, decade-plus adoption. This is the distill-and-set-aside method `design-init` applies to the board when one is present.
 - NN/g's competing framing treats mood boards as persistent references consulted throughout, **studied**; the literature never reconciles the two. `design-init` follows the style-tile reading because its runtime consumer generates code and copy, which distilled text steers, not images; the board persists in `docs/design/moodboard/` only as provenance, and the finished doc never references it.
 - Shipped-product references (Mobbin, real apps) translate to working products; Dribbble's polished unshipped mockups are harder to translate, **thin**. Hence the split: Dribbble for mood, shipped products for Reference Anchors.
-- Committed images of others' work are copyrighted; a private repo holding them for internal reference is common practice, a public repo is redistribution; public repos gitignore `docs/design/moodboard/` so the board stays local at the path the gate checks.
+- Committed images of others' work are copyrighted; a private repo holding them for internal reference is common practice, a public repo is redistribution; public repos gitignore `docs/design/moodboard/` so the board stays local at the path `design-init` reads it from.
 
 ## Structural decisions this produced
 

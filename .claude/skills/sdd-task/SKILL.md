@@ -1,36 +1,36 @@
 ---
 name: sdd-task
-description: Break an approved plan into tasks.md. One observable behavior per task with its requirements, seam, files and done-when check, grouped into slices that each end in a close-out. Use when the user says "write the tasks", "break this down", "sdd tasks", or a plan is approved and needs a task list. Phase 3 of spec-driven development, section 9 of .claude/sdd/spec-driven-development.md.
+description: Break an approved plan into tasks.md. One observable behavior per task with its requirements, seam, files and done-when check, grouped into slices that each end in a close-out. Use when the user says "write the tasks", "break this down", "sdd tasks", or a plan is approved and needs a task list. Phase 4 of spec-driven development, section 10 of .claude/sdd/spec-driven-development.md.
 argument-hint: "[slug]"
 allowed-tools: Bash(.claude/sdd/bin/sdd *)
 ---
 
-# SDD Tasks (phase 3)
+# SDD Tasks (phase 4)
 
 Break the approved plan into tasks a red-green loop can build one at a time.
-The rules live in section 9 (Tasks) of `.claude/sdd/spec-driven-development.md`; this file is only the procedure.
+The rules live in section 10 (Tasks) of `.claude/sdd/spec-driven-development.md`; this file is only the procedure.
 Where the two differ, the document wins.
 
 Arguments: `$ARGUMENTS`, an optional slug.
 
 ## Preconditions
 
-- `.claude/sdd/bin/sdd status <slug> --json` reports `phase` `3. Tasks`: the plan is approved, unchanged since approval and not stale.
-- An earlier phase: stop, tell the user the phase and the skill `status` names, and do no other phase's work.
-  A later phase means the tasks are approved or in progress: ask whether the user wants to revise them (section 13 (Changing course)), warn that re-approval pauses implementation, and continue only on yes.
+- `.claude/sdd/bin/sdd status <slug> --json` reports `phase` `4. Tasks`: the plan is approved, unchanged since approval and not stale.
+- An earlier phase, `2. Design` included: stop, tell the user the phase and the skill `status` names (`sdd-design` for a design that is requested, changed or stale), and do no other phase's work.
+  A later phase means the tasks are approved or in progress: ask whether the user wants to revise them (section 14 (Changing course)), warn that re-approval pauses implementation, and continue only on yes.
 - A `tasks.md` that already exists is revised or resumed.
   Keep task IDs stable; never renumber.
   A stale task list is refreshed against the re-approved plan: revise the affected tasks, set `based_on` to the plan's new `approved_hash`, then lint.
 
 ## Start (section 4 (The workflow), start protocol)
 
-1. Read sections 1–5 of the document once per session, then section 9 (Tasks).
+1. Read sections 1–5 of the document once per session, then section 10 (Tasks).
 2. Resolve the slug: the argument, else `.claude/sdd/bin/sdd find`, else list the folders it prints and ask.
 3. Run `.claude/sdd/bin/sdd status <slug> --json` and check the preconditions.
    Note the plan's `approved_hash`.
 4. Load only what this phase needs: the project context (section 6 (Project principles and context)); the commands `CLAUDE.md` names, or the ones the `tdd` discovery in `.claude/skills/tdd/references/discover.md` finds for this repo, which supply the commands for `Done when`; the approved plan in full; and from the spec only the requirement IDs, user scenarios and acceptance criteria.
 
-## Steps (section 9 (Tasks), Task shape and Rules)
+## Steps (section 10 (Tasks), Task shape and Rules)
 
 1. **Draft `tasks.md`** from `.claude/sdd/templates/tasks.md` into `docs/sdd/<slug>/tasks.md`. Set `title` and the H1 from the spec's title, `slug`, `updated`, and `based_on` to the plan's `approved_hash`.
    Replace or delete every `<...>` placeholder, since lint reports any that remain.
