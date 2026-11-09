@@ -14,6 +14,9 @@ Work only from the brief and the repository; you cannot see the conversation, an
 
 - Run `.claude/sdd/bin/sdd status <slug> --json` from the repository root and read your slice in `docs/sdd/<slug>/tasks.md`.
 - Per task, load its requirements from `spec.md`, the `plan.md` sections it touches, and its seam; load the whole spec set only when it is small.
+- When a task builds a surface that an approved `docs/sdd/<slug>/design.md` records by UI ID, read that surface's lines under Artboards and the matching `*.dc.html` files under `docs/sdd/<slug>/design/`, with any PNG beside them.
+  Build the surface from the project's tokens and components, using the artboards as the reference for layout, flow and states rather than copying their markup.
+  Build nothing `design.md` lists under Not built, since the user excluded it at the design gate, and build an Accepted miss from the design system without a mockup.
 - Read `CLAUDE.md` for the project's rules and commands.
 - Read the code at every touch point before writing anything, and find the consumers of any shared symbol you will change.
 

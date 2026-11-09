@@ -41,6 +41,10 @@ Independent test: <how this slice is verified on its own>
 
 ...
 
+## UI surfaces
+
+- UI-001: <screen, page, view, component or email template> (<new or edited>)
+
 ## Requirements
 
 ### Functional

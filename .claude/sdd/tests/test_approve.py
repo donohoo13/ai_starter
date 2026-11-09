@@ -64,6 +64,36 @@ class ApproveTests(SddCase):
         self.assertNotEqual(old, new)
         self.assertFalse(self.status_json()["artifacts"]["spec"]["changed"])
 
+    def test_approving_a_recorded_design_records_its_hash_and_the_spec_hash(self):
+        spec_hash = self.approve_ui_spec()
+        self.request_design()
+        self.record_design()
+        code, out, err = self.run_sdd("approve", SLUG, "design")
+        self.assertEqual(code, 0, out + err)
+        fields = self.frontmatter("design")
+        self.assertEqual(fields["status"], "approved")
+        self.assertEqual(fields["approved_hash"], self.cli.content_hash(self.read_artifact("design")))
+        self.assertEqual(fields["based_on"], spec_hash)
+
+    def test_a_design_with_an_unfilled_template_is_not_approved(self):
+        self.approve_ui_spec()
+        self.request_design()
+        self.set_fields("design", link="https://claude.ai/artifact/abc123", version="v7", read="2026-11-09")
+        code, out, err = self.run_sdd("approve", SLUG, "design")
+        self.assertEqual(code, 1)
+        self.assertIn("unfilled template placeholder", out)
+        self.assertEqual(self.frontmatter("design")["status"], "requested")
+
+    def test_a_design_missing_its_link_version_or_read_is_not_approved(self):
+        self.approve_ui_spec()
+        self.request_design()
+        for missing in ("link", "version", "read"):
+            self.record_design(**{missing: ""})
+            code, out, err = self.run_sdd("approve", SLUG, "design")
+            self.assertEqual(code, 1, missing)
+            self.assertIn(missing, err)
+            self.assertEqual(self.frontmatter("design")["status"], "requested")
+
     def test_missing_artifact_is_a_refusal(self):
         self.write_spec()
         code, out, err = self.run_sdd("approve", SLUG, "plan")
@@ -97,7 +127,7 @@ class SetStatusTests(SddCase):
         code, out, err = self.run_sdd("set-status", SLUG, "tasks", "done")
         self.assertEqual(code, 0, err)
         self.assertEqual(self.frontmatter("tasks")["status"], "done")
-        self.assertEqual(self.status_json()["phase"], "5. Validate")
+        self.assertEqual(self.status_json()["phase"], "6. Validate")
 
     def test_review_moves_to_accepted(self):
         self.approve_chain("tasks")
@@ -149,4 +179,4 @@ class StaleUpstreamTests(SddCase):
         code, out, err = self.run_sdd("approve", SLUG, "plan")
         self.assertEqual(code, 0, out + err)
         self.assertFalse(self.status_json()["artifacts"]["plan"]["stale"])
-        self.assertEqual(self.status_json()["phase"], "3. Tasks")
+        self.assertEqual(self.status_json()["phase"], "4. Tasks")

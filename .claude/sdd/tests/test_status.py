@@ -26,7 +26,7 @@ class StatusPhaseTests(SddCase):
         self.write_spec()
         self.mark_approved("spec")
         data = self.status_json()
-        self.assertEqual(data["phase"], "2. Plan")
+        self.assertEqual(data["phase"], "3. Plan")
         self.assertEqual(data["skill"], "sdd-plan")
         self.assertFalse(data["artifacts"]["plan"]["exists"])
 
@@ -52,7 +52,7 @@ class StatusPhaseTests(SddCase):
         self.mark_approved("plan")
         data = self.status_json()
         self.assertTrue(data["artifacts"]["plan"]["stale"])
-        self.assertEqual(data["phase"], "2. Plan")
+        self.assertEqual(data["phase"], "3. Plan")
 
     def test_approved_plan_without_tasks_is_tasks(self):
         self.write_spec()
@@ -60,7 +60,7 @@ class StatusPhaseTests(SddCase):
         self.write_plan(based_on=spec_hash)
         self.mark_approved("plan")
         data = self.status_json()
-        self.assertEqual(data["phase"], "3. Tasks")
+        self.assertEqual(data["phase"], "4. Tasks")
         self.assertEqual(data["skill"], "sdd-task")
 
     def chain_to_tasks(self):
@@ -74,7 +74,7 @@ class StatusPhaseTests(SddCase):
     def test_approved_or_in_progress_tasks_is_implement_with_progress(self):
         self.chain_to_tasks()
         data = self.status_json()
-        self.assertEqual(data["phase"], "4. Implement")
+        self.assertEqual(data["phase"], "5. Implement")
         self.assertEqual(data["skill"], "sdd-implement")
         self.assertEqual(data["tasks"], {"done": 0, "total": 2, "next": "T001 Render a thumbnail for each attachment in the invoice PDF"})
         self.set_fields("tasks", status="in-progress")
@@ -82,7 +82,7 @@ class StatusPhaseTests(SddCase):
         text = text.replace("  - Done when: `pnpm test -- tests/invoices/pdf.test.ts` passes\n", "  - Done when: `pnpm test -- tests/invoices/pdf.test.ts` passes\n  - Evidence: 4 examples, 0 failures\n")
         self.write_artifact("tasks", text)
         data = self.status_json()
-        self.assertEqual(data["phase"], "4. Implement")
+        self.assertEqual(data["phase"], "5. Implement")
         self.assertFalse(data["artifacts"]["tasks"]["changed"])
         self.assertEqual(data["tasks"]["done"], 1)
         self.assertEqual(data["tasks"]["next"], "T002 Render a placeholder when a attachment file is missing")
@@ -102,7 +102,7 @@ class StatusPhaseTests(SddCase):
         self.chain_to_tasks()
         self.set_fields("tasks", status="done")
         data = self.status_json()
-        self.assertEqual(data["phase"], "5. Validate")
+        self.assertEqual(data["phase"], "6. Validate")
         self.assertEqual(data["skill"], "sdd-review")
 
     def test_open_review_is_validate_and_accepted_review_is_done(self):
@@ -110,7 +110,7 @@ class StatusPhaseTests(SddCase):
         self.set_fields("tasks", status="done")
         self.write_artifact("review", REVIEW_TEMPLATE)
         data = self.status_json()
-        self.assertEqual(data["phase"], "5. Validate")
+        self.assertEqual(data["phase"], "6. Validate")
         self.set_fields("review", status="accepted")
         data = self.status_json()
         self.assertEqual(data["phase"], "Done")
@@ -122,7 +122,7 @@ class StatusPhaseTests(SddCase):
         self.write_artifact("tasks", self.read_artifact("tasks").replace("Render a placeholder", "Render a grey box"))
         data = self.status_json()
         self.assertTrue(data["artifacts"]["tasks"]["changed"])
-        self.assertEqual(data["phase"], "3. Tasks")
+        self.assertEqual(data["phase"], "4. Tasks")
 
     def test_slug_defaults_to_the_current_branch(self):
         self.write_spec()
@@ -153,4 +153,4 @@ class VerifiedElsewhereHashTests(SddCase):
         self.assertFalse(self.status_json()["artifacts"]["tasks"]["changed"])
         self.write_artifact("tasks", self.read_artifact("tasks").replace("measured by the load test in CI", "measured by a soak test once a quarter"))
         self.assertTrue(self.status_json()["artifacts"]["tasks"]["changed"])
-        self.assertEqual(self.status_json()["phase"], "3. Tasks")
+        self.assertEqual(self.status_json()["phase"], "4. Tasks")

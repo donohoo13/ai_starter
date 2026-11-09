@@ -14,84 +14,97 @@ Every task that edits `CLAUDE.md`, a `README.md`, a `docs/standards/` file or th
 
 ## P1: Approve a design before planning
 
-- [ ] T001 Generate the design record template from a new Appendix B and scan `sdd-design` in `check-refs`
+- [x] T001 Generate the design record template from a new Appendix B and scan `sdd-design` in `check-refs`
   - Requirements: FR-001
   - Seam: the helper CLI through `helpers.py`'s in-process runner
   - Files: .claude/sdd/bin/sdd, .claude/sdd/spec-driven-development.md, .claude/sdd/templates/design.md, .claude/sdd/tests/helpers.py, .claude/sdd/tests/test_templates.py
   - Done when: `test_templates.py` passes with sync writing five templates including `design.md` from Appendix B and the plan, tasks and review templates from Appendices C, D and E, and `check-refs` listing `sdd-design` among its scanned skills; the helper battery passes
-- [ ] T002 Define the Design phase in the SDD document and renumber the phases and sections everywhere they are cited
+  - Evidence: `python3 -m unittest discover -s .claude/sdd/tests -p test_templates.py` Ran 8 tests OK (red first: sync refused "Appendix B (Plan template) not found", sdd-design ref unchecked); `sdd templates sync` wrote design.md; helper battery all 3 checks passed
+- [x] T002 Define the Design phase in the SDD document and renumber the phases and sections everywhere they are cited
   - Requirements: FR-001, FR-004
   - Seam: skill and document text, checked by `check-refs`
   - Files: .claude/sdd/spec-driven-development.md, .claude/sdd/README.md, .claude/skills/sdd-outline/SKILL.md, .claude/skills/sdd-plan/SKILL.md, .claude/skills/sdd-task/SKILL.md, .claude/skills/sdd-implement/SKILL.md, .claude/skills/sdd-review/SKILL.md, .claude/skills/sdd-outline/references/adversarial-review.md, .claude/skills/sdd-review/references/conformance-review.md
   - Depends on: T001
   - Done when: the helper battery passes; section 8 is Phase 2: Design (`sdd-design`) with steps, prompt, snapshot, misses, gaps and gate; sections 4 and 5 list `2. Design` and `design.md`; every skill precondition cites the renumbered label; `grep -rn "phase \`2. Plan\`\|phase \`5. Validate\`" .claude/skills` prints nothing
-- [ ] T003 Add the UI surfaces section to the spec template and reject malformed or duplicate UI IDs in spec lint
+  - Evidence: helper battery all 3 checks passed (check-refs 47 references, 0 mismatched); section 8 holds State, Steps, The prompt, The snapshot, Misses and gaps, Gate; sections 4 and 5 list `2. Design` and `design.md`; preconditions cite `3. Plan`, `4. Tasks`, `5. Implement`, `6. Validate` and name `sdd-design` for `2. Design`; the grep printed nothing (exit 1)
+- [x] T003 Add the UI surfaces section to the spec template and reject malformed or duplicate UI IDs in spec lint
   - Requirements: FR-007
   - Seam: the helper CLI through `helpers.py`'s in-process runner
   - Files: .claude/sdd/bin/sdd, .claude/sdd/spec-driven-development.md, .claude/sdd/templates/spec.md, .claude/sdd/tests/test_lint_spec.py, .claude/sdd/tests/helpers.py
   - Depends on: T001
   - Done when: `test_lint_spec.py` passes with cases for a valid `- UI-001: Settings screen (new)` line, a malformed ID and a duplicate ID; the regenerated spec template carries `## UI surfaces`; the helper battery passes
-- [ ] T004 Record a design request, skip or approval in `design.md` through `set-status` and `approve`, linted
+  - Evidence: `python3 -m unittest discover -s .claude/sdd/tests -p test_lint_spec.py` Ran 15 tests OK (red first: malformed and duplicate cases exited 0); `.claude/sdd/templates/spec.md` gained `## UI surfaces`; helper battery all 3 checks passed
+- [x] T004 Record a design request, skip or approval in `design.md` through `set-status` and `approve`, linted
   - Requirements: FR-002, FR-024
   - Seam: the helper CLI through `helpers.py`'s in-process runner
   - Files: .claude/sdd/bin/sdd, .claude/sdd/tests/test_design.py, .claude/sdd/tests/test_approve.py, .claude/sdd/tests/helpers.py
   - Depends on: T001, T003
   - Done when: `test_design.py` and `test_approve.py` pass with cases for `set-status design requested` creating `design.md`, `set-status design skipped` recording `decided_by`, `surfaces` and `based_on`, `approve design` refusing on a lint error or a missing `link`, `version` or `read`, and approval recording `approved_hash` and `based_on`
-- [ ] T005 Report `2. Design` while a design is requested, changed or stale, and the renumbered labels otherwise
+  - Evidence: `test_design.py` Ran 8 tests OK and `test_approve.py` Ran 16 tests OK (red first: argparse rejected `design` for set-status and approve); cases cover request creating design.md, skip recording decided_by/surfaces/based_on, refusal on an unfilled placeholder and on each missing link/version/read, and approval recording approved_hash and based_on
+- [x] T005 Report `2. Design` while a design is requested, changed or stale, and the renumbered labels otherwise
   - Requirements: FR-003, FR-004, FR-005
   - Seam: the helper CLI through `helpers.py`'s in-process runner
   - Files: .claude/sdd/bin/sdd, .claude/sdd/tests/test_status.py, .claude/sdd/tests/test_design.py
   - Depends on: T004
   - Done when: `test_status.py` passes with only its phase labels renumbered, and `test_design.py` passes with a `requested` design reporting `2. Design` and `sdd-design`, and a `skipped` design reporting `3. Plan`
-- [ ] T006 Make the plan build on an approved design, so a later design approval or design change stales the plan and tasks
+  - Evidence: `test_status.py` Ran 14 tests OK with only phase labels renumbered (test_approve.py's two labels too); `test_design.py` Ran 14 tests OK with requested reporting `2. Design`/`sdd-design`, skipped and approved reporting `3. Plan`, changed or stale approved design back at `2. Design`, no design.md at `3. Plan` (red first: KeyError 'design' and '2. Plan' labels)
+- [x] T006 Make the plan build on an approved design, so a later design approval or design change stales the plan and tasks
   - Requirements: FR-006
   - Seam: the helper CLI through `helpers.py`'s in-process runner
   - Files: .claude/sdd/bin/sdd, .claude/sdd/tests/test_design.py
   - Depends on: T005
   - Done when: `test_design.py` passes with a re-approved design staling the plan and tasks, a design approved after the plan staling the plan, and plan approval recording the design's `approved_hash` as `based_on`
-- [ ] T007 Re-offer design when a re-approved spec lists a UI ID the skip does not cover
+  - Evidence: `test_design.py` Ran 18 tests OK: re-approved design stales plan and tasks, design approved after the plan stales it, plan approval records the design's approved_hash, a stale plan refreshes against it (red first: plan based_on held the spec hash and stale was False)
+- [x] T007 Re-offer design when a re-approved spec lists a UI ID the skip does not cover
   - Requirements: FR-011
   - Seam: the helper CLI through `helpers.py`'s in-process runner
   - Files: .claude/sdd/bin/sdd, .claude/sdd/tests/test_design.py
   - Depends on: T005
   - Done when: `test_design.py` passes with a skip covering `UI-001` and a re-approved spec adding `UI-002` reporting `2. Design`, and a re-approved spec with no new ID reporting `3. Plan`
-- [ ] T008 Write the `sdd-design` skill that acts on `design.md`'s state: request, skip, cancel, record, re-check and approve, each staged on the user's word
+  - Evidence: `test_design.py` Ran 21 tests OK: skip covering UI-001 plus re-approved spec adding UI-002 reports `2. Design`, a re-approved spec with no new ID reports `3. Plan`, a second skip covers both (red first: the no-new-ID case reported the skip stale)
+- [x] T008 Write the `sdd-design` skill that acts on `design.md`'s state: request, skip, cancel, record, re-check and approve, each staged on the user's word
   - Requirements: FR-010, FR-012, FR-013, FR-019, FR-024, FR-025, INV-001, INV-002
   - Seam: skill and document text, checked by `check-refs`
   - Files: .claude/skills/sdd-design/SKILL.md
   - Depends on: T002, T004
   - Done when: the helper battery passes; reading it meets each listed requirement's acceptance criterion, including no `/design` invocation and no artifact publish
-- [ ] T009 Write the design prompt template
+  - Evidence: helper battery all 3 checks passed (check-refs 53 references across 13 files, sdd-design included); SKILL.md covers Request (FR-013), Skip or cancel (FR-010), staging and a proposed commit after each (FR-012), Revise the prompt (FR-019), Approve refused while a miss or gap is open (FR-024), Re-check (FR-025), never invoking `/design` or publishing (INV-001), every write on the user's word (INV-002)
+- [x] T009 Write the design prompt template
   - Requirements: FR-014, FR-015, FR-016, FR-017, FR-018, INV-004
   - Seam: skill and document text
   - Files: .claude/skills/sdd-design/references/design-prompt.md
   - Depends on: T008
   - Done when: reading it meets each listed acceptance criterion; `grep -n "—" .claude/skills/sdd-design/references/design-prompt.md` prints nothing
-- [ ] T010 Write the record procedure: read the link, save the snapshot, list artboards, and put each miss and gap to the user
+  - Evidence: the em-dash grep printed nothing (exit 1); the template stands alone with no path, command or tool name (FR-014), carries goal, audience, every UI surface with its states and requirement IDs, widths and non-goals in product terms (FR-015), asks for two or three directions on a named primary screen then one titled artboard per screen and state (FR-016), covers the three DESIGN.md cases with no token restated beside a link (FR-017), states the WCAG 2.2 AA floors, the three deferred values and the no-em-dash copy rule (FR-018), and bars secrets, credentials, PII and restricted material (INV-004)
+- [x] T010 Write the record procedure: read the link, save the snapshot, list artboards, and put each miss and gap to the user
   - Requirements: FR-020, FR-021, FR-022, FR-023
   - Seam: skill and document text
   - Files: .claude/skills/sdd-design/references/record-design.md
   - Depends on: T008
   - Done when: reading it meets each listed acceptance criterion and covers the edge cases for an unreadable link, no Artifact tool, another owner's artifact, an unexpected file layout and a mismatched design system
-- [ ] T011 Have `sdd-outline` write the UI surfaces section and offer `sdd-design` or record a skip at its finish
+  - Evidence: record-design.md reads the link, lists and fetches `project/canvas.json`, every `project/*.dc.html` and `tokens.json`, deletes earlier artboards before saving (FR-020), records link, read, version, design_system and one artboard line per file with its PNG (FR-021), asks revise-or-accept per miss (FR-022) and add-or-exclude per gap with `sdd-outline` routing (FR-023), and stops with no snapshot for an unreadable link, no Artifact tool, another owner's artifact and an unexpected layout, asking on a mismatched design system; prettier passes
+- [x] T011 Have `sdd-outline` write the UI surfaces section and offer `sdd-design` or record a skip at its finish
   - Requirements: FR-008, INV-002
   - Seam: skill and document text
   - Files: .claude/skills/sdd-outline/SKILL.md, .claude/sdd/spec-driven-development.md
   - Depends on: T003, T004
   - Done when: reading the skill and section 7 meets FR-008's acceptance criterion; the helper battery passes
-- [ ] T012 Have `sdd-plan` ask about design for an undecided UI spec and load an approved design into Affected code and Traceability
+  - Evidence: sdd-outline's Draft step writes UI surfaces and its Finish names each listed surface, offers `sdd-design` with `sdd-plan` as the alternative, records a skip only on the user's word through `set-status design skipped` with name, date and covered surfaces, and names only `sdd-plan` with no design.md when no surface is listed; section 7's Gate says the same (FR-008, INV-002); helper battery all 3 checks passed
+- [x] T012 Have `sdd-plan` ask about design for an undecided UI spec and load an approved design into Affected code and Traceability
   - Requirements: FR-009, FR-026
   - Seam: skill and document text
   - Files: .claude/skills/sdd-plan/SKILL.md, .claude/sdd/spec-driven-development.md
   - Depends on: T004
   - Done when: reading the skill and the Plan section meets both acceptance criteria; the helper battery passes
-- [ ] T013 Have the `implementer` read a designed surface's artboards and skip what `design.md` records as not built
+  - Evidence: sdd-plan's Preconditions ask run-or-skip for a UI spec with no design.md and record a skip with name, date and covered surfaces before planning (FR-009); Start loads an approved design.md, `based_on` follows the design's approved_hash, and Fill Traceability names the components per designed surface by UI ID and plans nothing under Not built (FR-026); section 9 gains Settle the design and the Affected code and Traceability rules; helper battery all 3 checks passed
+- [x] T013 Have the `implementer` read a designed surface's artboards and skip what `design.md` records as not built
   - Requirements: FR-027
   - Seam: agent text
   - Files: .claude/agents/implementer.md
   - Depends on: T010
   - Done when: the Load section names `design.md` and the matching artboard files for a task on a designed surface and the not-built list; the process battery passes
-- [ ] P1 close: full suite green, changes staged by explicit path, slice verified and committed
+  - Evidence: implementer.md's Load section directs a task on a designed surface to `design.md`'s Artboards lines and the matching `*.dc.html` files, building from the project's tokens and components and nothing under Not built (FR-027); `pnpm exec node scripts/test/process-suite.battery.mjs` all process-suite checks passed
+- [x] P1 close: full suite green, changes staged by explicit path, slice verified and committed
 
 ## P2: Opt into render checks when the build starts
 

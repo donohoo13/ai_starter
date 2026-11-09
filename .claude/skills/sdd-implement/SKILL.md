@@ -1,14 +1,14 @@
 ---
 name: sdd-implement
-description: Orchestrate the build of an approved tasks.md, one slice at a time, each by a fresh implementer agent. Dispatch the slice with a pointer-only brief, bring the agent's blocking questions to the user, verify its work independently, and commit each verified slice, keeping tasks.md current so a later session can resume. Use when the user says "implement the tasks", "build the spec", "sdd implement", "resume implementation", or tasks are approved and ready to build. Phase 4 of spec-driven development, section 10 of .claude/sdd/spec-driven-development.md.
+description: Orchestrate the build of an approved tasks.md, one slice at a time, each by a fresh implementer agent. Dispatch the slice with a pointer-only brief, bring the agent's blocking questions to the user, verify its work independently, and commit each verified slice, keeping tasks.md current so a later session can resume. Use when the user says "implement the tasks", "build the spec", "sdd implement", "resume implementation", or tasks are approved and ready to build. Phase 5 of spec-driven development, section 11 of .claude/sdd/spec-driven-development.md.
 argument-hint: "[slug]"
 allowed-tools: Bash(.claude/sdd/bin/sdd *)
 ---
 
-# SDD Implement (phase 4)
+# SDD Implement (phase 5)
 
 This session orchestrates and `implementer` agents build, each slice in a fresh context that never saw the planning conversation, so the build follows the approved artifacts rather than this session's memory of how they came about.
-The rules live in section 10 (Implement) of `.claude/sdd/spec-driven-development.md`; this file is only the procedure.
+The rules live in section 11 (Implement) of `.claude/sdd/spec-driven-development.md`; this file is only the procedure.
 Where the two differ, the document wins.
 
 Arguments: `$ARGUMENTS`, an optional slug.
@@ -31,12 +31,13 @@ Never take the next step until the report is in; when it has not arrived, end th
 
 ## Preconditions
 
-- `.claude/sdd/bin/sdd status <slug> --json` reports `phase` `4. Implement`: tasks approved or in progress, unchanged since approval and not stale.
+- `.claude/sdd/bin/sdd status <slug> --json` reports `phase` `5. Implement`: tasks approved or in progress, unchanged since approval and not stale.
 - Anything else: stop, tell the user the phase and the skill `status` names, and do no other phase's work.
+  A design requested mid-build reports `2. Design`: stop and name `sdd-design`, since the plan and tasks go stale once that design is approved.
 
 ## Start (section 4 (The workflow), start protocol)
 
-1. Read sections 1–5 of the document once per session, then section 10 (Implement).
+1. Read sections 1–5 of the document once per session, then section 11 (Implement).
 2. Resolve the slug: the argument, else `.claude/sdd/bin/sdd find`, else list the folders it prints and ask.
 3. Run `.claude/sdd/bin/sdd status <slug> --json` and check the preconditions.
 4. Load the project context (section 6 (Project principles and context)), the full-suite commands `CLAUDE.md` names or the `tdd` discovery in `.claude/skills/tdd/references/discover.md` finds, and `tasks.md`.
@@ -47,7 +48,7 @@ Never take the next step until the report is in; when it has not arrived, end th
 6. **Uncommitted changes** found now are listed for the user with two options: hand them to a fresh `implementer` to continue the resume slice, or set them aside by hand before you go on.
    Never stash, reset or discard them yourself, since they may hold work nobody else has.
 
-## Steps (section 10 (Implement), Steps)
+## Steps (section 11 (Implement), Steps)
 
 1. **Check the branch.**
    The spec's `branch` field names the feature branch.

@@ -27,7 +27,7 @@ The first token is the slug when it contains a hyphen or names an existing `docs
 1. Read sections 1–5 of the document once per session, then section 7 (Outline).
 2. Resolve the slug: the argument; else `.claude/sdd/bin/sdd find`; else, on a feature branch, the branch name in kebab-case (section 5 (Working files)); else list the folders `find` prints and, when none fits, propose a short kebab-case slug and confirm it.
 3. Run `.claude/sdd/bin/sdd status <slug> --json`.
-   When a spec exists and `phase` is later than `1. Outline`, the spec is approved: ask whether the user wants to revise it (section 13 (Changing course)), warn that the plan and tasks go stale, and continue only on yes.
+   When a spec exists and `phase` is later than `1. Outline`, the spec is approved: ask whether the user wants to revise it (section 14 (Changing course)), warn that the plan and tasks go stale, and continue only on yes.
 4. Create the folder when it is missing.
    On the default branch or another shared branch, propose `feature/<slug>` (the `<type>/<kebab-slug>` convention in `CLAUDE.md`) and record it: `.claude/sdd/bin/sdd init <slug> --branch <name>`.
    Otherwise `.claude/sdd/bin/sdd init <slug>`.
@@ -51,6 +51,7 @@ The first token is the slug when it contains a hyphen or names an existing `docs
 4. **Draft `spec.md`** in place, keeping the frontmatter `init` wrote.
    Follow section 7 (Outline) for the description, summary, requirements, scenarios, invariants and existing behavior.
    Delete every placeholder you do not fill, including the sample clarification line under Open questions, and drop the optional sections the sections table does not call for; lint reports every `<...>` placeholder left from the template as an error.
+   List every screen, page, view, component or email template the change creates or edits under UI surfaces, as section 7 (Outline) describes, since the design offer at the finish and the later skills read that list; leave the section out when there is none.
    When revising an approved spec, add a dated entry under Changelog with the reason.
 5. **Check it.**
    Run the spec readiness checklist from section 7 (Outline) and `.claude/sdd/bin/sdd lint <slug> spec`.
@@ -72,9 +73,13 @@ The first token is the slug when it contains a hyphen or names an existing `docs
 3. Only after the user approves in the conversation, run `.claude/sdd/bin/sdd approve <slug> spec`.
    Never approve on their behalf.
    Then stage `docs/sdd/<slug>/spec.md` by explicit path and propose a commit message in the repo's convention; the user commits.
-4. Name `sdd-plan` as the next skill.
-   Do not start it unless the user said to run end to end.
+4. Name the next skill.
+   When the UI surfaces section lists a surface, name each listed surface and offer `sdd-design` for a Claude Design mockup before planning, with `sdd-plan` as the alternative.
+   When the user skips the design, run `.claude/sdd/bin/sdd set-status <slug> design skipped`, which records their git `user.name`, the date and the surfaces the skip covers; write their reason under `design.md`'s Skip reason and "None" under every other section, then stage `docs/sdd/<slug>/design.md` by explicit path and propose a commit message.
+   Record a skip only on the user's word, never by default.
+   When the spec lists no UI surface, name `sdd-plan` only and write no `design.md`.
+   Do not start the next skill unless the user said to run end to end.
 
 ## Next
 
-`sdd-plan`, with `docs/sdd/<slug>/` as the handoff.
+`sdd-design` when the spec lists a UI surface and the user wants a design, otherwise `sdd-plan`, with `docs/sdd/<slug>/` as the handoff.

@@ -80,6 +80,9 @@ Independent test: <how this slice is verified on its own>
 ### P2: <story title>
 ...
 
+## UI surfaces
+- UI-001: <screen, page, view, component or email template> (<new or edited>)
+
 ## Requirements
 ### Functional
 - FR-001: When <trigger>, the system shall <behavior>.
@@ -252,8 +255,42 @@ updated: YYYY-MM-DD
 - <item>
 """
 
+DESIGN_TEMPLATE = """---
+title: <Feature name> design
+slug: <slug>
+status: requested
+updated: YYYY-MM-DD
+based_on:
+approved_hash:
+decided_by:
+surfaces:
+link:
+version:
+read:
+design_system:
+---
+
+# <Feature name> design
+
+## Prompt
+<The design prompt exactly as shown to the user, or "None" for a skip.>
+
+## Artboards
+- <file>: <UI ID> <screen> / <state>; <requirement IDs>; <PNG file, or no PNG>
+
+## Accepted misses
+- <UI ID> <state>: <requirement IDs>; built from the design system without a mockup
+
+## Not built
+- <screen, control or state the design shows>: <why it is left out of this build>
+
+## Skip reason
+<Why the design was skipped or cancelled, or "None".>
+"""
+
 TEMPLATES = {
     "spec": SPEC_TEMPLATE,
+    "design": DESIGN_TEMPLATE,
     "plan": PLAN_TEMPLATE,
     "tasks": TASKS_TEMPLATE,
     "review": REVIEW_TEMPLATE,
@@ -261,24 +298,26 @@ TEMPLATES = {
 
 
 def fixture_doc(templates=None):
-    """A small stand-in for the SDD document: numbered headings plus the four appendices."""
+    """A small stand-in for the SDD document: numbered headings plus the five appendices."""
     templates = templates or TEMPLATES
     headings = [
         "## 1. What spec-driven development is",
         "## 4. The workflow",
         "## 7. Phase 1: Outline (`sdd-outline`)",
-        "## 8. Phase 2: Plan (`sdd-plan`)",
-        "## 9. Phase 3: Tasks (`sdd-task`)",
-        "## 10. Phase 4: Implement (`sdd-implement`)",
-        "## 11. TDD discipline (`tdd`)",
-        "## 12. Phase 5: Validate (`sdd-review`)",
+        "## 8. Phase 2: Design (`sdd-design`)",
+        "## 9. Phase 3: Plan (`sdd-plan`)",
+        "## 10. Phase 4: Tasks (`sdd-task`)",
+        "## 11. Phase 5: Implement (`sdd-implement`)",
+        "## 12. TDD discipline (`tdd`)",
+        "## 13. Phase 6: Validate (`sdd-review`)",
     ]
     body = "# Spec-Driven Development\n\n" + "\n\nText.\n\n".join(headings) + "\n\nText.\n\n"
     appendices = [
         ("A", "Spec template", templates["spec"]),
-        ("B", "Plan template", templates["plan"]),
-        ("C", "Tasks template", templates["tasks"]),
-        ("D", "Review report template", templates["review"]),
+        ("B", "Design record template", templates["design"]),
+        ("C", "Plan template", templates["plan"]),
+        ("D", "Tasks template", templates["tasks"]),
+        ("E", "Review report template", templates["review"]),
     ]
     for letter, title, text in appendices:
         body += "## Appendix %s: %s\n\n````markdown\n%s````\n\n" % (letter, title, text)
@@ -423,6 +462,31 @@ approved_hash:
 - None yet
 """
 
+def with_ui_surfaces(spec_text, *lines):
+    """The spec with a UI surfaces section listing each line, placed before Requirements."""
+    section = "## UI surfaces\n" + "".join("%s\n" % line for line in lines) + "\n"
+    return spec_text.replace("## Requirements\n", section + "## Requirements\n", 1)
+
+
+RECORDED_DESIGN_BODY = """
+# Invoice thumbnails design
+
+## Prompt
+Design the invoice thumbnail settings screen for finance reviewers.
+
+## Artboards
+- Settings.dc.html: UI-001 Settings / default; FR-001; no PNG
+
+## Accepted misses
+- None
+
+## Not built
+- None
+
+## Skip reason
+None
+"""
+
 TASKS_VERIFIED_ELSEWHERE = VALID_TASKS.replace(
     "  - Requirements: FR-001, NFR-001", "  - Requirements: FR-001"
 ).replace(
@@ -554,6 +618,32 @@ class SddCase(unittest.TestCase):
         self.write_tasks()
         code, out, err = self.run_sdd("approve", SLUG, "tasks")
         assert code == 0, err
+
+    def approve_ui_spec(self, *surfaces):
+        """Write and approve a spec listing UI surfaces, by default one settings screen; returns its hash."""
+        surfaces = surfaces or ("- UI-001: Settings screen (new)",)
+        self.write_spec(with_ui_surfaces(VALID_SPEC % {"slug": SLUG, "branch": BRANCH}, *surfaces))
+        code, out, err = self.run_sdd("approve", SLUG, "spec")
+        assert code == 0, out + err
+        return self.frontmatter("spec")["approved_hash"]
+
+    def request_design(self):
+        code, out, err = self.run_sdd("set-status", SLUG, "design", "requested")
+        assert code == 0, out + err
+
+    def record_design(self, **fields):
+        """Fill a requested design as `sdd-design` does after reading the artifact: the body, then the read fields."""
+        text = self.read_artifact("design")
+        frontmatter_end = text.index("\n---\n", 4) + len("\n---\n")
+        self.write_artifact("design", text[:frontmatter_end] + RECORDED_DESIGN_BODY)
+        recorded = {
+            "link": "https://claude.ai/artifact/abc123",
+            "version": "v7",
+            "read": "2026-11-09",
+            "design_system": "none",
+        }
+        recorded.update(fields)
+        self.set_fields("design", **recorded)
 
     def frontmatter(self, name, slug=SLUG):
         return self.cli.parse_frontmatter(self.read_artifact(name, slug))[0]
