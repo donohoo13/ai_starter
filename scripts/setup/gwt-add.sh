@@ -7,7 +7,8 @@ set -euo pipefail
 # env files, runs pnpm install, and opens the worktree in Zed. The in-repo
 # location is the harness's default worktree home, so EnterWorktree needs no
 # extra approval prompt; .gitignore and .prettierignore both exclude it.
-# --no-open skips the editor launch (scripted/AI invocations, e.g. sdd-implement).
+# --no-open skips the editor launch (scripted/AI invocations, e.g. sdd-outline).
+# A worktree `sdd worktree <branch>` already made at that path is adopted.
 
 no_open=0
 if [[ "${1:-}" == "--no-open" ]]; then
@@ -56,6 +57,11 @@ else
   if git rev-parse --verify --quiet "refs/heads/$branch" >/dev/null; then
     echo "Branch $branch already exists — attaching worktree to it."
     git worktree add "$target" "$branch" "$@"
+  elif git rev-parse --verify --quiet "refs/remotes/origin/$branch" >/dev/null; then
+    # `-b` alone would cut an unrelated branch of the same name from HEAD and
+    # strand the pushed one, so a start point passed in "$@" is not used here.
+    echo "Branch $branch exists on origin — checking it out to track it."
+    git worktree add "$target" --track -b "$branch" "origin/$branch"
   else
     git worktree add "$target" -b "$branch" "$@"
   fi
@@ -89,7 +95,7 @@ fi
 echo "Installing dependencies..."
 # A worktree without node_modules cannot build or test, so a failed install is a
 # failed worktree — not a warning to print under a success banner. Callers
-# (sdd-implement, CI) branch on this exit code; reporting 0 here sends them off
+# (the sdd skills, CI) branch on this exit code; reporting 0 here sends them off
 # to run tests in an empty tree and blame their own changes for the failures.
 if ! (cd "$target" && pnpm install); then
   # %q-quote every interpolated value: git accepts shell metacharacters in

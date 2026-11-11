@@ -109,6 +109,13 @@ In a project created from the template, this file is template residue: delete it
   - `sdd-review` compares against `origin/<base>` when the remote has that branch, as `render-check` already did.
   - The template's own specs under `docs/sdd/` are removed, and the folder is kept with a `.gitkeep`.
   - Journal entries are abridged: an `answer` records what the user decided and why in a line or two, not their words, since the journal is committed with the spec.
+  - One spec is one branch and one worktree from its first artifact.
+    `sdd-outline`, started on the base or another shared branch, makes the spec's branch and a worktree for it before it writes the spec, in a shared and a private repository alike, and moves the session there; every later phase works in that worktree, and `sdd-implement` builds in it instead of creating a branch.
+    The new `sdd worktree <branch> [--base <name>] [--path <dir>]` does the git: it reports a branch some worktree already has checked out and creates nothing, gives a local branch a worktree, fetches a branch only the remote has and checks it out tracking it, and otherwise cuts the branch from the remote's copy of the base, tracking nothing.
+    The worktree is `.claude/worktrees/<branch>` in the main checkout, slashes as dashes, kept out of that checkout's `git status` through `.git/info/exclude` when no ignore rule covers it, or the directory `--path` names.
+    `sdd init` refuses on the base of a shared repository, and `sdd status` and `sdd find`, run in a checkout that does not hold a shared repository's spec, refuse and name the worktree that holds it or the branch that commits it.
+    `scripts/setup/gwt-add.sh` adopts the worktree the helper made to copy the local files and install dependencies, and, given a branch only `origin` has, checks it out tracking it instead of cutting a new branch of that name from `HEAD`.
+    Section 5 of the SDD document holds the rules, including how a session moves into the worktree with Claude Code's `EnterWorktree` tool and without it, and section 14 says how an abandoned spec's worktree and branch are cleared.
 - **Why**: the design restructure gets better results from design sessions.
   Role-named tokens and component bindings give a building session exact values to compose from instead of prose to interpret, and the linter catches broken references and contrast failures before a surface ships.
   `DESIGN.md` is the filename the format's spec and tooling use, and the skill that fills it now carries the same name.
@@ -138,6 +145,9 @@ In a project created from the template, this file is template residue: delete it
   The machine kit leaves because one Mac's setup is personal, not project payload, and a dedicated dotfiles repository now carries it.
   A task added to a built slice was never built, because `sdd-implement` resumes at the first unchecked close-out, yet it kept `tasks.md` from reaching `done`; and an accepted review survived every later change, so a rebuilt run read as done without a second review and pull request feedback had no phase to go to.
   The template's own two specs leave because they predate the recorded base and the review dispositions, and a new project should not inherit another project's specs.
+  `sdd-outline` wrote, approved and staged a shared repository's spec on whatever branch it started on, usually the base, because `sdd init --branch` only recorded the feature branch's name and `sdd-implement` created the branch four gates later.
+  The pre-commit hook refused each gate commit on the base, a repository without that hook took the commit there, and the worktree `sdd-implement` then cut from the base held none of the staged files, so `sdd status` in it found no spec; up to four approvals sat uncommitted on the wrong branch of one machine.
+  `gwt-add.sh` cut a new branch from `HEAD` when the branch existed only on the remote, so a spec pushed from one machine would have been forked, not picked up, on another.
 - **Adaptation notes**:
   - A `docs/specs/*.md` spec in flight finishes under the old skills before taking this release, or is outlined again with `sdd-outline` into `docs/sdd/<slug>/`; nothing migrates it.
   - A project that edited `sdd-implement` reapplies its edits to the orchestrator, or to `implementer` when they concerned how a task is built.
@@ -197,6 +207,12 @@ In a project created from the template, this file is template residue: delete it
     A `tasks.md` already approved with an unchecked task under a checked close-out fails `sdd lint` at the QA step of `sdd-implement`: uncheck that close-out and resume.
     A project that edited `sdd-review`, `sdd-task` or `sdd-implement` merges the Reopen section and the revised resume and revision lines by hand, then runs `.claude/sdd/bin/sdd check-refs`.
   - `docs/sdd/` ships with only a `.gitkeep`: a project that wants its own specs committed keeps that file, and one that kept the template's two example specs deletes them by hand.
+  - A spec outlined before its branch existed has no worktree, and `sdd-implement` makes the branch at its next start, asking first.
+    In a private repository it runs `sdd worktree <branch> --base <base>`.
+    In a shared repository the spec's files sit in the checkout they were outlined in, so it runs `git switch -c <branch>` there, which carries uncommitted files along, and has the user commit the staged artifacts before the first dispatch; where earlier gate commits landed on a local base, the new branch carries them and moving the base back is the user's.
+    A session started in the main checkout of a shared repository now gets a refusal from `sdd status <slug>` that names the spec's worktree, where it used to read the spec as missing.
+    A project that keeps worktrees outside `.claude/worktrees/` says where in its context file, and the skills pass that as `--path`; one with its own worktree script names it in place of `scripts/setup/gwt-add.sh` in `sdd-outline`, `sdd-implement` and section 5 of the SDD document, and one with none deletes that line.
+    A project that edited `sdd-outline`, `sdd-implement` or the SDD document merges the branch steps by hand, then runs `.claude/sdd/bin/sdd check-refs`.
 
 ## v0.2.0 — 2026-10-22
 

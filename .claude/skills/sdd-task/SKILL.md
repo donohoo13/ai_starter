@@ -28,6 +28,7 @@ Arguments: `$ARGUMENTS`, an optional slug.
 1. Read sections 1–5 of the document once per session, then section 10 (Tasks).
 2. Resolve the slug: the argument, else `.claude/sdd/bin/sdd find`, else list the folders it prints and ask.
 3. Run `.claude/sdd/bin/sdd status <slug> --json` and check the preconditions.
+   When it refuses because the spec is in another worktree, or on a branch no worktree has checked out, this session started outside the spec's worktree: move into it as the refusal says (section 5 (Working files), The branch and its worktree), then run `status` again there.
    Note the plan's `approved_hash`.
    Note `folder` and `mode` too (section 5 (Working files)): every spec file is read and written under `folder`, the spec folder's absolute path, which in a private repository is the main checkout's and can sit outside the current directory.
 4. Load only what this phase needs: the project context (section 6 (Project principles and context)); the commands `CLAUDE.md` names, or the ones the `tdd` discovery in `.claude/skills/tdd/references/discover.md` finds for this repo, which supply the commands for `Done when`; the approved plan in full; and from the spec only the requirement IDs, user scenarios and acceptance criteria.

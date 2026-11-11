@@ -29,6 +29,7 @@ That includes code, tests, docs, the task boxes and Evidence lines in `tasks.md`
 When something needs changing, dispatch or resume an agent for it.
 
 Every agent this session dispatches or resumes is waited on, because the next step acts on its report.
+When this session works in the spec's worktree without having moved into it, because it has no `EnterWorktree` tool, every brief also names the worktree's path as the directory the agent works in, since an agent starts where the session started.
 Never take the next step until the report is in; when it has not arrived, end the turn and resume from the report when it does.
 
 ## The journal (section 5 (Working files))
@@ -81,6 +82,7 @@ When it is `private`, git ignores the spec folder so that it stays out of the re
 1. Read sections 1–5 of the document once per session, then section 11 (Implement).
 2. Resolve the slug: the argument, else `.claude/sdd/bin/sdd find`, else list the folders it prints and ask.
 3. Run `.claude/sdd/bin/sdd status <slug> --json` and check the preconditions.
+   When it refuses because the spec is in another worktree, or on a branch no worktree has checked out, this session started outside the spec's worktree: move into it as Steps, step 1 does, making it first with the `.claude/sdd/bin/sdd worktree <branch>` the refusal names when it names one, and run `status` again there.
 4. Load the project context (section 6 (Project principles and context)), the full-suite commands `CLAUDE.md` names or the `tdd` discovery in `.claude/skills/tdd/references/discover.md` finds, and `tasks.md`.
    Load no more of the spec and plan than a question in front of you needs; the agents load their own.
 5. **Find the resume point.**
@@ -102,9 +104,23 @@ When it is `private`, git ignores the spec folder so that it stays out of the re
 1. **Check the branch.**
    The spec's `branch` field names the feature branch and its `base` field the branch that one is cut from and merges back into; `status` reports both.
    When it reports no base, record the one git detects before going on, `.claude/sdd/bin/sdd set-base <slug>`, and ask the user for the branch only when that refuses.
-   On the feature branch: continue.
-   On the base or another shared branch: propose creating the spec's branch from the base, ask, then create it, through `scripts/setup/gwt-add.sh --no-open <branch> <base>` and the EnterWorktree tool when this checkout should stay on the branch it is on, leaving off `<base>`, the start point, when the branch already exists; if the user picks another name, set the spec's `branch` field to it (frontmatter sits outside the content hash, so the spec stays approved).
+   On the spec's branch: continue.
+   `sdd-outline` made that branch and its worktree before it wrote the spec (section 5 (Working files), The branch and its worktree), so the build runs where the spec was written and this step creates nothing.
+   On the base or another shared branch, take the case that applies:
+   - `mode` `private`, and `git worktree list` shows a worktree on the spec's branch: this session started outside it, so move into it and ask nothing.
+   - `mode` `private`, and no worktree has the branch: the spec was outlined before its branch existed.
+     Propose `.claude/sdd/bin/sdd worktree <branch> --base <base>`, ask, then run it; it checks out the local branch, else the remote's, tracking it, else cuts a new one from the base, and prints the worktree's path.
+     When the repository has `scripts/setup/gwt-add.sh`, run `scripts/setup/gwt-add.sh --no-open <branch>` next, which adopts that worktree, copies the local env and settings files into it and installs its dependencies, then move into the worktree.
+   - `mode` `shared`: `status` read the spec from this checkout, so its files are here, committed or not, and a worktree cut from the base would hold none of them.
+     Propose making the branch in this checkout instead, ask, then run `git switch -c <branch>`, or `git switch <branch>` when it exists; both carry uncommitted files along.
+     Then stage each spec file `git status` still lists by explicit path, propose its commit and wait for the user to make it, since gate artifacts are theirs to commit.
+     When the base itself holds spec commits its remote lacks, say so: the new branch carries them, and moving the base back is the user's call.
+
+   Moving into a worktree means the `EnterWorktree` tool with its `path` where the session has that tool, and otherwise running every later command with that directory as its working directory and reading and writing files by absolute path under it.
+   If the user picks another branch name, set the spec's `branch` field to it (frontmatter sits outside the content hash, so the spec stays approved).
    On a different feature branch: ask whether to switch to the spec's branch or record the current one the same way.
+   Before the first dispatch, make sure the checkout can build: a worktree made without the repository's worktree script has no dependencies, so install them with the repo's install command, and ask the user before copying an untracked local file, such as an env file, from the main checkout.
+
 2. **Mark in progress**: `.claude/sdd/bin/sdd set-status <slug> tasks in-progress` (a no-op when already in progress).
    When this or step 1 changed `tasks.md` or `spec.md` in a shared repository, stage those files by explicit path and commit them before the first dispatch, so every later diff holds only an agent's work.
 3. **Settle render checks** when the spec's `## UI surfaces` section lists a UI ID that `tasks.md`'s `render_check_asked` frontmatter key does not, whether this is the first start or a resume after slices were committed, since a spec re-approved mid-build can add a surface.

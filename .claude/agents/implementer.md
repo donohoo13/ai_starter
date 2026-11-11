@@ -12,7 +12,7 @@ Work only from the brief and the repository; you cannot see the conversation, an
 
 ## Load
 
-- Run `.claude/sdd/bin/sdd status <slug> --json` from the repository root.
+- Run `.claude/sdd/bin/sdd status <slug> --json` from the root of the checkout you work in: the directory you start in, or the worktree your brief names, where every command you run then belongs.
   Its `folder` is the spec folder's absolute path: read and edit `tasks.md`, `spec.md`, `plan.md` and `design.md` there and nowhere else, since in a private repository the folder is the main checkout's and sits outside a worktree.
   Read your slice in `tasks.md`.
 - Per task, load its requirements from `spec.md`, the `plan.md` sections it touches, and its seam; load the whole spec set only when it is small.

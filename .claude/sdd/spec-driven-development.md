@@ -33,9 +33,10 @@ Every SDD skill points into it.
 | `tdd`           | Used by phases 5 and 6, and on its own | 12      | Red-green discipline for any change a test can lock down                                     |
 | `sdd-review`    | 6. Validate                            | 13      | Prove the branch meets the spec, review it, and prepare the PR                               |
 
-The helper `.claude/sdd/bin/sdd`, run from the repository root, keeps state and the mechanical checks out of the skills' hands: `init`, `find`, `status`, `hash`, `lint`, `approve`, `set-status`, `journal`, `uncommitted`, `templates sync` and `check-refs`.
+The helper `.claude/sdd/bin/sdd`, run from the root of the checkout the session works in, keeps state and the mechanical checks out of the skills' hands: `init`, `worktree`, `find`, `status`, `hash`, `lint`, `approve`, `set-status`, `journal`, `uncommitted`, `templates sync` and `check-refs`.
 It checks structure and state, not quality.
 It also decides which folder holds a spec's files and whether git tracks them (section 5), so every skill takes a spec file's path from `sdd status` and none builds one by hand.
+It makes each spec's branch and worktree too (section 5), so no skill spells out the git for that.
 
 ---
 
@@ -225,6 +226,8 @@ Checking off tasks in `tasks.md`, the `- Evidence:` note under a task, and the F
 2. **Read the state** with `sdd status <slug>`.
    It also reports the spec folder's path and the repository's mode, shared or private (section 5).
    Read and write every spec file through that path, since the folder is not always under the current directory, and follow the mode wherever a step stages or commits a spec file.
+   A shared repository keeps a spec in its own worktree, so the helper refuses when the session started anywhere else, and names the worktree that holds the spec, or the branch that commits it when no worktree has that branch checked out.
+   Move the session into that worktree, making it first with the `sdd worktree <branch>` the refusal names (section 5), then read the state again.
 3. **Check this phase's preconditions.**
    If they aren't met, stop.
    Tell the user which phase the work is actually in and which skill to run.
@@ -238,8 +241,9 @@ Checking off tasks in `tasks.md`, the `- Evidence:` note under a task, and the F
    Ask for approval.
 3. **Record approval only when the user gives it,** with `sdd approve <slug> <artifact>` for the spec, design, plan and tasks, and `sdd set-status <slug> review accepted` for the review.
    Then, in a shared repository, stage that artifact by explicit path (`git add <spec folder>/<artifact>.md`) and propose a commit message in the repo's convention; the user commits.
+   The commit belongs on the spec's branch, so when the session works in a worktree, say where it runs (`git -C <worktree> commit`), since the user's own shell may sit in another checkout.
    In a private repository stage nothing and propose no commit: the file records the approval.
-4. **Name the next skill.**
+4. **Name the next skill,** and the worktree to run it in when the session works in one.
    Recommend a fresh session before `sdd-implement`.
    The files in the spec folder are the handoff.
 
@@ -297,7 +301,8 @@ docs/sdd/<slug>/
     Wherever a step stages or commits a spec file, leave that part out: a gate records its approval in the file alone, a commit that would hold only spec files is not made, and a commit of code is made without them.
 - **Slug** is a short kebab-case name for the change.
   It defaults to the current feature branch name.
-  When Outline starts on a shared branch, record the intended feature branch with `sdd init <slug> --branch <name>`; `sdd-implement` creates it, and `sdd find` matches the spec to that branch from then on.
+- **Branch** is the feature branch the change is built on, recorded in the spec's `branch` field, and `sdd find` matches a spec to the checkout whose branch it names.
+  Outline makes it, in a worktree of its own, before it writes the spec (The branch and its worktree, below).
 - **Base** is the branch the feature branch is cut from and merges back into.
   Git decides it and nobody is asked: `sdd init` records the remote's default branch in the spec's `base` field, read from the `origin/HEAD` this clone records and, when that is missing, from the remote itself.
   Only when both fail does the session ask the user, and `sdd set-base <slug> <branch>` records the answer; that command, or `sdd init --base <name>`, also names the base of work that does not build on the remote's default branch.
@@ -309,6 +314,50 @@ docs/sdd/<slug>/
   Every `<...>` placeholder in a template is filled or deleted before approval; `sdd lint` reports any that remain, in every artifact including `review.md`.
 - **Lifetime.**
   The folder stays after the merge as the record of the change; delete it only when the user asks.
+
+### The branch and its worktree
+
+One spec is one feature branch and one worktree, from its first artifact to its merge.
+Outline makes both before it writes the spec, every later phase works in that worktree, and Implement builds there.
+A shared repository needs this: its spec files are committed, and written on the base they could only be committed there or left uncommitted on one machine, where a worktree made later would not hold them.
+On the spec's own branch each gate's commit lands where the pull request carries it, can be pushed, and can be picked up from another clone.
+A private repository commits no spec file and takes the same flow, so the skills hold one procedure: the worktree gives the spec a branch `sdd find` matches in every later session, leaves the main checkout on the base, and no later phase has to move.
+
+- **When.**
+  Outline that starts on a feature branch of this work's own, in the main checkout or in a worktree, uses that checkout as it is.
+  Outline that starts anywhere else, on the base, on another shared branch that other work also merges into, or on a branch that belongs to other work, makes the branch and the worktree and moves into it before `sdd init`.
+  In a shared repository `sdd init` refuses on the base.
+  Outside git there is no branch, and `sdd init` writes the folder under the current directory.
+- **Name.**
+  The branch takes the form the repository's context file (`CLAUDE.md` or `AGENTS.md`) states for branches, and is `feature/<slug>` where it states none.
+- **Making it.**
+  `sdd worktree <branch>` checks the branch out in a worktree of its own and prints the worktree's path, so no skill spells out `git branch` or `git worktree add` for a new spec.
+  It never forks a branch that exists: one some worktree already has checked out is reported and nothing is created, a local one gets a worktree, and one only the remote has is fetched and checked out tracking it.
+  Otherwise it cuts the branch from the base, from the remote's copy when the remote has the base, since a local copy can lag or hold commits the remote lacks, and the new branch tracks nothing until the user pushes it.
+  The base is the remote's default branch, the one `sdd init` then records, or the `--base <name>` both commands take.
+- **Where.**
+  A repository whose context file says where its worktrees live gets that directory, passed as `--path <dir>`.
+  Otherwise the worktree is `.claude/worktrees/<branch>` in the main checkout, with the slashes of the branch name as dashes.
+  That folder is inside the project, where an agent's session is already allowed to write, and it is where Claude Code keeps its own worktrees, the one place its `EnterWorktree` tool accepts from a session that is already inside a worktree.
+  The helper keeps it out of the main checkout's `git status` through the local exclude file when no ignore rule covers it.
+- **Setting it up.**
+  A new worktree holds only tracked files.
+  When the repository has a script that prepares one, run it once the worktree exists: `scripts/setup/gwt-add.sh --no-open <branch>` adopts the worktree at that path, copies the local env and settings files into it and installs its dependencies.
+  Without such a script nothing more is needed until Implement, which installs dependencies before its first dispatch (section 11).
+- **Moving in.**
+  With Claude Code's `EnterWorktree` tool, pass the worktree's `path`.
+  Without it, as under Codex, a session cannot change its own directory: run every later command with the worktree as its working directory, through the shell tool's working-directory setting or `cd <path> &&` at the head of the command, and read and write files by their absolute path under it.
+  The helper and git both act on the checkout they run in, so nothing else changes for the session itself.
+  An agent it dispatches starts where the session started, so its brief names the worktree as the directory to work in.
+  Tell the user the branch and the path, since their own shell and editor stay where they were, and a later phase is simplest started in the worktree.
+- **Later sessions** start in the worktree or are moved into it.
+  In a shared repository no other checkout holds the spec, so `sdd status` and `sdd find` run anywhere else refuse and say where it is (section 4).
+- **Another machine.**
+  A spec whose commits were pushed is picked up in a clone that has fetched them: `sdd worktree <branch>` checks the branch out tracking the remote, and the next skill runs there.
+- **Afterwards.**
+  The worktree and the branch outlive the session, and nothing in the chain removes either.
+  After the merge the user removes the worktree, with the repository's own script when it has one (`scripts/setup/gwt-remove.sh <branch>`), otherwise with `git worktree remove <path>` and `git branch -d <branch>`.
+  An abandoned spec is cleared the same way (section 14).
 
 ### The journal
 
@@ -393,9 +442,11 @@ Anything you can learn by reading the code, standard language conventions, tutor
 1. **Size the change** (section 3).
    If it's trivial or small, say so and recommend `tdd` instead.
    Continue only if the user wants the chain.
-2. **Create the working folder** with `sdd init <slug>` if it doesn't exist, adding `--branch <name>` when you are not on the feature branch yet (section 5).
-   `init` records the base from git (section 5); ask the user for it only when `init` reports that git could not tell.
-   It also prints the repository's mode, and in a private repository makes git ignore the folder before it writes the spec.
+2. **Make the branch, then the working folder.**
+   On a feature branch of this work's own, stay; anywhere else, make the spec's branch and its worktree with `sdd worktree <branch>` and move the session into it (section 5).
+   Then create the folder there with `sdd init <slug>` if it doesn't exist, which records the branch the checkout is on.
+   `init` records the base from git (section 5); ask the user for it only when either command reports that git could not tell, and pass the answer to both as `--base <name>`.
+   `init` also prints the repository's mode, and in a private repository makes git ignore the folder before it writes the spec.
 3. **Ground yourself in the code.**
    Read the project context (section 6).
    Explore the relevant code without changing anything, and identify existing behavior, the patterns to follow and the interfaces to reuse.
@@ -792,7 +843,11 @@ Wherever a step below commits only those files, the file is written and no commi
 1. **Check the branch.**
    The spec's `branch` field names the feature branch, and its `base` field the branch that one is cut from and merges back into (section 5).
    When the spec records no base, record the one git detects with `sdd set-base <slug>` first, and ask the user only when that fails.
-   If you're on the base or another shared branch, propose creating the feature branch from the base and ask first; if the user picks another name, update the spec's `branch` field, which sits outside the hash.
+   On the spec's branch, in the worktree Outline made, continue: this phase builds there and creates no branch of its own.
+   A spec outlined before its branch existed is still on the base or another shared branch: propose making the branch and ask first; if the user picks another name, update the spec's `branch` field, which sits outside the hash.
+   In a private repository `sdd worktree <branch> --base <base>` makes it with its worktree, as Outline would have, or names the worktree that already has it (section 5).
+   In a shared repository the spec's files sit in the checkout they were outlined in, where no new worktree would hold them, so make the branch in that checkout with `git switch -c <branch>`, which carries uncommitted files along, then stage each spec file still uncommitted by explicit path and wait for the user to commit them.
+   A worktree made without the repository's own worktree script has no dependencies installed: install them with the repo's install command before the first dispatch, and ask the user before copying an untracked local file, such as an env file, from the main checkout.
    Every commit of this phase lands on the feature branch, never on the base.
 2. **Resume** at the first slice whose close-out item is unchecked, and set `tasks.md` to `in-progress`.
    Build only the slices whose close-out is unchecked, since a revised task list reopens the slices it touched and leaves the rest closed (section 10).
@@ -1053,6 +1108,11 @@ Either way the review is accepted again through Confirm intent and close, with t
   It takes the same route: the spec through `sdd-outline`, then the plan and tasks as they go stale.
   Re-approving the tasks returns the run to Implement, which builds only the slices the revision reopened (section 10), and makes an accepted review stale, so the run passes through Validate again (section 13).
 - **Feedback after the review is accepted** that changes no artifact, such as a pull request comment, reopens the review (section 13).
+- **An abandoned spec.**
+  Nothing in the chain deletes work, so abandoning a spec is the user's word and the user's cleanup: remove the worktree (section 5), delete the branch with `git branch -d <branch>`, and delete the remote's copy if it was pushed.
+  Git refuses rather than lose work: `git worktree remove` while the worktree holds uncommitted files, and `git branch -d` while the branch holds commits that are neither merged nor pushed, which in a shared repository includes its spec commits.
+  Forcing either one discards that work, and is the user's call.
+  A private repository's spec folder is no part of the branch, so it stays in the main checkout's `docs/sdd/` until the user deletes it.
 - **Drift.**
   When you touch code the spec covers, check that the spec still describes it.
   If it doesn't, say so before going further.
@@ -1078,6 +1138,7 @@ Either way the review is accepted again through Confirm intent and close, with t
 | Duplicate build         | Code described as existing gets rebuilt                                               | Label existing behavior; name the modules to reuse              |
 | Overloaded context      | The whole spec set plus unrelated history loaded at once                              | Load only what the phase needs; fresh sessions at breaks        |
 | Scope creep             | Refactors and extras appear in the diff                                               | Record them as follow-ups                                       |
+| Spec on the base        | A shared repository's spec is written on the base, where no gate commit can land      | Make the branch and its worktree before `sdd init` (section 5)  |
 | Unstaged artifacts      | A shared repository's approved artifact never reaches the branch, and the PR lacks it | Stage the spec folder's files by explicit path at every gate    |
 | Leaked spec             | A private repository's spec file is staged, committed or added with `git add -f`      | Stage nothing under a private spec folder (section 5)           |
 | Hand-built path         | A spec file is sought under the current directory, where a worktree may not hold it   | Take every spec file's path from `sdd status`                   |
@@ -1108,6 +1169,7 @@ Either way the review is accepted again through Confirm intent and close, with t
 5. Add abstraction or features that no requirement calls for.
 6. Commit a gate artifact or a review fix on the user's behalf, or stage with `git add -A` instead of by explicit path.
 7. Stage or commit a spec file in a private repository, or build a spec file's path by hand instead of taking it from `sdd status`.
+8. Write, stage or commit a shared repository's spec file on the base or another shared branch.
 
 ---
 

@@ -18,13 +18,16 @@ Arguments: `$ARGUMENTS`.
 
 ## Mode
 
-Parse the arguments: a token is the slug only when `.claude/sdd/bin/sdd status <token> --json` reports `artifacts.spec.exists` true; one of `low`, `medium`, `high`, `xhigh`, `max` is the effort; `--max-findings n` is the findings cap; the remaining token, if any, is the base.
+Parse the arguments: a token is the slug only when `.claude/sdd/bin/sdd status <token> --json` reports `artifacts.spec.exists` true, or refuses because another worktree or branch holds that spec; one of `low`, `medium`, `high`, `xhigh`, `max` is the effort; `--max-findings n` is the findings cap; the remaining token, if any, is the base.
 
 - **Spec mode** when a slug was given, or when `.claude/sdd/bin/sdd find` resolves one and `.claude/sdd/bin/sdd status <slug> --json` reports `phase` `6. Validate` or `Done`.
   Runs the full Validate phase inside the start and finish protocols of section 4 (The workflow).
   When `find` resolves a spec at an earlier phase, say so, name the phase and skill `status` reports, and ask before reviewing without it.
 - **Review-only mode** otherwise: a pre-PR review of any branch, for example after a `tdd` one-shot.
   It skips the protocols and every step marked _(spec only)_, writes no file, and reports in the conversation.
+
+When `status` refuses for a token because that spec is in another worktree, or on a branch no worktree has checked out, the user named a spec this session started outside of: move into its worktree as the refusal says (section 5 (Working files), The branch and its worktree), then settle the mode there.
+The specs `find` lists as held by other worktrees belong to other branches, never to this one, so they do not make this a spec-mode review.
 
 State which mode you are in, and why, as your first line.
 
