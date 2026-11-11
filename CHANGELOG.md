@@ -67,6 +67,10 @@ In a project created from the template, this file is template residue: delete it
     `set-status <slug> design` on an existing `design.md` no longer refuses when the spec lists no UI surface, so a requested design can still be cancelled after a re-approved spec drops its surfaces.
     A repeat request also clears a skip's `decided_by` and `surfaces`.
     `sdd lint` rejects any bullet under a spec's `## UI surfaces` that is not a `UI-` line with a colon after its ID.
+  - The approval hash reads what an artifact's body says and ignores how it is laid out, so an approved artifact that a formatter rewrites, in the pre-commit hook or in an editor, stays approved.
+    Line wrapping, indentation, blank lines, table padding, the character that marks a bullet, emphasis, a rule or a fence, ordered-list numbers and backslash escapes in prose no longer count; every word, number and punctuation mark still does, along with heading levels, list items, table cells and the code inside a fence.
+    An evidence note that a formatter wrapped onto further lines stays outside the hash with its first line.
+    `sdd hash <file>` prints the new hash.
   - Each spec records its base, the branch its feature branch is cut from and merges back into, in a `base` field beside `branch`.
     Git decides it and nobody is asked: `sdd init` records the remote's default branch, read from the `origin/HEAD` the clone records and otherwise from the remote with `git ls-remote --symref origin HEAD`, and `--base <name>` names another for work that does not build on it.
     `sdd status` reports the base, the new `sdd base [slug]` prints it, detecting it the same way for a spec that records none and when no spec matches the current branch, and the new `sdd set-base <slug> [branch]` records the detected or the named base without staling an approval.
@@ -115,6 +119,8 @@ In a project created from the template, this file is template residue: delete it
   The grounding stayed in the session, the brief's framing went unchecked, and the options rested on an error source nobody had read up on.
   No phase requested or recorded a UI design, so implementers decided layout and flow mid-build, behavior a design implied bypassed the spec, and nobody saw a layout until QA; the Design phase puts an approved, committed design in front of the plan.
   A design, plan or tasks re-approved with an unchanged body against a changed upstream kept its old hash, so everything built on it still read current.
+  The hash covered the body byte for byte, so the pre-commit hook's Prettier pass over a just-approved artifact, which pads its tables and puts a blank line after a heading that lacks one, made the artifact read as changed, staled everything built on it and returned the run to Outline until the user approved again what they had not changed.
+  Formatting an artifact before its approval would not have held in every repository: the helper cannot know which formatter a repository runs, an editor can reformat a file no hook ever sees, and Prettier's Markdown output is not always stable under a second pass.
   `sdd-review` read the default branch from `origin/HEAD` and then a local `main` or `master`, `render-check` from `origin/HEAD` and then the remote, and `sdd-implement` by no stated method, and no spec recorded the answer, so in a repository whose work merges into `staging` the commit guard could pass on `staging` and the review and the render check could diff against different branches.
   The standards hard-coded values such as a 44×44px target and a px ban that each project's design system should own, so they overrode it; only the WCAG 2.2 AA floors stay fixed, and `DESIGN.md` is the one home for every other value.
   A scaffold at the root and a copy in `design-init` drifted apart, so one template in the skill and a lint-clean finish leave a project with either a complete `DESIGN.md` or none, and the Design System in Claude is built from that file so mockups use the project's own tokens.
@@ -157,7 +163,10 @@ In a project created from the template, this file is template residue: delete it
   - A project with specs in flight re-reads `sdd status`, since every phase from Plan on shifted by one (`2. Plan` is now `3. Plan`) and the SDD document's section numbers moved with them.
     A spec without `## UI surfaces` still lints and never meets the Design phase, and a build in flight whose spec lists a surface gets the render-check question at its next `sdd-implement` resume.
     A project that edited the SDD document or its skills merges the renumbering, then runs `.claude/sdd/bin/sdd templates sync` and `.claude/sdd/bin/sdd check-refs`.
-  - A `plan.md` or `tasks.md` approved under an earlier helper keeps its body-only hash and still reads current, so nothing needs re-approving; its next approval records the new hash.
+  - An artifact approved under an earlier helper keeps its recorded hash and still reads current while its body is byte for byte what was approved, so nothing needs re-approving.
+    Until its next approval a formatter pass over it still makes it read as changed, once; that approval records the new hash, and what builds on it is refreshed against the new hash as after any re-approval.
+    Fenced code still counts character for character apart from its whitespace, so where Prettier rewrites a fenced block in a language it knows, the artifact reads as changed: a project that meets this formats the artifact before its approval gate, or adds its spec folder to `.prettierignore`.
+    A project that edited the helper's hashing merges `wording`, `body_as_written` and `is_current_approval` by hand, then runs `python3 -m unittest discover -s .claude/sdd/tests`.
   - A spec written before the `base` field records none: `sdd status` prints `base: ?`, `sdd lint <slug> spec` reports an error, and `sdd-implement` records the detected base at its next start.
     `.claude/sdd/bin/sdd set-base <slug>` records it by hand; the approval stays current.
     A project whose work merges into a branch other than the remote's default passes `--base` to `sdd init`, or runs `sdd set-base <slug> <branch>`.

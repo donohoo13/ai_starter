@@ -1,6 +1,7 @@
 import datetime
 import unittest
 
+from formatted import FORMATTED_PLAN_BODY, FORMATTED_SPEC_BODY, FORMATTED_TASKS_BODY
 from helpers import SLUG, SddCase
 
 
@@ -201,17 +202,78 @@ class StaleUpstreamTests(SddCase):
         self.assertTrue(data["artifacts"]["plan"]["changed"])
         self.assertEqual(data["phase"], "3. Plan")
 
-    def test_approvals_recorded_as_a_body_only_hash_stay_current(self):
-        self.approve_chain("tasks")
-        plan_body_hash = self.cli.content_hash(self.read_artifact("plan"))
-        self.set_fields("plan", approved_hash=plan_body_hash)
-        self.set_fields("tasks", based_on=plan_body_hash, approved_hash=self.cli.content_hash(self.read_artifact("tasks")))
+
+class ChainCase(SddCase):
+    def hash_as_written(self, name, based_on=None):
+        """The hash an earlier helper recorded: over the body byte for byte, and over based_on once it was covered."""
+        covered = self.cli.body_as_written(self.read_artifact(name))
+        if based_on is not None:
+            covered += "based_on: %s\n" % based_on
+        return self.cli.digest(covered)
+
+    def assert_chain_is_current(self, *names):
         data = self.status_json()
-        for name in ("plan", "tasks"):
+        for name in names:
             with self.subTest(artifact=name):
                 self.assertFalse(data["artifacts"][name]["changed"])
                 self.assertFalse(data["artifacts"][name]["stale"])
         self.assertEqual(data["phase"], "5. Implement")
+
+
+class ReformattedArtifactTests(ChainCase):
+    def approve_then_reformat_chain(self):
+        """Approve spec, plan and tasks, then rewrite each body as the pre-commit hook does when the artifact is committed."""
+        self.approve_chain("tasks")
+        self.replace_body("spec", FORMATTED_SPEC_BODY)
+        self.replace_body("plan", FORMATTED_PLAN_BODY)
+        self.replace_body("tasks", FORMATTED_TASKS_BODY)
+
+    def test_artifacts_a_formatter_rewrote_stay_approved(self):
+        self.approve_then_reformat_chain()
+        self.assert_chain_is_current("spec", "plan", "tasks")
+
+    def test_a_plan_approves_on_a_spec_a_formatter_rewrote(self):
+        self.approve_chain("spec")
+        self.replace_body("spec", FORMATTED_SPEC_BODY)
+        self.write_plan()
+        code, out, err = self.run_sdd("approve", SLUG, "plan")
+        self.assertEqual(code, 0, out + err)
+        self.assertEqual(self.frontmatter("plan")["based_on"], self.frontmatter("spec")["approved_hash"])
+
+    def test_an_edit_to_a_reformatted_artifact_still_needs_reapproval(self):
+        self.approve_then_reformat_chain()
+        self.replace_body("spec", FORMATTED_SPEC_BODY.replace("under 10 minutes", "under 5 minutes"))
+        data = self.status_json()
+        self.assertTrue(data["artifacts"]["spec"]["changed"])
+        self.assertTrue(data["artifacts"]["plan"]["stale"])
+        self.assertEqual(data["phase"], "1. Outline")
+
+
+class EarlierApprovalTests(ChainCase):
+    def test_approvals_recorded_as_a_body_only_hash_stay_current(self):
+        self.approve_chain("tasks")
+        plan_hash = self.hash_as_written("plan")
+        self.set_fields("plan", approved_hash=plan_hash)
+        self.set_fields("tasks", based_on=plan_hash, approved_hash=self.hash_as_written("tasks"))
+        self.assert_chain_is_current("plan", "tasks")
+
+    def test_approvals_recorded_before_the_hash_ignored_formatting_stay_current(self):
+        self.approve_chain("tasks")
+        spec_hash = self.hash_as_written("spec")
+        plan_hash = self.hash_as_written("plan", based_on=spec_hash)
+        self.set_fields("spec", approved_hash=spec_hash)
+        self.set_fields("plan", based_on=spec_hash, approved_hash=plan_hash)
+        self.set_fields("tasks", based_on=plan_hash, approved_hash=self.hash_as_written("tasks", based_on=plan_hash))
+        self.assert_chain_is_current("spec", "plan", "tasks")
+
+    def test_an_edit_to_an_artifact_approved_before_the_hash_ignored_formatting_needs_reapproval(self):
+        self.approve_chain("plan")
+        spec_hash = self.frontmatter("spec")["approved_hash"]
+        self.set_fields("plan", approved_hash=self.hash_as_written("plan", based_on=spec_hash))
+        self.write_artifact("plan", self.read_artifact("plan").replace("pdf-lib 1.17", "pdf-lib 2.0"))
+        data = self.status_json()
+        self.assertTrue(data["artifacts"]["plan"]["changed"])
+        self.assertEqual(data["phase"], "3. Plan")
 
 
 if __name__ == "__main__":

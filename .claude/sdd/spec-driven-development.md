@@ -202,9 +202,15 @@ The plan's upstream is the design while the design is approved and the spec othe
 The approval hash covers the body below the frontmatter plus the artifact's `based_on`, so a re-approval against a changed upstream always records a new hash and stales what follows.
 A design's hash also covers its recorded `version`, so re-recording a changed canvas needs a new approval.
 An accepted review records the tasks' `approved_hash` as its `based_on`, so tasks re-approved after a late change make the review stale and the run returns to Validate.
-Checking off tasks in `tasks.md`, the single `- Evidence:` line under a task, and the Follow-ups section still do not count as a change.
 A draft's `based_on` may stay empty until approval records it.
 Once set, it must match: refreshing a stale artifact means revising it against its upstream and setting `based_on` to the new hash before re-approval.
+
+**What counts as a change.**
+The hash reads what the body says and never how it is laid out, so an approved artifact that a formatter rewrites, in a commit hook or in an editor, stays approved.
+Every word, number and punctuation mark counts, in order, along with each heading's level, each list item, each table cell and the code inside a fence.
+Line wrapping, indentation, blank lines, table padding and block quote markers do not count, and neither does the character that marks a bullet, emphasis, a rule or a fence, the number on an ordered item, or a backslash escape in prose.
+Code inside a fence counts character for character apart from its whitespace, so a formatter that rewrites the code itself, as Prettier does in a language it knows, still makes the artifact changed.
+Checking off tasks in `tasks.md`, the `- Evidence:` note under a task, and the Follow-ups section do not count either.
 
 ### Every SDD skill starts the same way
 

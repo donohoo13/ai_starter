@@ -19,6 +19,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import NamedTuple
 
 ARTIFACTS = ("spec", "design", "plan", "tasks", "review")
 UPSTREAM = {"design": "spec", "plan": "spec", "tasks": "plan", "review": "tasks"}
@@ -150,26 +151,223 @@ def frontmatter_entry(key: str, value: str) -> str:
 
 # --- hashing -----------------------------------------------------------------
 
-CHECKBOX = re.compile(r"^(\s*- )\[[xX]\]")
-EVIDENCE = re.compile(r"^\s*- Evidence:", re.IGNORECASE)
 FOLLOW_UPS = re.compile(r"^## Follow-ups", re.IGNORECASE)
+EVIDENCE = re.compile(r"^\s*- Evidence:", re.IGNORECASE)
+TICKED_BOX = re.compile(r"^(\s*- )\[[xX]\]")
+
+# Opens every block marker: a character no artifact holds, so a marker never reads as the file's own text.
+BLOCK = "\x00"
+BULLET, NUMBERED, RULE, CODE_FENCE, LINE_END = (BLOCK + mark for mark in ("-", "1", "---", "```", "$"))
+RULE_LINE = re.compile(r"([-*_])(?:[ \t]*\1){2,}$")
+ITEM_MARKER = re.compile(r"(?:[-*+]|(\d{1,9})[.)])(?:[ \t]+|$)")
+TASK_BOX = re.compile(r"^\[[ xX]\](?=\s|$)")
+HEADING_MARKER = re.compile(r"#{1,6}(?:[ \t]|$)")
+FENCE_LINE = re.compile(r"(`{3,}|~{3,})[ \t]*(.*)$")
+MARKDOWN_FENCE = re.compile(r"(?:markdown|md)\b", re.IGNORECASE)
+TABLE_DIVIDER = re.compile(r"\|?[ \t]*:?-+:?[ \t]*(?:\|[ \t]*:?-+:?[ \t]*)*\|?$")
+INLINE_MARKUP = re.compile(
+    r"\\(?P<escaped>[!-/:-@\[-`{-~])|(?P<hard_break>\\$)|(?<!`)(?P<ticks>`+)(?!`)(?P<code>.+?)(?<!`)(?P=ticks)(?!`)",
+    re.DOTALL | re.MULTILINE,
+)
+SPACE_BESIDE_PUNCTUATION = re.compile(r"(?<!\w) | (?!\w)")
 
 
-def normalized_body(text: str) -> str:
-    """The body below the frontmatter with progress marks removed.
-
-    Ticking a checkbox, adding an evidence note, listing a follow-up, or
-    trailing whitespace must not count as a change to an approved artifact.
-    """
+def lines_outside_follow_ups(text: str) -> list[str]:
+    """The lines below the frontmatter, without the Follow-ups section."""
     _, body = parse_frontmatter(text)
     kept: list[str] = []
     skipping = False
     for line in body.splitlines():
         if line.startswith("## "):
             skipping = bool(FOLLOW_UPS.match(line))
-        if skipping or EVIDENCE.match(line):
+        if not skipping:
+            kept.append(line)
+    return kept
+
+
+def lines_outside_progress_notes(text: str) -> list[str]:
+    """The lines an approval covers: no Follow-ups section and no evidence note, nor the lines a formatter wrapped a note onto."""
+    kept: list[str] = []
+    note_indent = None
+    for line in lines_outside_follow_ups(text):
+        indent = len(line) - len(line.lstrip())
+        if line.strip() and note_indent is not None and indent > note_indent:
             continue
-        kept.append(CHECKBOX.sub(r"\1[ ]", line).rstrip())
+        if EVIDENCE.match(line):
+            note_indent = indent
+            continue
+        if line.strip():
+            note_indent = None
+        kept.append(line)
+    return kept
+
+
+class Fence(NamedTuple):
+    """An open fenced block: the run of backticks or tildes that opened it, whether it holds code, and whether it sits in a block quote."""
+
+    marker: str
+    holds_code: bool
+    quoted: bool
+
+    def is_closed_by(self, line: str) -> bool:
+        return re.fullmatch("%s{%d,}" % (re.escape(self.marker[0]), len(self.marker)), line) is not None
+
+
+class BodyReader:
+    """Reads a body line by line into what an approval covers: its words, numbers and punctuation in order, and the kind of block each sits in.
+
+    Everything a formatter may rewrite is left out: how lines wrap, indent and space out, how far table cells are padded,
+    which character marks a bullet, a rule, a fence or emphasis, the number an ordered item carries, and which characters prose escapes.
+    Code keeps every character but its whitespace.
+    """
+
+    def __init__(self) -> None:
+        self.pieces: list[str] = []
+        self.paragraph: list[str] = []
+        self.fences: list[Fence] = []
+        self.item_column: int | None = None
+        self.after_blank = False
+
+    def read(self, raw: str) -> None:
+        line = raw.strip()
+        if self.fences and self.fences[-1].holds_code:
+            self.read_code(line)
+            return
+        quoted = line.startswith(">")
+        line = unquoted(line)
+        if line:
+            self.read_block(line, len(raw) - len(raw.lstrip()), quoted)
+        else:
+            self.close_paragraph()
+            self.after_blank = True
+
+    def wording(self) -> str:
+        self.close_paragraph()
+        spaced = " ".join(" ".join(self.pieces).split())
+        return SPACE_BESIDE_PUNCTUATION.sub("", spaced) + "\n"
+
+    def read_code(self, line: str) -> None:
+        fence = self.fences[-1]
+        if fence.quoted:
+            line = unquoted(line)
+        if fence.is_closed_by(line):
+            self.fences.pop()
+            self.pieces.append(CODE_FENCE)
+        else:
+            self.pieces.append(line)
+
+    def read_block(self, line: str, indent: int, quoted: bool) -> None:
+        left_the_item = self.item_column is not None and indent < self.item_column and not ITEM_MARKER.match(line)
+        if self.after_blank and left_the_item:
+            self.item_column = None
+        self.after_blank = False
+        line = self.read_markers(line, indent)
+        if line:
+            self.read_leaf(line, quoted)
+
+    def read_markers(self, line: str, indent: int) -> str:
+        """Record the rule or the list markers a line opens with, and return what follows them."""
+        while line:
+            if RULE_LINE.match(line):
+                self.close_paragraph()
+                self.item_column = None
+                self.pieces.append(RULE)
+                return ""
+            item = ITEM_MARKER.match(line)
+            if not item or not self.opens_an_item(item.group(1), indent):
+                break
+            self.close_paragraph()
+            self.pieces.append(NUMBERED if item.group(1) else BULLET)
+            indent += item.end()
+            self.item_column = indent
+            line = TASK_BOX.sub("[ ]", line[item.end() :])
+        return line
+
+    def opens_an_item(self, number: str | None, indent: int) -> bool:
+        """Whether a list marker opens an item, or is text of the paragraph above it.
+
+        Markdown lets a numbered line interrupt a paragraph only when it is numbered 1 or sits outside the list item
+        that paragraph belongs to; any other is paragraph text, which a formatter folds into the line above or escapes.
+        """
+        if number is None or int(number) == 1 or not self.paragraph:
+            return True
+        return self.item_column is not None and indent < self.item_column
+
+    def read_leaf(self, line: str, quoted: bool) -> None:
+        """Record a fence, a heading, a table row or a line of a paragraph.
+
+        A heading ends with its line, so the end is recorded too. A table row's is not: a formatter that wraps prose can start a paragraph's line with a pipe.
+        """
+        fence = FENCE_LINE.match(line)
+        if fence and self.fences and not fence.group(2) and self.fences[-1].is_closed_by(line):
+            self.close_paragraph()
+            self.fences.pop()
+            self.pieces.append(CODE_FENCE)
+        elif fence and "`" not in fence.group(2):
+            self.close_paragraph()
+            language = fence.group(2).strip()
+            self.fences.append(Fence(fence.group(1), not MARKDOWN_FENCE.match(language), quoted))
+            self.pieces.append(CODE_FENCE + language)
+        elif HEADING_MARKER.match(line):
+            self.close_paragraph()
+            self.item_column = None
+            self.pieces.append(prose(line) + LINE_END)
+        elif line.startswith("|"):
+            self.close_paragraph()
+            row = re.sub(r"-+", "-", line) if TABLE_DIVIDER.match(line) else line
+            self.pieces.append(prose(row, in_table=True))
+        else:
+            self.paragraph.append(line)
+
+    def close_paragraph(self) -> None:
+        if self.paragraph:
+            self.pieces.append(prose("\n".join(self.paragraph)))
+            self.paragraph = []
+
+
+def unquoted(line: str) -> str:
+    """The line without the block quote markers it opens with."""
+    while line.startswith(">"):
+        line = line[1:].strip()
+    return line
+
+
+def prose(text: str, in_table: bool = False) -> str:
+    """Inline text without the style a formatter may change: backslash escapes, hard breaks and the emphasis character.
+
+    A code span stays as written, and so does an escaped pipe in a table row, where it is the only way to write a pipe that does not end the cell.
+    """
+    parts: list[str] = []
+    last = 0
+    for markup in INLINE_MARKUP.finditer(text):
+        parts.append(starred(text[last : markup.start()]))
+        if markup["code"] is not None:
+            parts.append("`%s`" % markup["code"])
+        elif markup["escaped"] == "|" and in_table:
+            parts.append(markup.group())
+        elif markup["escaped"]:
+            parts.append(starred(markup["escaped"]))
+        last = markup.end()
+    parts.append(starred(text[last:]))
+    return "".join(parts)
+
+
+def starred(text: str) -> str:
+    """Prettier writes emphasis with underscores where other formatters write stars, so an underscore reads as a star."""
+    return text.replace("_", "*")
+
+
+def wording(text: str) -> str:
+    """The body as an approval covers it: what it says, without the progress notes and without anything a formatter may rewrite."""
+    reader = BodyReader()
+    for line in lines_outside_progress_notes(text):
+        reader.read(line)
+    return reader.wording()
+
+
+def body_as_written(text: str) -> str:
+    """The body as approvals covered it before the hash ignored formatting: each line as written, less progress marks and trailing whitespace."""
+    kept = [TICKED_BOX.sub(r"\1[ ]", line).rstrip() for line in lines_outside_follow_ups(text) if not EVIDENCE.match(line)]
     while kept and not kept[-1]:
         kept.pop()
     return "\n".join(kept) + "\n"
@@ -180,25 +378,33 @@ def digest(covered: str) -> str:
 
 
 def content_hash(text: str) -> str:
-    return digest(normalized_body(text))
+    return digest(wording(text))
+
+
+def upstream_record(name: str, text: str, based_on: str) -> str:
+    """What an approval covers beside the body: based_on for an artifact with an upstream, and a design's recorded version."""
+    record = "based_on: %s\n" % based_on if name in UPSTREAM else ""
+    if name == "design":
+        record += "version: %s\n" % parse_frontmatter(text)[0].get("version", "")
+    return record
 
 
 def approval_hash(name: str, text: str, based_on: str) -> str:
-    """The hash an approval records: the body, plus based_on for an artifact with an upstream, plus a design's recorded version, so a re-approval against a new upstream or a re-read canvas stales what follows."""
-    covered = normalized_body(text)
-    if name in UPSTREAM:
-        covered += "based_on: %s\n" % based_on
-    if name == "design":
-        covered += "version: %s\n" % parse_frontmatter(text)[0].get("version", "")
-    return digest(covered)
+    """The hash an approval records: the body's wording and its upstream record, so a re-approval against a new upstream or a re-read canvas stales what follows."""
+    return digest(wording(text) + upstream_record(name, text, based_on))
 
 
 def is_current_approval(name: str, approved_hash: str, text: str, based_on: str) -> bool:
-    """An approval recorded under an earlier approval_hash still counts: the body alone, or a design's body and based_on without its version."""
-    accepted = {approval_hash(name, text, based_on), content_hash(text)}
+    """An approval recorded under an earlier form of the hash still counts.
+
+    Those forms covered the body as written, so one holds until a formatter rewrites the file:
+    the body alone, the body with its upstream record, or a design's body and based_on without its version.
+    """
+    as_written = body_as_written(text)
+    earlier = {digest(as_written), digest(as_written + upstream_record(name, text, based_on))}
     if name == "design":
-        accepted.add(digest(normalized_body(text) + "based_on: %s\n" % based_on))
-    return approved_hash in accepted
+        earlier.add(digest(as_written + "based_on: %s\n" % based_on))
+    return approved_hash == approval_hash(name, text, based_on) or approved_hash in earlier
 
 
 # --- command registry --------------------------------------------------------

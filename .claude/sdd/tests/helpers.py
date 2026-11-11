@@ -656,11 +656,15 @@ class SddCase(unittest.TestCase):
         self.record_design()
         self.approve("design")
 
+    def replace_body(self, name, body, slug=SLUG):
+        """Rewrite everything below an artifact's frontmatter, leaving the frontmatter as it is."""
+        text = self.read_artifact(name, slug)
+        _, current = self.cli.parse_frontmatter(text)
+        self.write_artifact(name, text[: len(text) - len(current)] + body, slug)
+
     def record_design(self, **fields):
         """Fill a requested design as `sdd-design` does after reading the artifact: the body, then the read fields."""
-        text = self.read_artifact("design")
-        _, body = self.cli.parse_frontmatter(text)
-        self.write_artifact("design", text[: len(text) - len(body)] + RECORDED_DESIGN_BODY)
+        self.replace_body("design", RECORDED_DESIGN_BODY)
         recorded = {
             "link": "https://claude.ai/artifact/abc123",
             "version": "v7",

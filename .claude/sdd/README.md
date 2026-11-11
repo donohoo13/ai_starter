@@ -65,7 +65,9 @@ sdd templates sync [--check]                          regenerate templates from 
 sdd check-refs                                        every section reference in the skills and this README matches a heading
 ```
 
-The content hash ignores frontmatter, checkbox ticks, `- Evidence:` sub-bullets, the `## Follow-ups` section and trailing whitespace, so progress notes never count as a change to an approved artifact.
+The content hash ignores frontmatter, checkbox ticks, `- Evidence:` notes and the `## Follow-ups` section, so progress notes never count as a change to an approved artifact.
+It also ignores everything a formatter may rewrite, so a commit hook or an editor that reformats an approved artifact leaves it approved; section 4 (The workflow) says what counts as a change.
+Indentation is outside the hash with the rest of the layout, so nesting a bullet deeper or shallower is not a change, and `lint` is what reports a task or requirement that lost a required sub-bullet that way.
 The `## Verified elsewhere` section of `tasks.md`, where the user records an `NFR-` or `INV-` verified without a task, sits inside the hash, so that decision cannot change after approval unnoticed.
 `based_on` is recorded at approval, and for a review at acceptance, so tasks re-approved afterwards make the review stale; while an artifact is a draft, lint accepts it empty.
 `journal.md` is a file of its own that no hash covers, so an entry never counts as a change; `status` reports its last entry as pending until a `resolved` entry follows it or the phase that wrote it ends.
