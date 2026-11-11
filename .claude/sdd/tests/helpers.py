@@ -49,6 +49,7 @@ SPEC_TEMPLATE = """---
 title: <Feature name>
 slug: <slug>
 branch: <feature branch>
+base: <base branch>
 status: draft
 owner: <person>
 created: YYYY-MM-DD
@@ -229,11 +230,16 @@ updated: YYYY-MM-DD
 | Requirement | Met | Evidence |
 | --- | --- | --- |
 
+- <requirement ID>: <gap, with evidence>
+  - Disposition: open
+
 ## Correctness findings
 - [<severity>] <file:line>: <finding>
+  - Disposition: open
 
 ## Standards findings
 - <file:line>: <finding>. Fails: "<standards line>"
+  - Disposition: open
 
 ## Reads well
 - <note>
@@ -328,6 +334,7 @@ VALID_SPEC = """---
 title: Invoice thumbnails
 slug: %(slug)s
 branch: %(branch)s
+base: main
 status: draft
 owner: Test User
 created: 2026-10-29
@@ -499,7 +506,7 @@ title: Invoice thumbnails review
 slug: %(slug)s
 status: open
 base: staging
-range: staging..HEAD
+range: staging..4f2a9c1
 effort: high
 max_findings: 3
 updated: 2026-10-29
@@ -514,6 +521,7 @@ updated: 2026-10-29
 
 ## Correctness findings
 - [low] src/invoices/pdf.ts:12: thumbnail size is not capped
+  - Disposition: declined, the cap ships as a follow-up
 
 ## Standards findings
 - None

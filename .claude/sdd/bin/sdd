@@ -3,7 +3,8 @@
 
 Keeps the working files under <project root>/docs/sdd/<slug>/ honest: creates
 them from the templates, hashes and approves them, lints their structure,
-derives the current phase, and keeps the templates in sync with the document.
+derives the current phase, keeps the journal of what is in flight, and keeps
+the templates in sync with the document.
 Behavior follows sections 4 and 5 of .claude/sdd/spec-driven-development.md,
 which lives beside this script; SDD_HOME overrides that location for tests.
 """
@@ -20,7 +21,7 @@ import sys
 from pathlib import Path
 
 ARTIFACTS = ("spec", "design", "plan", "tasks", "review")
-UPSTREAM = {"design": "spec", "plan": "spec", "tasks": "plan"}
+UPSTREAM = {"design": "spec", "plan": "spec", "tasks": "plan", "review": "tasks"}
 DOC_NAME = "spec-driven-development.md"
 SKILL_NAMES = ("sdd-outline", "sdd-design", "sdd-plan", "sdd-task", "sdd-implement", "tdd", "sdd-review")
 
@@ -40,17 +41,29 @@ def skills_dir() -> Path:
     return sdd_home().parent / "skills"
 
 
-def git(*args: str, cwd: Path | None = None) -> str | None:
-    """Run a git command and return its stdout, or None when it fails."""
+def git(*args: str, cwd: Path | None = None, timeout: float | None = None) -> str | None:
+    """Run a git command and return its stdout without surrounding whitespace, or None when it fails, would prompt, or outlasts the timeout."""
+    output = git_output(*args, cwd=cwd, timeout=timeout)
+    return None if output is None else output.strip()
+
+
+def git_output(*args: str, cwd: Path | None = None, timeout: float | None = None) -> str | None:
+    """Run a git command and return its stdout exactly as printed, or None when it fails, would prompt, or outlasts the timeout."""
     try:
         result = subprocess.run(
-            ["git", *args], cwd=cwd, capture_output=True, text=True, check=False
+            ["git", *args],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=timeout,
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
         )
-    except FileNotFoundError:
+    except (FileNotFoundError, subprocess.TimeoutExpired):
         return None
     if result.returncode != 0:
         return None
-    return result.stdout.strip()
+    return result.stdout
 
 
 def project_root() -> Path:
@@ -66,8 +79,31 @@ def current_branch() -> str:
     return git("symbolic-ref", "--short", "HEAD") or ""
 
 
+REMOTE_HEAD = re.compile(r"^ref: refs/heads/(\S+)\s+HEAD$", re.MULTILINE)
+REMOTE_TIMEOUT_SECONDS = 20
+
+
+def default_branch() -> tuple[str, str]:
+    """The remote's default branch and where it was read from, or two empty strings when git cannot tell.
+
+    The origin/HEAD recorded in this clone answers first; the remote is asked only when that is missing.
+    """
+    recorded = git("symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD")
+    if recorded:
+        return recorded.split("/", 1)[-1], "origin/HEAD"
+    listing = git("ls-remote", "--symref", "origin", "HEAD", timeout=REMOTE_TIMEOUT_SECONDS)
+    reported = REMOTE_HEAD.search(listing or "")
+    if reported:
+        return reported.group(1), "the remote"
+    return "", ""
+
+
 def today() -> str:
     return datetime.date.today().isoformat()
+
+
+def now() -> str:
+    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 # --- frontmatter -------------------------------------------------------------
@@ -267,11 +303,28 @@ def title_from_slug(slug: str) -> str:
     return " ".join(words).strip().capitalize()
 
 
+def ask_for_base(slug: str | None) -> str:
+    """What to do when git cannot tell the base, the one case where the user is asked."""
+    ask = (
+        "git could not tell the remote's default branch (origin/HEAD is not recorded and the remote did not answer); "
+        "ask the user which branch this work merges into"
+    )
+    return "%s, then run `sdd set-base %s <branch>`" % (ask, slug) if slug else ask
+
+
+def record_detected_base(slug: str) -> str:
+    return "run `sdd set-base %s` to record the remote's default branch" % slug
+
+
 @command(
     "init",
     "Create docs/sdd/<slug>/spec.md from the template",
     (["slug"], {}),
     (["--branch"], {"help": "feature branch to record; defaults to the current branch"}),
+    (
+        ["--base"],
+        {"help": "branch the work is cut from and merges back into; defaults to the remote's default branch"},
+    ),
 )
 def cmd_init(args: argparse.Namespace) -> int:
     path = artifact_path(args.slug, "spec")
@@ -279,12 +332,14 @@ def cmd_init(args: argparse.Namespace) -> int:
         raise Refusal("%s already exists; run the skill on it to revise or resume" % path)
     text = template("spec")
     title = title_from_slug(args.slug)
+    base, base_source = (args.base, "--base") if args.base else default_branch()
     text = set_frontmatter(
         text,
         {
             "title": title,
             "slug": args.slug,
             "branch": args.branch or current_branch(),
+            "base": base,
             "owner": git("config", "user.name") or "",
             "created": today(),
             "updated": today(),
@@ -295,12 +350,115 @@ def cmd_init(args: argparse.Namespace) -> int:
     path.write_text(text)
     print("created %s" % path)
     print("it is tracked by git: stage it by explicit path once the user approves it")
+    if base:
+        print("base: %s, from %s; `sdd set-base %s <branch>` changes it" % (base, base_source, args.slug))
+    else:
+        print("base: not recorded; %s" % ask_for_base(args.slug))
     return 0
 
 
 @command("find", "Print the slug whose spec branch matches the current branch")
 def cmd_find(args: argparse.Namespace) -> int:
     print(find_slug())
+    return 0
+
+
+def recorded_base(slug: str) -> str:
+    """The base the spec records, or "" for a spec written before the field existed."""
+    found = read_artifact(slug, "spec")
+    if not found:
+        raise Refusal("spec.md is missing for %s" % slug)
+    return found[0].get("base", "")
+
+
+def matching_slug() -> str | None:
+    try:
+        return find_slug()
+    except Refusal:
+        return None
+
+
+@command(
+    "base",
+    "Print the base branch: the one the spec records, else the remote's default branch",
+    (["slug"], {"nargs": "?"}),
+)
+def cmd_base(args: argparse.Namespace) -> int:
+    slug = args.slug or matching_slug()
+    recorded = recorded_base(slug) if slug else ""
+    if recorded:
+        print("base: %s" % recorded)
+        print("source: spec %s" % slug)
+        return 0
+    base, source = default_branch()
+    if not base:
+        raise Refusal(ask_for_base(slug))
+    print("base: %s" % base)
+    if slug:
+        print("source: detected from %s; spec.md records none, %s" % (source, record_detected_base(slug)))
+    else:
+        print("source: detected from %s; no spec matches the current branch" % source)
+    return 0
+
+
+@command(
+    "set-base",
+    "Record a spec's base: the named branch, or the remote's default branch when none is named",
+    (["slug"], {}),
+    (["branch"], {"nargs": "?"}),
+)
+def cmd_set_base(args: argparse.Namespace) -> int:
+    found = read_artifact(args.slug, "spec")
+    if not found:
+        raise Refusal("spec.md is missing for %s" % args.slug)
+    if args.branch is None:
+        base, source = default_branch()
+        if not base:
+            raise Refusal(ask_for_base(args.slug))
+        how = " (detected from %s)" % source
+    else:
+        base, how = args.branch.strip(), ""
+        if not base:
+            raise Refusal("the base cannot be empty; name the branch this work merges into")
+    write_artifact(args.slug, "spec", set_frontmatter(found[2], {"base": base, "updated": today()}))
+    print("spec.md base is now %s%s" % (base, how))
+    return 0
+
+
+def path_from_root(path: Path, root: Path) -> str:
+    """The path relative to the project root, or in full when it lies outside it."""
+    return path.relative_to(root).as_posix() if root in path.parents else str(path)
+
+
+def uncommitted_lines(root: Path, left_out: Path) -> list[str]:
+    """`git status --porcelain` for the whole tree, one line per file, without the file at `left_out`."""
+    pathspecs = ["."]
+    if root in left_out.parents:
+        pathspecs.append(":(exclude,literal)%s" % path_from_root(left_out, root))
+    listing = git_output("status", "--porcelain", "--untracked-files=all", "--", *pathspecs, cwd=root)
+    if listing is None:
+        raise Refusal("git status failed in %s; run this inside the project's git repository" % root)
+    return listing.splitlines()
+
+
+@command(
+    "uncommitted",
+    "List every uncommitted path except the spec's own review.md, which a review leaves uncommitted until acceptance",
+    (["slug"], {"nargs": "?"}),
+)
+def cmd_uncommitted(args: argparse.Namespace) -> int:
+    slug = resolve_slug(args.slug)
+    if not (sdd_dir() / slug).is_dir():
+        raise Refusal("no working folder for %s under %s" % (slug, sdd_dir()))
+    root = project_root()
+    review = artifact_path(slug, "review")
+    lines = uncommitted_lines(root, review)
+    for line in lines:
+        print(line)
+    print(
+        "%d uncommitted path%s, not counting %s"
+        % (len(lines), "" if len(lines) == 1 else "s", path_from_root(review, root))
+    )
     return 0
 
 
@@ -361,10 +519,189 @@ def task_progress(body: str) -> dict:
     }
 
 
+# --- journal -----------------------------------------------------------------
+
+# Each kind of entry and what it waits on; a `resolved` entry settles the ones before it.
+JOURNAL_AWAITS = {
+    "report": "the session to act on it",
+    "question": "the user's answer",
+    "answer": "the session to act on it",
+    "decision": "the session to act on it",
+    "resolved": None,
+}
+JOURNAL_ENTRY = re.compile(r"^## (\d+)\. (\w+) (\w+)(?: ([\w.-]+))?, (\S+)$")
+JOURNAL_REF = re.compile(r"^[\w.-]+$")
+JOURNAL_FENCE = re.compile(r"^(`{3,})text$")
+BACKTICK_RUN = re.compile(r"`+")
+
+
+def journal_path(slug: str) -> Path:
+    return artifact_path(slug, "journal")
+
+
+def shown_path(path: Path) -> str:
+    """A path as git prints it, relative to the project root, or absolute when it sits outside."""
+    try:
+        return str(path.relative_to(project_root()))
+    except ValueError:
+        return str(path)
+
+
+def phase_word(phase: str) -> str:
+    """`5. Implement` as `implement`, the form a journal entry records."""
+    return phase.split(" ")[-1].lower()
+
+
+def read_journal(slug: str) -> list[dict]:
+    """Every journal entry in the order written.
+
+    An entry's text sits inside a fence, so a line of it can never pass for the next entry's heading.
+    """
+    path = journal_path(slug)
+    if not path.is_file():
+        return []
+    entries: list[dict] = []
+    lines: list[str] = []
+    closing_fence = None
+    for line in path.read_text().splitlines():
+        if closing_fence:
+            if line == closing_fence:
+                entries[-1]["text"] = "\n".join(lines)
+                closing_fence = None
+            else:
+                lines.append(line)
+            continue
+        heading = JOURNAL_ENTRY.match(line)
+        if heading:
+            number, phase, kind, ref, at = heading.groups()
+            entries.append({"number": int(number), "phase": phase, "kind": kind, "ref": ref, "at": at, "text": ""})
+            continue
+        opening = JOURNAL_FENCE.match(line)
+        if opening and entries:
+            closing_fence, lines = opening.group(1), []
+    return entries
+
+
+def entry_label(entry: dict) -> str:
+    return " ".join(part for part in (entry["phase"], entry["kind"], entry["ref"]) if part)
+
+
+def journal_header(slug: str) -> str:
+    title = read_artifact(slug, "spec")[0].get("title") or title_from_slug(slug)
+    return (
+        "# %s journal\n\n"
+        "Append-only record of the agent reports, questions, answers and decisions behind this change, written by `sdd journal`.\n"
+        "Never edit an entry by hand.\n" % title
+    )
+
+
+def journal_entry_text(entry: dict) -> str:
+    """One entry as it is appended, written the way Prettier would: no trailing whitespace, and a fence longer than any backtick run in the text."""
+    longest_run = max((len(run) for run in BACKTICK_RUN.findall(entry["text"])), default=0)
+    fence = "`" * max(3, longest_run + 1)
+    return "\n## %d. %s, %s\n\n%stext\n%s\n%s\n" % (
+        entry["number"],
+        entry_label(entry),
+        entry["at"],
+        fence,
+        entry["text"],
+        fence,
+    )
+
+
+def journal_state(slug: str, phase: str) -> dict:
+    """What `sdd status` reports: the last entry is pending until a `resolved` entry or a later phase settles it."""
+    entries = read_journal(slug)
+    pending = None
+    if entries:
+        last = entries[-1]
+        awaits = JOURNAL_AWAITS.get(last["kind"])
+        if awaits and last["phase"] == phase_word(phase):
+            pending = dict(last, awaits=awaits)
+    return {"path": shown_path(journal_path(slug)), "entries": len(entries), "pending": pending}
+
+
+def describe_journal(journal: dict) -> str:
+    count = "%d entr%s" % (journal["entries"], "y" if journal["entries"] == 1 else "ies")
+    pending = journal["pending"]
+    if not pending:
+        return "journal: %s, nothing pending" % count
+    about = " ".join(part for part in (pending["kind"], pending["ref"]) if part)
+    return "journal: %s, pending #%d %s (%s), awaiting %s" % (
+        count,
+        pending["number"],
+        about,
+        pending["at"],
+        pending["awaits"],
+    )
+
+
+def add_journal_entry(slug: str, kind: str | None, ref: str | None, text: str | None) -> int:
+    if not kind:
+        raise Refusal("journal add needs a kind: %s" % ", ".join(JOURNAL_AWAITS))
+    if text is None:
+        text = "" if sys.stdin.isatty() else sys.stdin.read()
+    text = "\n".join(line.rstrip() for line in text.splitlines()).strip("\n")
+    if not text:
+        raise Refusal("journal add needs the entry text, in --text or on stdin")
+    entry = {
+        "number": len(read_journal(slug)) + 1,
+        "phase": phase_word(collect_status(slug)["phase"]),
+        "kind": kind,
+        "ref": ref,
+        "at": now(),
+        "text": text,
+    }
+    path = journal_path(slug)
+    is_new = not path.is_file()
+    with path.open("a") as journal:
+        if is_new:
+            journal.write(journal_header(slug))
+        journal.write(journal_entry_text(entry))
+    print("recorded #%d %s in %s" % (entry["number"], entry_label(entry), shown_path(path)))
+    return 0
+
+
+def show_journal(slug: str, kind: str | None, ref: str | None) -> int:
+    entries = [
+        entry
+        for entry in read_journal(slug)
+        if (not kind or entry["kind"] == kind) and (not ref or entry["ref"] == ref)
+    ]
+    if not entries:
+        print("no journal entries%s" % (" match" if kind or ref else ""))
+        return 0
+    for entry in entries:
+        print("%d. %s, %s" % (entry["number"], entry_label(entry), entry["at"]))
+        print(entry["text"])
+        print()
+    return 0
+
+
+@command(
+    "journal",
+    "Append an entry to a spec's journal of reports, questions, answers and decisions, or print its entries",
+    (["slug"], {}),
+    (["action"], {"choices": ["add", "show"]}),
+    (["kind"], {"nargs": "?", "choices": list(JOURNAL_AWAITS), "help": "the kind to add, or the kind to show"}),
+    (["--ref"], {"help": "what the entry is about, such as a slice (P1); with show, only entries about it"}),
+    (["--text"], {"help": "the entry text for add; read from stdin when absent"}),
+)
+def cmd_journal(args: argparse.Namespace) -> int:
+    if not artifact_path(args.slug, "spec").is_file():
+        raise Refusal("no spec for %s under %s" % (args.slug, sdd_dir()))
+    if args.ref and not JOURNAL_REF.match(args.ref):
+        raise Refusal("--ref %r must be one word of letters, digits, dots, dashes or underscores" % args.ref)
+    if args.action == "show":
+        return show_journal(args.slug, args.kind, args.ref)
+    return add_journal_entry(args.slug, args.kind, args.ref, args.text)
+
+
 # --- status ------------------------------------------------------------------
 
 MARKER = "[NEEDS CLARIFICATION"
 APPROVED_STATUSES = {"approved", "in-progress", "done"}
+SETTLED_STATUSES = APPROVED_STATUSES | {"accepted"}
 
 
 def artifact_state(slug: str, name: str, upstream: dict | None) -> dict:
@@ -439,9 +776,26 @@ def derive_phase(states: dict, markers: int) -> tuple[str, str | None]:
         return "4. Tasks", "sdd-task"
     if tasks["status"] in ("approved", "in-progress"):
         return "5. Implement", "sdd-implement"
-    if not review["exists"] or review["status"] != "accepted":
+    if not review["exists"] or review["status"] != "accepted" or review["stale"]:
         return "6. Validate", "sdd-review"
     return "Done", None
+
+
+def finished_run_note(slug: str, phase: str, review: dict) -> str | None:
+    """The next step for a review that was accepted, which the phase and skill alone do not name."""
+    reopen = "`sdd set-status %s review open`" % slug
+    if phase == "Done":
+        return (
+            "the run is finished; for pull request feedback or a late fix, reopen the review with %s and run sdd-review; "
+            "a change in behavior goes through sdd-outline" % reopen
+        )
+    if phase != "6. Validate" or not review["based_on"]:
+        return None
+    if review["status"] == "accepted":
+        return "review.md was accepted for an earlier tasks.md; reopen it with %s and run every review again" % reopen
+    if review["stale"]:
+        return "review.md was reopened and the tasks changed since its acceptance; run every review again"
+    return "review.md was reopened after its acceptance; triage the new feedback, fix what the user picks, and accept it again"
 
 
 def chain_states(slug: str) -> dict[str, dict]:
@@ -462,12 +816,15 @@ def collect_status(slug: str) -> dict:
     return {
         "slug": slug,
         "branch": spec[0].get("branch") if spec else None,
+        "base": (spec[0].get("base") or None) if spec else None,
         "current_branch": current_branch(),
         "artifacts": states,
         "clarifications": markers,
         "tasks": task_progress(tasks[1]) if tasks else None,
+        "journal": journal_state(slug, phase),
         "phase": phase,
         "skill": skill,
+        "note": finished_run_note(slug, phase, states["review"]),
     }
 
 
@@ -477,19 +834,27 @@ def describe_artifact(name: str, state: dict, progress: dict | None) -> str:
     parts = ["%-8s %-12s" % (name, state["status"] or "(no status)")]
     if name != "review":
         parts.append("hash %s" % state["hash"])
-        if state["based_on"]:
-            parts.append("based_on %s" % state["based_on"])
-        if state["changed"]:
-            parts.append("changed since approval")
-        if state["stale"]:
-            parts.append("stale")
-        if state["status"] in APPROVED_STATUSES and not state["changed"] and not state["stale"]:
-            parts.append("current")
+    if state["based_on"]:
+        parts.append("based_on %s" % state["based_on"])
+    if state["changed"]:
+        parts.append("changed since approval")
+    if state["stale"]:
+        parts.append("stale")
+    if state["status"] in SETTLED_STATUSES and not state["changed"] and not state["stale"]:
+        parts.append("current")
     if name == "tasks" and progress:
         parts.append("%d/%d done" % (progress["done"], progress["total"]))
         if progress["next"]:
             parts.append("next: %s" % progress["next"])
     return "  ".join(parts)
+
+
+def describe_base(slug: str, report: dict) -> str:
+    if report["base"]:
+        return report["base"]
+    if not report["artifacts"]["spec"]["exists"]:
+        return "?"
+    return "? (not recorded; %s)" % record_detected_base(slug)
 
 
 @command(
@@ -506,11 +871,16 @@ def cmd_status(args: argparse.Namespace) -> int:
         return 0
     print("slug: %s" % slug)
     print("branch: %s (current: %s)" % (report["branch"] or "?", report["current_branch"] or "?"))
+    print("base: %s" % describe_base(slug, report))
     for name in ARTIFACTS:
         print(describe_artifact(name, report["artifacts"][name], report["tasks"]))
     print("clarification markers: %d" % report["clarifications"])
+    if report["journal"]["entries"]:
+        print(describe_journal(report["journal"]))
     print("phase: %s" % report["phase"])
     print("next skill: %s" % (report["skill"] or "none"))
+    if report["note"]:
+        print("note: %s" % report["note"])
     return 0
 
 
@@ -749,6 +1119,12 @@ def lint_spec(slug: str) -> Lint:
     for title in SPEC_SECTIONS:
         if not find_section(section_map, title):
             lint.error('missing section "%s"' % title)
+    if not fields.get("base"):
+        lint.error(
+            "no base branch recorded; %s, or name another with `sdd set-base %s <branch>`"
+            % (record_detected_base(slug), slug),
+            frontmatter_line(text, "base"),
+        )
     if fields.get("description"):
         lint_description(lint, text, fields["description"])
     lint_summary(lint, section_map, offset)
@@ -898,13 +1274,23 @@ def lint_task_fields(lint: Lint, task: dict, offset: int, defined: set[str], act
 
 
 def lint_close_outs(lint: Lint, items: list[dict], offset: int) -> None:
-    last_by_slice: dict[str, dict] = {}
+    by_slice: dict[str, list[dict]] = {}
     for item in items:
         if item["slice"]:
-            last_by_slice[item["slice"]] = item
-    for slice_name, item in last_by_slice.items():
-        if item["id"] or "close" not in item["text"].lower():
-            lint.error("slice %s does not end with a close-out item" % slice_name, item["line"] + offset)
+            by_slice.setdefault(item["slice"], []).append(item)
+    for slice_name, slice_items in by_slice.items():
+        close_out = slice_items[-1]
+        line = close_out["line"] + offset
+        if close_out["id"] or "close" not in close_out["text"].lower():
+            lint.error("slice %s does not end with a close-out item" % slice_name, line)
+            continue
+        unchecked = [item["id"] or item["text"] for item in slice_items if not item["checked"]]
+        if close_out["checked"] and unchecked:
+            lint.error(
+                "slice %s is closed with unchecked work: %s; uncheck its close-out so sdd-implement builds it"
+                % (slice_name, ", ".join(unchecked)),
+                line,
+            )
 
 
 VERIFIED_ENTRY = re.compile(r"^- ((?:FR|NFR|INV)-[^\s:]+):\s*\S")
@@ -966,6 +1352,47 @@ def lint_tasks(slug: str) -> Lint:
     return lint
 
 
+FINDING_SECTIONS = ("Spec conformance", "Correctness findings", "Standards findings")
+FINDING_LINE = re.compile(r"^- (?!none\.?\s*$)", re.IGNORECASE)
+DISPOSITION_LINE = re.compile(r"^\s+- Disposition:\s*([A-Za-z-]*)", re.IGNORECASE)
+DISPOSITIONS = ("open", "picked", "fixed", "declined", "deferred")
+PENDING_DISPOSITIONS = {
+    "open": "the user has not decided it",
+    "picked": "its fix is not recorded as fixed",
+}
+
+
+def review_findings(body: str) -> dict[int, str | None]:
+    """The body line of each finding, a top-level bullet in a findings section, mapped to its disposition, or to None when no `- Disposition:` line sits under it."""
+    section_map = sections(body)
+    findings: dict[int, str | None] = {}
+    for title in FINDING_SECTIONS:
+        heading_line, lines = find_section(section_map, title) or (0, [])
+        finding = None
+        for index, line in enumerate(lines, start=1):
+            if line.startswith("- "):
+                finding = heading_line + index if FINDING_LINE.match(line) else None
+                if finding:
+                    findings[finding] = None
+                continue
+            mark = DISPOSITION_LINE.match(line)
+            if mark and finding and findings[finding] is None:
+                findings[finding] = mark.group(1).lower()
+    return findings
+
+
+def lint_dispositions(lint: Lint, body: str, offset: int) -> None:
+    """Every finding carries a known disposition, and none is left for the user or a fix to settle."""
+    for body_line, disposition in review_findings(body).items():
+        line = body_line + offset
+        if disposition is None:
+            lint.error("finding has no `- Disposition:` line under it (expected one of %s)" % ", ".join(DISPOSITIONS), line)
+        elif disposition not in DISPOSITIONS:
+            lint.error("disposition %r is not one of %s" % (disposition, ", ".join(DISPOSITIONS)), line)
+        elif disposition in PENDING_DISPOSITIONS:
+            lint.error("finding is still %s; %s" % (disposition, PENDING_DISPOSITIONS[disposition]), line)
+
+
 def lint_review(slug: str) -> Lint:
     lint = Lint("review.md")
     found = read_artifact(slug, "review")
@@ -980,6 +1407,7 @@ def lint_review(slug: str) -> Lint:
     for title in template_headings("review"):
         if not find_section(section_map, title):
             lint.error('missing section "%s"' % title)
+    lint_dispositions(lint, body, body_offset(text, body))
     lint_placeholders(lint, "review", text)
     return lint
 
@@ -1129,12 +1557,13 @@ TRANSITIONS = {
     ("tasks", "in-progress"): {"approved", "in-progress"},
     ("tasks", "done"): {"approved", "in-progress"},
     ("review", "accepted"): {"open"},
+    ("review", "open"): {"accepted"},
 }
 
 
 @command(
     "set-status",
-    "Record a design request or skip, move tasks.md to in-progress or done, or review.md to accepted",
+    "Record a design request or skip, move tasks.md to in-progress or done, or review.md to accepted or back to open",
     (["slug"], {}),
     (["artifact"], {"choices": ["design", "tasks", "review"]}),
     (["status"], {}),
@@ -1163,12 +1592,14 @@ def cmd_set_status(args: argparse.Namespace) -> int:
                 "%d item%s still unchecked, first: %s"
                 % (len(unchecked), "" if len(unchecked) == 1 else "s", unchecked[0]["text"])
             )
+    updates = {"status": args.status, "updated": today()}
     if key == ("review", "accepted"):
         lint = lint_review(args.slug)
         print(lint.report())
         if lint.errors:
             raise Refusal("lint reported errors; fix them before accepting review.md")
-    write_artifact(args.slug, args.artifact, set_frontmatter(text, {"status": args.status, "updated": today()}))
+        updates["based_on"] = artifact_state(args.slug, "tasks", None)["approved_hash"] or ""
+    write_artifact(args.slug, args.artifact, set_frontmatter(text, updates))
     print("%s.md is now %s" % (args.artifact, args.status))
     return 0
 

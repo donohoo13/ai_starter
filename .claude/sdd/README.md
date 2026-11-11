@@ -49,20 +49,26 @@ The folder stays after the merge as the record of the change.
 
 ```
 sdd root                                              project root and its docs/sdd/ path
-sdd init <slug> [--branch <name>]                     create spec.md from the template
+sdd init <slug> [--branch <name>] [--base <name>]     create spec.md from the template, recording the feature branch and its base
 sdd find                                              the slug whose spec branch is the current branch
-sdd status [slug] [--json]                            artifact states, task progress, phase, next skill
+sdd base [slug]                                       the base the spec records, else the remote's default branch from origin/HEAD or the remote itself
+sdd set-base <slug> [branch]                          record a spec's base: the named branch, or the remote's default branch when none is named
+sdd status [slug] [--json]                            artifact states, task progress, pending journal entry, phase, next skill, and a note naming the next step once a review was accepted
 sdd hash <file>                                       content hash of the body below the frontmatter
 sdd lint <slug> [spec|design|plan|tasks|review]       structure, traceability and unfilled template placeholders; no artifact means every one present
 sdd approve <slug> <spec|design|plan|tasks>           record the user's approval (only after they give it); refused on lint errors, and a design without its link, version and read
-sdd set-status <slug> <design|tasks|review> <status>  design to requested or skipped; tasks to in-progress or done; review to accepted, refused while review lint has errors
+sdd set-status <slug> <design|tasks|review> <status>  design to requested or skipped; tasks to in-progress or done; review to accepted, refused while review lint has errors, or from accepted back to open
+sdd journal <slug> add <kind> [--ref <ref>]           append a report, question, answer, decision or resolved entry to journal.md; text on stdin or in --text
+sdd journal <slug> show [<kind>] [--ref <ref>]        print the journal's entries, all or only one kind or ref
+sdd uncommitted [slug]                                every uncommitted path except the spec's own review.md, one file per line, then a count
 sdd templates sync [--check]                          regenerate templates from Appendix A (Spec template) to Appendix E (Review report template)
 sdd check-refs                                        every section reference in the skills and this README matches a heading
 ```
 
 The content hash ignores frontmatter, checkbox ticks, `- Evidence:` sub-bullets, the `## Follow-ups` section and trailing whitespace, so progress notes never count as a change to an approved artifact.
 The `## Verified elsewhere` section of `tasks.md`, where the user records an `NFR-` or `INV-` verified without a task, sits inside the hash, so that decision cannot change after approval unnoticed.
-`based_on` is recorded at approval; while an artifact is a draft, lint accepts it empty.
+`based_on` is recorded at approval, and for a review at acceptance, so tasks re-approved afterwards make the review stale; while an artifact is a draft, lint accepts it empty.
+`journal.md` is a file of its own that no hash covers, so an entry never counts as a change; `status` reports its last entry as pending until a `resolved` entry follows it or the phase that wrote it ends.
 
 Lint treats every `<...>` token that appears in an artifact's template as an unfilled placeholder, so a raw template never passes.
 `sdd-review` therefore writes the PR description draft into `review.md` before it runs `set-status`, since acceptance is refused while the draft's placeholders remain.

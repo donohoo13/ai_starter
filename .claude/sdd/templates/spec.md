@@ -2,6 +2,7 @@
 title: <Feature name>
 slug: <slug>
 branch: <feature branch>
+base: <base branch>
 status: draft
 owner: <person>
 created: YYYY-MM-DD

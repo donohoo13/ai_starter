@@ -33,7 +33,7 @@ Every SDD skill points into it.
 | `tdd`           | Used by phases 5 and 6, and on its own | 12      | Red-green discipline for any change a test can lock down                                     |
 | `sdd-review`    | 6. Validate                            | 13      | Prove the branch meets the spec, review it, and prepare the PR                               |
 
-The helper `.claude/sdd/bin/sdd`, run from the repository root, keeps state and the mechanical checks out of the skills' hands: `init`, `find`, `status`, `hash`, `lint`, `approve`, `set-status`, `templates sync` and `check-refs`.
+The helper `.claude/sdd/bin/sdd`, run from the repository root, keeps state and the mechanical checks out of the skills' hands: `init`, `find`, `status`, `hash`, `lint`, `approve`, `set-status`, `journal`, `uncommitted`, `templates sync` and `check-refs`.
 It checks structure and state, not quality.
 
 ---
@@ -181,7 +181,7 @@ Each artifact records its state in its frontmatter.
 | `design.md` | `requested` → `approved`, or `skipped`        | `approved_hash`, `based_on` (the spec's `approved_hash`, also recorded at a request or skip)                 |
 | `plan.md`   | `draft` → `approved`                          | `approved_hash`, `based_on` (the design's `approved_hash` when the design is approved, otherwise the spec's) |
 | `tasks.md`  | `draft` → `approved` → `in-progress` → `done` | `approved_hash`, `based_on` (the plan's `approved_hash`)                                                     |
-| `review.md` | `open` → `accepted`                           | None                                                                                                         |
+| `review.md` | `open` → `accepted`, reopened to `open`       | `based_on` (the tasks' `approved_hash`), recorded at acceptance                                              |
 
 The current phase follows from these states:
 
@@ -192,8 +192,8 @@ The current phase follows from these states:
 | Spec approved, design absent, skipped covering every listed UI surface, or approved and current; plan missing or draft | 3. Plan      | `sdd-plan`      |
 | Plan approved; tasks missing or draft                                                                                  | 4. Tasks     | `sdd-task`      |
 | Tasks approved or in progress                                                                                          | 5. Implement | `sdd-implement` |
-| Tasks done; review missing or open                                                                                     | 6. Validate  | `sdd-review`    |
-| Review accepted                                                                                                        | Done         | None            |
+| Tasks done; review missing, open, or accepted but stale                                                                | 6. Validate  | `sdd-review`    |
+| Review accepted and current                                                                                            | Done         | None            |
 
 **Changed and stale artifacts.**
 An approved artifact whose content no longer matches its `approved_hash` counts as changed, and it needs re-approval.
@@ -201,6 +201,7 @@ Every artifact downstream of it becomes **stale** because its `based_on` no long
 The plan's upstream is the design while the design is approved and the spec otherwise, so a design approved after the plan, a re-approved design, or a spec change that stales the design all make the plan stale.
 The approval hash covers the body below the frontmatter plus the artifact's `based_on`, so a re-approval against a changed upstream always records a new hash and stales what follows.
 A design's hash also covers its recorded `version`, so re-recording a changed canvas needs a new approval.
+An accepted review records the tasks' `approved_hash` as its `based_on`, so tasks re-approved after a late change make the review stale and the run returns to Validate.
 Checking off tasks in `tasks.md`, the single `- Evidence:` line under a task, and the Follow-ups section still do not count as a change.
 A draft's `based_on` may stay empty until approval records it.
 Once set, it must match: refreshing a stale artifact means revising it against its upstream and setting `based_on` to the new hash before re-approval.
@@ -243,6 +244,9 @@ Once set, it must match: refreshing a stale artifact means revising it against i
   Don't patch around the gap downstream.
 - Editing an approved artifact makes it changed.
   Re-approve it, then refresh whatever went stale.
+- A finished run goes back the same way, never by editing a status by hand (section 14).
+  Re-approving `tasks.md` returns it from `done` to `approved` and the run to Implement, and an accepted review that goes stale returns the run to Validate.
+  `sdd set-status <slug> review open` reopens an accepted review, when it went stale or when feedback arrives after acceptance (section 13).
 
 ---
 
@@ -255,6 +259,7 @@ Once set, it must match: refreshing a stale artifact means revising it against i
   design/     # Design: the snapshot of the approved Design artifact
   plan.md     # Plan
   tasks.md    # Tasks; also the progress log during Implement
+  journal.md  # Implement: agent reports, questions, answers and decisions
   review.md   # Validate report and PR description draft
 ```
 
@@ -262,6 +267,12 @@ Once set, it must match: refreshing a stale artifact means revising it against i
 - **Slug** is a short kebab-case name for the change.
   It defaults to the current feature branch name.
   When Outline starts on a shared branch, record the intended feature branch with `sdd init <slug> --branch <name>`; `sdd-implement` creates it, and `sdd find` matches the spec to that branch from then on.
+- **Base** is the branch the feature branch is cut from and merges back into.
+  Git decides it and nobody is asked: `sdd init` records the remote's default branch in the spec's `base` field, read from the `origin/HEAD` this clone records and, when that is missing, from the remote itself.
+  Only when both fail does the session ask the user, and `sdd set-base <slug> <branch>` records the answer; that command, or `sdd init --base <name>`, also names the base of work that does not build on the remote's default branch.
+  Every skill reads the base from the helper, and none works out a default branch of its own: `sdd status` reports the recorded base, and `sdd base` prints it, detecting it the same way for a spec that records none and when no spec matches the current branch.
+  `sdd set-base <slug>` records the detected base on a spec that has none, which `sdd lint` reports as an error.
+  The field sits outside the content hash, so recording it never stales an approval.
 - **Tracked by git.**
   The folder is committed on the feature branch, so the pull request carries the spec, plan, tasks and review beside the code, and the history shows when each gate passed.
   Stage an artifact by explicit path at the gates section 4 names and let the user commit; never `git add -A`.
@@ -270,6 +281,30 @@ Once set, it must match: refreshing a stale artifact means revising it against i
   Every `<...>` placeholder in a template is filled or deleted before approval; `sdd lint` reports any that remain, in every artifact including `review.md`.
 - **Lifetime.**
   The folder stays after the merge as the record of the change; delete it only when the user asks.
+
+### The journal
+
+`journal.md` holds what a phase would otherwise keep only in its conversation: an agent's report, a question put to the user, the user's answer, and a decision later work must follow.
+A session can end at any moment, and the next one resumes from files alone.
+Implement is the phase that keeps one (section 11).
+
+- **Written only through the helper.**
+  `sdd journal <slug> add <kind> [--ref <ref>]` appends one entry, taking its text on stdin or in `--text` and recording the phase and the time itself; `sdd journal <slug> show [<kind>] [--ref <ref>]` prints entries.
+  The ref says what an entry is about, such as a slice.
+  No entry is edited or removed afterwards.
+- **Kinds.**
+  A `report` is an agent's report, recorded by the agent before it sends it.
+  A `question` is one the session stops on for the user, an `answer` is the user's reply in their words, and a `decision` is one the user gives with no question behind it.
+  A `resolved` entry says the entries before it are settled.
+- **Pending.**
+  The last entry is pending until a `resolved` entry follows it or the phase that wrote it ends.
+  `sdd status` reports it with what it waits on, the user for a `question` and the session for the rest, so a fresh session reads where the work stopped.
+- **Outside every approval.**
+  It is a file of its own that no hash covers, so writing to it never makes an artifact changed.
+- **Kept with `tasks.md`.**
+  Wherever `tasks.md` is staged and committed, the journal goes with it.
+- **No secrets.**
+  An entry never quotes a secret, a credential or customer data; describe it instead.
 
 ---
 
@@ -329,6 +364,7 @@ Anything you can learn by reading the code, standard language conventions, tutor
    If it's trivial or small, say so and recommend `tdd` instead.
    Continue only if the user wants the chain.
 2. **Create the working folder** with `sdd init <slug>` if it doesn't exist, adding `--branch <name>` when you are not on the feature branch yet (section 5).
+   `init` records the base from git (section 5); ask the user for it only when `init` reports that git could not tell.
 3. **Ground yourself in the code.**
    Read the project context (section 6).
    Explore the relevant code without changing anything, and identify existing behavior, the patterns to follow and the interfaces to reuse.
@@ -684,6 +720,9 @@ Stage `design.md` and `design/` by explicit path, propose a commit message, and 
 - **Slices:** group tasks by user story (P1, P2, P3) so each slice ships on its own.
   Within a slice, build foundations before the things that depend on them.
 - **Slice close:** end every slice with a close-out item covering the full suite, staging and the orchestrator's commit (Appendix D).
+- **Revising a built list:** leave each new task unchecked, and uncheck a task whose behavior changed, deleting its `- Evidence:` line.
+  Uncheck the close-out of every slice that holds an unchecked task, because `sdd-implement` builds only the slices whose close-out is unchecked.
+  `sdd lint` reports an unchecked task under a checked close-out as an error.
 - **Seam:** every task names its seam, taken from the plan.
 - **Coverage:** every functional requirement has at least one task, and every task traces to a requirement that is still in force.
   A non-functional requirement or invariant needs a task too, unless the user decides it is verified another way; record that decision under Verified elsewhere (Appendix D) with the ID, how it is verified and who decided.
@@ -705,16 +744,25 @@ Name `sdd-implement` as the next step, and recommend starting it in a fresh sess
 **Produces:** code and tests, one commit per slice plus any trunk commits, and `tasks.md` checked off with status `done`.
 
 The session running `sdd-implement` is the **orchestrator**.
-It dispatches, verifies, commits and talks to the user, and writes nothing but `tasks.md`'s status, close-out boxes and `render_check` and `render_check_asked` frontmatter keys, the spec's `branch` field, git commits and the processes it starts.
+It dispatches, verifies, commits and talks to the user, and writes nothing but `tasks.md`'s status, close-out boxes and `render_check` and `render_check_asked` frontmatter keys, the spec's `branch` and `base` fields, its journal entries, git commits and the processes it starts.
 Every line of code, test and task evidence comes from an `implementer` in a fresh context, so the build follows the approved artifacts instead of the memory of the conversation that produced them.
+
+The build keeps the journal (section 5), so that `tasks.md`, the journal and `git status` together say where an interrupted build stands.
+Each `implementer` records its report there before sending it.
+The orchestrator records each question it stops on for the user before asking it, the answer before acting on it, and any decision the user gives unasked.
+It records `resolved` in the same command as each commit that settles a report or QA, with the journal staged in that commit, so no session can end between a journal that calls work settled and the commit that settles it.
 
 ### Steps
 
 1. **Check the branch.**
-   The spec's `branch` field names the feature branch.
-   If you're on the default or a shared branch, propose creating it and ask first; if the user picks another name, update the spec's `branch` field, which sits outside the hash.
+   The spec's `branch` field names the feature branch, and its `base` field the branch that one is cut from and merges back into (section 5).
+   When the spec records no base, record the one git detects with `sdd set-base <slug>` first, and ask the user only when that fails.
+   If you're on the base or another shared branch, propose creating the feature branch from the base and ask first; if the user picks another name, update the spec's `branch` field, which sits outside the hash.
+   Every commit of this phase lands on the feature branch, never on the base.
 2. **Resume** at the first slice whose close-out item is unchecked, and set `tasks.md` to `in-progress`.
-   If there are uncommitted changes, list them and let the user choose between handing them to a fresh `implementer` to continue that slice and setting them aside by hand; never discard them.
+   Build only the slices whose close-out is unchecked, since a revised task list reopens the slices it touched and leaves the rest closed (section 10).
+   If there are uncommitted changes that no report still awaiting its `resolved` entry names, list them and let the user choose between handing them to a fresh `implementer` to continue that slice and setting them aside by hand; never discard them.
+   When `sdd status` reports a pending journal entry, continue from it before any new dispatch: act on a `report` as if it had just arrived, put a `question` to the user again, and act on an `answer` or `decision`, handing it to a fresh `implementer` when the agent it was meant for is gone.
 3. **Render checks.**
    When the spec lists a UI ID that `tasks.md`'s `render_check_asked` frontmatter key does not, on the first start or any resume, since a spec re-approved mid-build can add a surface, list those surfaces and recommend each that is new, has an approved design, changes layout between the mobile and desktop widths, or uses a color pairing no existing surface uses, naming the criterion in one line.
    The user approves any, all or none.
@@ -724,22 +772,24 @@ Every line of code, test and task evidence comes from an `implementer` in a fres
    Frontmatter sits outside the content hash, so the tasks stay approved, and no surface is asked about twice.
    With `none`, no render check runs.
 4. **For each slice, one at a time:**
-   1. **Dispatch** a fresh `implementer` with a brief of pointers only: the slug, the slice heading, the facts earlier slices reported as notes, and the user's decisions for this slice.
+   1. **Dispatch** a fresh `implementer` with a brief of pointers only: the slug, the slice heading, the facts earlier slices reported as notes, the user's decisions for this slice, and any uncommitted paths the agent inherits from one that is gone.
       The agent loads its tasks, requirements, plan sections and seams itself, builds each task through `tdd` (section 12), checks off each task with one `- Evidence:` line, and checks its diff against the matching `docs/standards/` files before it reports.
+      Inherited paths become the agent's own work, and its report lists them with the paths it changed.
    2. **Blocked.**
       The agent stops for the conditions under Stop and ask.
-      Put its question to the user with options and a recommendation, dispatching the `skeptic` agent first when the question is a trunk change, then resume the same agent with the answer.
+      Put its question to the user with options and a recommendation, dispatching the `skeptic` agent first when the question is a trunk change, then resume the same agent with the answer, or dispatch a fresh one with it when that agent is gone.
    3. **Trunk commit.**
       An approved trunk change is built first and reported on its own; run the full suite, commit it alone with a body that opens `Trunk change:` and records the skeptic's verdict and the user's decision, then resume the agent to finish the slice.
-   4. **Verify** before committing, since a report is a claim: rerun each "Done when" check, run the full suite, confirm the reported files and test files match every changed path, confirm `tasks.md` changed only in this slice's boxes, Evidence lines and Follow-ups, and confirm with `sdd status` that it is unchanged since approval.
+   4. **Verify** before committing, since a report is a claim: rerun each "Done when" check, run the full suite, confirm the reported files and test files match every changed path apart from `tasks.md` and the journal, confirm `tasks.md` changed only in this slice's boxes, Evidence lines and Follow-ups, and confirm with `sdd status` that it is unchanged since approval.
       A failing test in a file the slice added or changed belongs to the slice; any other failing test that also fails at `HEAD`, checked in a temporary worktree with dependencies installed rather than by stashing, is recorded as pre-existing.
       Any other failure goes back to the same agent once; a second failure stops the run with the evidence and no commit.
-   5. **Commit** the verified slice: check its close-out item, stage by explicit path, including `docs/sdd/<slug>/tasks.md` so the progress log lands with the slice, and commit with the agent's judgment calls in the body.
+   5. **Commit** the verified slice: check its close-out item, stage by explicit path, including `docs/sdd/<slug>/tasks.md` and the journal so the progress log lands with the slice, and commit with the agent's judgment calls in the body.
       Never use `git add -A` or `git add .`, and never push.
 5. **QA.**
    When every slice is checked off, run `sdd lint <slug>`, start the app when the change has a runnable surface, and hand the user one QA script whose every observation maps to a "Done when" check or an acceptance criterion.
    When `render_check` names surfaces, dispatch `render-checker` once for all of them before handing over the script, and put each failure into the script with its evidence and screenshot path; only the failures the user picks go to a fresh `implementer` as QA bugs.
    Each surface or state its report lists under Not reached goes into the script with its reason, as an item the user checks by hand.
+   The script is a question the session stops on, so a session resuming at QA hands the recorded script over again without a second render pass.
    A bug the user finds goes to a fresh `implementer` as a red-first fix, which the orchestrator verifies and commits before QA resumes.
 6. **Finish.**
    When the user confirms QA, set `tasks.md` to `done` and commit that change, stop the processes the session started, and report what was built, where the build stopped and how each stop was resolved, the judgment calls made, any pre-existing failures, and the follow-ups.
@@ -759,7 +809,7 @@ The `implementer` holds these rules; the orchestrator checks the result against 
   Skipping tests, loosening assertions and suppressing errors are not fixes; when nothing else makes a check pass, the same approach has failed twice, which is a reason to stop and ask.
 - **Manage context.**
   Each slice runs in its agent's fresh context, so the orchestrator's own context holds only reports and verification.
-  `tasks.md` is the memory a resumed session reads, so it stays current.
+  `tasks.md` and the journal are the memory a resumed session reads, so they stay current.
 
 ### Stop and ask when
 
@@ -832,7 +882,11 @@ Without a spec the skill skips the start and finish protocols and the steps mark
 - **Feature branch with a clean tree.**
   Uncommitted work would be reviewed as if it ships.
   If the tree isn't clean, list the paths and stop.
-- **Base branch:** the argument if given, otherwise the repo's default branch.
+  The spec's own `review.md` is not such work: the review writes it and leaves it uncommitted until acceptance, so `sdd uncommitted <slug>` lists every uncommitted path except that file, and this gate and the fix check both read the tree through it.
+  A review already in progress settles its uncommitted paths under Resume instead of stopping.
+- **Base branch:** the argument if given, otherwise the base `sdd base` prints: the one the spec records, else the remote's default branch.
+  The comparison reads it as `origin/<base>` when the remote has that branch, since a local copy can lag behind it.
+  Ask the user only when it reports that git could not tell.
 - **Effort and findings cap:** the argument if given.
   Otherwise ask once, suggesting `high` or `xhigh` with a cap of 3 to 5 scaled to the size of the diff.
 
@@ -870,33 +924,84 @@ Don't pad the report with style preferences; chasing every finding leads to over
 
 Write one report to `review.md` (Appendix E), or to the conversation without a spec, and show it:
 
-- _(spec only)_ Spec conformance: each requirement met or not, with evidence.
+- _(spec only)_ Spec conformance: each requirement met or not, with evidence, and each gap.
 - Correctness findings, with severity and `file:line`.
 - Standards findings, with the standards line each one fails.
 - The standards reviewer's reads-well notes.
 - Rejected findings, with the evidence.
+
+`review.md` is also the record a later session resumes from, so it holds two things the conversation would otherwise carry.
+`range` names the reviewed head by its commit hash, which lets a later session tell whether the branch has moved since.
+Each conformance gap, correctness finding and standards finding is a top-level bullet in its section, the only kind of top-level bullet there, with one `- Disposition:` line under it:
+
+- `open`: the user has not decided it.
+  Every finding starts here.
+- `picked`: the user chose to fix it, and the fix is not committed yet.
+- `fixed`: its fix is committed and listed under Fixes.
+- `declined`: the user chose not to fix it, followed by their reason.
+- `deferred`: the user moved it to later work, followed by where that is recorded.
+
+A section with no finding holds `- None`.
+A disposition changes only on the user's decision or when a picked fix is committed.
+`sdd lint <slug> review` reports a finding with no disposition, and one still `open` or `picked`.
 
 Then stop and wait for the user.
 
 ### Fixes
 
 The user picks which findings to fix.
+Record each decision in `review.md` before acting on it: `picked` on a finding to fix, and `declined` or `deferred` on one the user turns down or postpones.
+A rejected finding the user picks moves back to its findings section as `picked`.
 A fresh `implementer` builds each fix red-first from the finding, its `file:line` and the requirement IDs it touches; the reviewing session never writes the fix itself.
-Verify it with the repo's test tiers and by matching the files the agent reports against every changed path.
+Verify it with the repo's test tiers and by matching the files the agent reports against every uncommitted path, read with `sdd uncommitted <slug>` when there is a spec so the report itself is left out.
 Stage it by explicit path and propose a commit message; commit only on the user's word, since a review fix answers a finding the user picked rather than an approved task.
-If the fixes are substantial, offer to rerun the review.
+Once it is committed, list the fix under Fixes with its test and commit, and set the finding to `fixed`.
+If the fixes are substantial, offer to rerun the review (Resume).
+
+### Resume
+
+A `review.md` at `open` when the skill starts is a review in progress.
+Continue it from that file alone: skip Run, Triage and writing the report, and run no reviewer again unless the user chooses a rerun.
+
+- **Read the report.**
+  Its frontmatter records the base, range, effort and cap the review ran with, each finding carries its disposition, and Fixes lists each fix with its commit.
+- **Check that the branch is still the one reviewed.**
+  `range` ends at the commit the reviewers read, and every commit after it should be a fix the report lists.
+  When another commit follows it, or that commit is no longer on the branch, the report describes code that has since changed: show the user the commits and ask whether to rerun the review or continue on the report as written.
+- **Settle uncommitted paths.**
+  Any path `sdd uncommitted <slug>` lists is work an earlier session left unfinished, usually the fix for a `picked` finding.
+  List the paths and let the user choose between handing them to a fresh `implementer` to finish that fix and setting them aside by hand; never discard them.
+- **Continue from the dispositions.**
+  Build the fix for each `picked` finding, put each `open` finding to the user, and go to Confirm intent and close once neither is left.
+- **A rerun** runs the reviewers again on a clean tree and rewrites the report for the new range.
+  Every finding the user has decided keeps its line and disposition, the Fixes entries stay, the new findings replace those still `open`, and a new finding that repeats a decided one is left out.
 
 ### Confirm intent and close
 
 - Passing tests prove the code matches the spec, not that the spec matched the intent.
   Restate in plain language what was built and ask the user to confirm it's what they meant.
-- On the user's acceptance, draft the PR description in `review.md`, or in the conversation without a spec, then set `review.md` to `accepted` with `sdd set-status <slug> review accepted`, which refuses while `sdd lint <slug> review` reports an error, such as a placeholder still in the report.
+- On the user's acceptance, draft the PR description in `review.md`, or in the conversation without a spec, then set `review.md` to `accepted` with `sdd set-status <slug> review accepted`, which refuses while `sdd lint <slug> review` reports an error, such as a placeholder still in the report or a finding still `open` or `picked`.
+  Acceptance decides no finding: put each one still `open` to the user first.
   The draft has four parts: a summary paragraph following the rules in section 7, what changed, how it was verified (with evidence), and any decisions made and follow-ups.
   Don't push or open the PR unless the user asks.
 - _(spec only)_ Stage `docs/sdd/<slug>/review.md` by explicit path and propose its commit message.
   The folder stays as the record of the change.
 
 Nothing is pushed from this phase.
+
+### After acceptance
+
+An accepted review covers the tasks it records as `based_on`.
+A finished run comes back to this phase in two ways, and `sdd status` names the step for each:
+
+- **The tasks were re-approved** after a late change (section 14), so the review is stale and the phase is `6. Validate` again.
+  Reopen the review with `sdd set-status <slug> review open`, run every review again on the rebuilt branch, and replace the report with the new results.
+- **Feedback arrives that changes no artifact,** such as a pull request comment or a bug found after acceptance.
+  On the user's word, reopen the review the same way.
+  Each item joins the report as a finding that names its source, and goes through Triage and Fixes like any other.
+  Feedback that changes behavior a requirement describes is a spec change and goes to `sdd-outline` instead (section 14).
+
+Either way the review is accepted again through Confirm intent and close, with the PR description draft brought up to date.
 
 ---
 
@@ -908,6 +1013,10 @@ Nothing is pushed from this phase.
 - **A bug found during Implement.**
   If the code violates the spec, fix it with `tdd`, starting from a failing test.
   If the spec was wrong or incomplete, route back to `sdd-outline`.
+- **A change after the tasks are done or the review is accepted.**
+  It takes the same route: the spec through `sdd-outline`, then the plan and tasks as they go stale.
+  Re-approving the tasks returns the run to Implement, which builds only the slices the revision reopened (section 10), and makes an accepted review stale, so the run passes through Validate again (section 13).
+- **Feedback after the review is accepted** that changes no artifact, such as a pull request comment, reopens the review (section 13).
 - **Drift.**
   When you touch code the spec covers, check that the spec still describes it.
   If it doesn't, say so before going further.
@@ -970,6 +1079,7 @@ Nothing is pushed from this phase.
 title: <Feature name>
 slug: <slug>
 branch: <feature branch>
+base: <base branch>
 status: draft
 owner: <person>
 created: YYYY-MM-DD
@@ -1239,13 +1349,18 @@ updated: YYYY-MM-DD
 | Requirement | Met | Evidence |
 | ----------- | --- | -------- |
 
+- <requirement ID>: <gap, with evidence>
+  - Disposition: open
+
 ## Correctness findings
 
 - [<severity>] <file:line>: <finding>
+  - Disposition: open
 
 ## Standards findings
 
 - <file:line>: <finding>. Fails: "<standards line>"
+  - Disposition: open
 
 ## Reads well
 

@@ -27,6 +27,11 @@ In a project created from the template, this file is template residue: delete it
   - `tdd` is rebuilt around a discovery reference that finds a repo's test commands and test shapes from its own files, keeps the mocking and good-versus-bad-test references, and adds a report-back contract so the `implementer` records evidence per task.
   - `research-analyst` is dispatched by `sdd-plan` and takes pinned Context7 library IDs; `standards-reviewer` is dispatched by `sdd-review` with the base ref and the commit range.
   - `scripts/test/sdd-helper.battery.mjs` runs the helper's unittest suite, the template drift check and the section-reference check under `pnpm test:scripts`, so CI needs `python3`; `.claude/sdd/templates/` is prettier-ignored so the generated files stay byte-identical to the appendices.
+  - `sdd-review` resumes a review an earlier session left open instead of running the reviewers again.
+    `review.md` carries one `- Disposition:` line under each conformance gap, correctness finding and standards finding (`open`, `picked`, `fixed`, `declined` or `deferred`), written before any fix is dispatched, and names the reviewed head in `range` by its commit hash.
+    A new session reads those records, asks whether to rerun when the branch holds a commit the report does not list, hands unfinished fix work to a fresh `implementer` on the user's word, and continues with the findings still `picked` or `open`; a rerun keeps every decision already made.
+    The helper gains `sdd uncommitted [slug]`, which lists every uncommitted path except the spec's own `review.md`, and the review's clean-tree gate and fix check read the tree through it.
+    `sdd lint <slug> review` reports a finding with no disposition and one still `open` or `picked`, so `set-status <slug> review accepted` refuses until every finding is decided.
   - `.claude/rules/skill-authoring.md` records the one SDD exception: naming the next phase as the handoff.
   - `BRANDING.md` is replaced by `DESIGN.md` in Google's [design.md](https://github.com/google-labs-code/design.md) format, which `design-init` writes at the root from a template it carries; the payload ships no root `DESIGN.md`.
     Token values move into YAML front matter: colors named by role, each with its `on-` pair, typography roles, radius and spacing scales, and component bindings for a base UI kit, all checked by `pnpm exec designmd lint DESIGN.md` and exportable to Tailwind or DTCG tokens.
@@ -62,10 +67,20 @@ In a project created from the template, this file is template residue: delete it
     `set-status <slug> design` on an existing `design.md` no longer refuses when the spec lists no UI surface, so a requested design can still be cancelled after a re-approved spec drops its surfaces.
     A repeat request also clears a skip's `decided_by` and `surfaces`.
     `sdd lint` rejects any bullet under a spec's `## UI surfaces` that is not a `UI-` line with a colon after its ID.
+  - Each spec records its base, the branch its feature branch is cut from and merges back into, in a `base` field beside `branch`.
+    Git decides it and nobody is asked: `sdd init` records the remote's default branch, read from the `origin/HEAD` the clone records and otherwise from the remote with `git ls-remote --symref origin HEAD`, and `--base <name>` names another for work that does not build on it.
+    `sdd status` reports the base, the new `sdd base [slug]` prints it, detecting it the same way for a spec that records none and when no spec matches the current branch, and the new `sdd set-base <slug> [branch]` records the detected or the named base without staling an approval.
+    `sdd lint` fails a spec with no base, so none is approved without one, and the user is asked only when git cannot tell.
+    `sdd-implement` cuts the feature branch from the base and refuses to commit on it, and `sdd-review` and `render-check` diff against it, in place of each skill's own way of finding a default branch.
   - `sdd-implement` asks, at the first start or at a resume that meets a new UI ID, which listed surfaces get a render check, recommending each by criterion: a new surface, an approved design, a layout that changes between mobile and desktop widths, or a color pairing no existing surface uses.
     It records the answer in `tasks.md`'s frontmatter as `render_check` (the approved IDs, or `none`) and `render_check_asked` (every ID asked about), outside the content hash, so the tasks stay approved.
     When every slice is committed and a surface was approved, it dispatches `render-checker` once before QA, puts each failure in the QA script with its evidence, and sends only the failures the user picks to a fresh `implementer`.
     `/render-check` still runs on its own, and `render-checker` accepts either dispatcher.
+  - A build keeps a journal, `journal.md` in the spec folder, written only through the new `sdd journal <slug> add|show` helper command.
+    The `implementer` records each report there before sending it, and the `sdd-implement` orchestrator records each question it stops on, the user's answer, any decision given unasked, and a `resolved` entry in the same command as each trunk, slice, QA-fix and finish commit, which stages the journal.
+    `sdd status` reports the last entry as pending until a `resolved` entry follows it or the phase that wrote it ends, and a resuming session continues from it: it verifies and commits a recorded report, asks a recorded question again without a second `skeptic` or render pass, and hands a recorded answer to a fresh `implementer`.
+    A brief names the uncommitted paths a fresh `implementer` inherits, and its report lists them with its own, so the file match in Verify holds for a slice an earlier agent left half built.
+    The journal is a file of its own that no approval hash covers, each entry's text sits in a fence the helper writes as Prettier would, and the SDD document's section 5 defines it for any phase to adopt.
   - `ux-standards.md` splits into Floors, the WCAG 2.2 AA success criteria and Core Web Vitals thresholds no project goes below (a 24×24 CSS px target under 2.5.8), and Starting values that `DESIGN.md` decides: a 38×38px target in place of the fixed 44×44px, a `70ch` reading width, 100–300ms motion, feedback timing and data-table styling.
     `frontend-styling.md` and `html-tables.md` replace their unit bans with a principle to use units that scale with user settings and the viewport, keeping the `svh`-first full-height rule as a starting value; `html-tables.md` keeps its markup rules as requirements and labels its styling a starting value, and `frontend-styling.md` holds that a design snapshot or Claude Design markup is a reference, never shipped UI.
     The starting values apply wherever `DESIGN.md` is absent, still holds bracket placeholders, or is silent on a value, and brand decisions stay undecided until `design-init` runs.
@@ -74,13 +89,22 @@ In a project created from the template, this file is template residue: delete it
   - `.prettierignore` excludes `docs/sdd/*/design/`, so the pre-commit hook leaves a design snapshot byte for byte as it was read.
   - New `docs/standards/ruby.md` holds Ruby conventions for tooling, RBS types and language idioms, with Rails-only rules in their own section.
   - The opt-in macOS kit under `scripts/setup/machine/` is removed, with `machine-install.battery.mjs` and the README's "Setting Up a Mac" section.
+  - A finished SDD run has a recorded way back.
+    `sdd lint` reports an unchecked task under a checked close-out as an error, so `sdd approve <slug> tasks` refuses a revised list until the slice is reopened, and `sdd-task` unchecks new and changed tasks and their slices' close-outs when it revises a built list.
+    `sdd set-status <slug> review accepted` records the tasks' `approved_hash` as the review's `based_on`, so tasks re-approved after a late change make the accepted review stale and `sdd status` reports `6. Validate` instead of `Done`.
+    `sdd set-status <slug> review open` reopens an accepted review, which `sdd-review` does for a stale review and, on the user's word, for pull request feedback, taking each item through its triage and fixes.
+    `sdd status` prints the review's `based_on` and whether it is current or stale, and a `note` line (`note` in `--json`) naming the next step whenever the review was accepted before.
+  - `sdd-review` compares against `origin/<base>` when the remote has that branch, as `render-check` already did.
+  - The template's own specs under `docs/sdd/` are removed, and the folder is kept with a `.gitkeep`.
 - **Why**: the design restructure gets better results from design sessions.
   Role-named tokens and component bindings give a building session exact values to compose from instead of prose to interpret, and the linter catches broken references and contrast failures before a surface ships.
   `DESIGN.md` is the filename the format's spec and tooling use, and the skill that fills it now carries the same name.
   `pnpm dev` wrote its pidfile before the previous log was cleared, so a reader acting on the new pid could read the last server's output, and the dev-server battery failed intermittently on slow runners.
   The dropped install checks duplicated what mise and pnpm 11's `devEngines` runtime already guarantee, and the code-review settings battery guarded against settings no project adds.
   The spec chain replaces four skills that each held part of the lifecycle with one document and one state helper, so a phase cannot start on a stale or unapproved upstream and a fresh session resumes from the committed artifacts alone; `preflight` went with it because `sdd-review` covers the review, the fixes and the PR draft while the user keeps the push.
+  A review wrote `review.md` and left it uncommitted until acceptance, so its own fix check met a path no agent reported and a new session's clean-tree gate stopped on that file, while the user's picks lived only in the conversation; an interrupted review could only start over.
   Building in the session that invoked `sdd-implement` carried the whole build in one context and checked each slice in the context that wrote it; a fresh agent per slice builds from the approved artifacts alone, and an orchestrator that did not write the code verifies it before committing.
+  An `implementer`'s report, a `BLOCKED` question and the user's answer to it lived only in the orchestrator's conversation, so a session that ended after a report, mid-slice or mid-question left the next one checked tasks and a dirty tree with no report to verify, no account of the files it inherited, and no record of what the user had decided.
   `refine` rewrote finished code to the standards `sdd-review` then judged again, so standards now hold inside each slice and the review is the single pass; render passes are slow and token-heavy, so one runs only when the user starts it or picks its surfaces at build start.
   The `[P]` marker had no consumer once slices build one at a time, and the battery keeps the suite's structural rules from drifting the way the skill counts did.
   A git hook guards every commit and push, from any author or tool, where the Claude Code hooks guarded only Claude's Bash calls and parsed shell text to do it.
@@ -90,17 +114,22 @@ In a project created from the template, this file is template residue: delete it
   The grounding stayed in the session, the brief's framing went unchecked, and the options rested on an error source nobody had read up on.
   No phase requested or recorded a UI design, so implementers decided layout and flow mid-build, behavior a design implied bypassed the spec, and nobody saw a layout until QA; the Design phase puts an approved, committed design in front of the plan.
   A design, plan or tasks re-approved with an unchanged body against a changed upstream kept its old hash, so everything built on it still read current.
+  `sdd-review` read the default branch from `origin/HEAD` and then a local `main` or `master`, `render-check` from `origin/HEAD` and then the remote, and `sdd-implement` by no stated method, and no spec recorded the answer, so in a repository whose work merges into `staging` the commit guard could pass on `staging` and the review and the render check could diff against different branches.
   The standards hard-coded values such as a 44×44px target and a px ban that each project's design system should own, so they overrode it; only the WCAG 2.2 AA floors stay fixed, and `DESIGN.md` is the one home for every other value.
   A scaffold at the root and a copy in `design-init` drifted apart, so one template in the skill and a lint-clean finish leave a project with either a complete `DESIGN.md` or none, and the Design System in Claude is built from that file so mockups use the project's own tokens.
   The skill body cap had no reliable measure and pushed skills to trim guidance that served quality.
   Ruby projects created from the template had no conventions for tooling, types or idioms.
   The machine kit leaves because one Mac's setup is personal, not project payload, and a dedicated dotfiles repository now carries it.
+  A task added to a built slice was never built, because `sdd-implement` resumes at the first unchecked close-out, yet it kept `tasks.md` from reaching `done`; and an accepted review survived every later change, so a rebuilt run read as done without a second review and pull request feedback had no phase to go to.
+  The template's own two specs leave because they predate the recorded base and the review dispositions, and a new project should not inherit another project's specs.
 - **Adaptation notes**:
   - A `docs/specs/*.md` spec in flight finishes under the old skills before taking this release, or is outlined again with `sdd-outline` into `docs/sdd/<slug>/`; nothing migrates it.
   - A project that edited `sdd-implement` reapplies its edits to the orchestrator, or to `implementer` when they concerned how a task is built.
     One that used `refine` gets standards checks inside each slice, QA at the end of `sdd-implement`, and render passes through `/render-check`; `git grep -E 'refine|refiner|code-reviewer'` finds project files that still name the removed pieces.
   - A `tasks.md` in flight that marks tasks `[P]` still lints; the marker is now plain title text, so drop it.
   - A project that wants a different build model or effort edits `model:` in `.claude/agents/implementer.md`, or names the effort when it starts `sdd-implement`.
+  - A build in flight needs no migration: a spec folder without a `journal.md` resumes as before, and the journal starts at the next report.
+    A project that edited `sdd-implement` or `implementer` carries the journal steps across with its edits, and one that keeps `docs/sdd/` out of git treats the journal as it treats `tasks.md`.
   - A project deletes `sdd`, `implement-spec`, `review` and `preflight`, first carrying any edits it made to them into the `sdd-*` skills.
   - A project deletes `.claude/hooks/` and the `hooks` block in `.claude/settings.json`, adds `.husky/pre-push`, and adds the default-branch check at the top of its own `.husky/pre-commit`; a project whose pre-commit runs lint-staged keeps that line below the check.
   - CI runners need `python3` for the new battery; a project without Python deletes `scripts/test/sdd-helper.battery.mjs` and runs `python3 -m unittest discover -s .claude/sdd/tests` by hand.
@@ -128,11 +157,22 @@ In a project created from the template, this file is template residue: delete it
     A spec without `## UI surfaces` still lints and never meets the Design phase, and a build in flight whose spec lists a surface gets the render-check question at its next `sdd-implement` resume.
     A project that edited the SDD document or its skills merges the renumbering, then runs `.claude/sdd/bin/sdd templates sync` and `.claude/sdd/bin/sdd check-refs`.
   - A `plan.md` or `tasks.md` approved under an earlier helper keeps its body-only hash and still reads current, so nothing needs re-approving; its next approval records the new hash.
+  - A spec written before the `base` field records none: `sdd status` prints `base: ?`, `sdd lint <slug> spec` reports an error, and `sdd-implement` records the detected base at its next start.
+    `.claude/sdd/bin/sdd set-base <slug>` records it by hand; the approval stays current.
+    A project whose work merges into a branch other than the remote's default passes `--base` to `sdd init`, or runs `sdd set-base <slug> <branch>`.
+    A clone that records no `origin/HEAD` makes the helper ask the remote over the network; `git remote set-head origin --auto` records it once.
+    A project that edited `sdd-outline`, `sdd-implement`, `sdd-review`, `render-check` or the SDD document merges the base wording by hand, then runs `.claude/sdd/bin/sdd templates sync` and `.claude/sdd/bin/sdd check-refs`.
+  - A `review.md` still `open` needs a `- Disposition:` line under each finding, and a `range` that ends at the reviewed commit, before `sdd-review` can resume or accept it; one already `accepted` needs nothing unless it is linted again.
+    A project that edited `sdd-review` or section 13 of its SDD document merges the Resume step and the disposition rules by hand, then runs `.claude/sdd/bin/sdd templates sync` and `.claude/sdd/bin/sdd check-refs`.
   - A project that pinned or quoted `ux-standards.md` values in its own rules, such as the 44×44px target or the px ban, re-reads the split between Floors and Starting values: a value above its floor now belongs in `DESIGN.md`, and only the floor is fixed.
   - A project that extended the process battery's allowlist of skills naming `render-checker` adds `sdd-implement` to it.
   - A project that edited `.prettierignore` adds the `docs/sdd/*/design/` line.
   - `ruby.md`'s `applies-to:` globs match Ruby files and `mise.toml`, so a project without Ruby deletes it to keep it off `mise.toml` changes.
   - `scripts/setup/machine/` and `scripts/test/machine-install.battery.mjs` are gone: a project that used the kit keeps its own copy of both or deletes them, and files the kit already installed on a machine (`~/.config/zsh/ai-starter.zsh`, `~/.config/git/ai-starter.gitconfig`, `~/.config/mise/conf.d/ai-starter.toml`, `~/.claude/rules/ai-starter.md`) stay until removed by hand.
+  - A `review.md` accepted under an earlier helper has no `based_on` and still reads `Done`; reopening it and accepting it again records one.
+    A `tasks.md` already approved with an unchecked task under a checked close-out fails `sdd lint` at the QA step of `sdd-implement`: uncheck that close-out and resume.
+    A project that edited `sdd-review`, `sdd-task` or `sdd-implement` merges the Reopen section and the revised resume and revision lines by hand, then runs `.claude/sdd/bin/sdd check-refs`.
+  - `docs/sdd/` ships with only a `.gitkeep`: a project that wants its own specs committed keeps that file, and one that kept the template's two example specs deletes them by hand.
 
 ## v0.2.0 — 2026-10-22
 
