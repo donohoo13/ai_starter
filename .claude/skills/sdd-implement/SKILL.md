@@ -42,9 +42,11 @@ Write to it only through the helper, with the text on stdin; a quoted heredoc ke
 EOF
 ```
 
+Keep every entry abridged: write what a later session needs in order to act, never a transcript of the conversation.
+
 - `question`: every question you stop on for the user in Blocked, Verify and QA, recorded before you ask it, with its options, your recommendation and any `skeptic` verdict.
   A question the files ask again on their own, about the branch, the render checks or uncommitted changes, takes no entry.
-- `answer`: the user's reply in their words, recorded before you act on it.
+- `answer`: what the user decided and the reason they gave, in a line or two rather than their words, recorded before you act on it.
 - `decision`: an instruction the user gives for a slice with no question behind it.
 - `resolved`: one line naming what a commit settles, recorded in the same command that stages and makes that commit, so no session can end between a journal that calls work settled and the commit that settles it.
   The trunk, slice, QA-fix and finish commits each take one, and each stages the journal.

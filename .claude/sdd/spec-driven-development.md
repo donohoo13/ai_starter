@@ -294,8 +294,10 @@ Implement is the phase that keeps one (section 11).
   No entry is edited or removed afterwards.
 - **Kinds.**
   A `report` is an agent's report, recorded by the agent before it sends it.
-  A `question` is one the session stops on for the user, an `answer` is the user's reply in their words, and a `decision` is one the user gives with no question behind it.
+  A `question` is one the session stops on for the user, an `answer` is what the user decided and why, and a `decision` is one the user gives with no question behind it.
   A `resolved` entry says the entries before it are settled.
+- **Abridged.**
+  An entry holds what a later session needs in order to act, a decision and its reason in a line or two, never a transcript of the conversation.
 - **Pending.**
   The last entry is pending until a `resolved` entry follows it or the phase that wrote it ends.
   `sdd status` reports it with what it waits on, the user for a `question` and the session for the rest, so a fresh session reads where the work stopped.
