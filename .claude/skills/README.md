@@ -13,14 +13,17 @@ Headless runs (`claude -p`) of the skills that dispatch agents (`sdd-outline`, `
 
 `.claude/sdd/spec-driven-development.md` is the source of truth for the six phases.
 The `sdd-*` skills point into it by section and never restate its rules, and `.claude/sdd/bin/sdd` keeps the state (approvals with content hashes, staleness down the chain, structural lint, templates generated from the appendices) so no skill tracks it by hand.
-Working files live in `docs/sdd/<slug>/` and are committed on the feature branch at each gate, so the pull request carries the spec, plan, tasks and review beside the code.
+Working files live in `docs/sdd/<slug>/`, and git decides whether the repository is shared or private.
+Shared, because some checkout tracks a file under `docs/sdd/`: they are committed on the feature branch at each gate, so the pull request carries the spec, plan, tasks and review beside the code.
+Private, because none does: the helper ignores the folder through `.git/info/exclude`, no spec file is ever staged or committed, and every worktree reads the main checkout's folder.
+The skills and agents take the mode and each spec file's path from `sdd status`.
 Each spec records its base, the branch its feature branch is cut from and merges back into, which the helper reads from git as the remote's default branch, and `sdd-implement`, `sdd-review` and `render-check` take it from the helper instead of working out a default branch.
 [`.claude/sdd/README.md`](../sdd/README.md) explains the helper and how to change the document.
 
 - **sdd-outline** (`/sdd-outline [slug] [brief]`): phase 1, an idea to an approved `spec.md`.
   Sizes the change first and sends trivial or small work to `tdd` instead, grounds in the code read-only, plays the problem back and waits for the user to confirm it, interviews in batches of coupled questions with a recommendation each, drafts numbered requirements with acceptance criteria and the UI surfaces the spec touches, runs an adversarial review in a fresh subagent, and gates on the user's approval; when a UI surface is listed, it offers `sdd-design` or records a skip on the user's word.
 - **sdd-design** (`/sdd-design [slug] [Design artifact link]`): phase 2, optional, for a spec whose UI surfaces section lists a surface.
-  Writes a standalone Claude Design prompt from the spec into `design.md` for the user to run in a separate design conversation, records a skip or cancel, reads the approved Design artifact's link into a committed snapshot under `design/`, puts each surface or state the design misses and each thing it adds to the user, and approves on the user's word, so the plan builds on the approved design.
+  Writes a standalone Claude Design prompt from the spec into `design.md` for the user to run in a separate design conversation, records a skip or cancel, reads the approved Design artifact's link into a saved snapshot under `design/`, puts each surface or state the design misses and each thing it adds to the user, and approves on the user's word, so the plan builds on the approved design.
   It never runs the design conversation itself.
 - **sdd-plan** (`/sdd-plan [slug]`): phase 3, an approved spec, and its approved design when there is one, to an approved `plan.md`.
   Asks whether to run `sdd-design` or skip it when a UI spec has no `design.md`, then researches with sources (`research-analyst` for a question that would stall the conversation), presents each significant decision as options with a recommendation, names the seam each slice's tests run at in the vocabulary `tdd` discovers for the repo, checks the plan against `CLAUDE.md` and `docs/standards/`, and fills the traceability table.
@@ -43,7 +46,7 @@ Each spec records its base, the branch its feature branch is cut from and merges
 
 - **render-check** (`/render-check [surfaces] [--base <ref>]`): user-only, since a pass is slow and token-heavy; `sdd-implement` runs its own pass before QA.
   Finds the touched surfaces since the merge-base with `--base` or the base the helper reports, or takes them from the argument, owns the app server, dispatches `render-checker` with the WCAG 2.2 AA floors, `DESIGN.md` or the standards' starting values, and any recorded design as the bar, and reports pass or fail per surface, width and theme without fixing anything.
-- **stage-for-commit**: for small changes that needed no spec. Stages exactly this session's files by explicit path, proves the staged set, and hands back a commit message. Never commits, branches, or pushes.
+- **stage-for-commit**: for small changes that needed no spec. Stages exactly this session's files by explicit path, proves the staged set, and hands back a commit message. Never commits, branches, or pushes, and never stages a file git ignores.
 - **curate-context**: the gate on the prescriptive context files (every `CLAUDE.md` and `CLAUDE.local.md`, `README.md`, `DESIGN.md`, `.claude/rules/`, `docs/standards/`), loaded on any edit to one by its description and the `CLAUDE.md` rule, with no hook behind it. Attributes friction-born candidates, holds an admission bar, routes to the narrowest file, and lands nothing model-invented without approval; zero net growth is the benchmark.
   On `DESIGN.md` it refuses a value below its WCAG 2.2 AA floor, and after an approved edit offers a warned re-sync of the project's Design System in Claude.
 - **design-init** (`/design-init`): writes `DESIGN.md` from the template it carries in `references/`, taking the company overview as the authority, plus the user's context, an optional reference `DESIGN.md` whose structure it carries over without its brand, and the optional mood board at `docs/design/moodboard/`.
@@ -85,4 +88,4 @@ A rule every implementer must hold from the first line, because getting it wrong
 `docs/sdd/<slug>/` holds `spec.md`, `plan.md` and `tasks.md`, each `draft` until the user approves it (`approved`, with its approval hash recorded), `tasks.md` moving to `in-progress` and `done` under `sdd-implement`, and `review.md` moving from `open` to `accepted` under `sdd-review`, and back to `open` when the tasks are re-approved or feedback arrives after acceptance.
 A spec with UI surfaces adds `design.md`, `requested`, `approved` or `skipped` under `sdd-design`, with the approved design's snapshot under `design/`.
 An approved artifact edited afterwards counts as changed and everything downstream as stale, and `.claude/sdd/bin/sdd status` names the phase and the skill to run.
-The folder is the tracker: no GitHub issues, one commit per slice as the audit trail, and each artifact committed beside the code at the gate that approved it.
+The folder is the tracker: no GitHub issues, one commit per slice as the audit trail, and, in a shared repository, each artifact committed beside the code at the gate that approved it.

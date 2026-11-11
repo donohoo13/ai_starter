@@ -35,6 +35,7 @@ Every SDD skill points into it.
 
 The helper `.claude/sdd/bin/sdd`, run from the repository root, keeps state and the mechanical checks out of the skills' hands: `init`, `find`, `status`, `hash`, `lint`, `approve`, `set-status`, `journal`, `uncommitted`, `templates sync` and `check-refs`.
 It checks structure and state, not quality.
+It also decides which folder holds a spec's files and whether git tracks them (section 5), so every skill takes a spec file's path from `sdd status` and none builds one by hand.
 
 ---
 
@@ -70,8 +71,10 @@ When a decision is theirs, present options with a recommendation and wait.
 ### Where the spec lives, and for how long
 
 Specs are working documents that travel with the change.
-They live in `docs/sdd/<slug>/` inside the project (section 5) and are committed on the feature branch, so the pull request carries them beside the code.
-Every spec here is therefore **spec-first**: written before code to guide this change, then kept as the record of what was decided and why.
+They live in `docs/sdd/<slug>/` inside the project (section 5).
+In a shared repository, one where git tracks that folder, they are committed on the feature branch, so the pull request carries them beside the code.
+In a private repository git ignores the folder and no spec file is ever staged or committed, so the repository and its history stay as its collaborators know them.
+Either way every spec here is **spec-first**: written before code to guide this change, then kept as the record of what was decided and why.
 
 What carries the spec forward after the merge, beyond the folder itself:
 
@@ -83,7 +86,7 @@ What carries the spec forward after the merge, beyond the folder itself:
 - **Repo docs or decision records,** only when the user asks for a lasting record, following the repo's convention.
 
 You MUST NOT commit a gate artifact or a review fix on the user's behalf.
-Stage an artifact under `docs/sdd/` by explicit path at the gates section 4 names, propose the message, and let the user commit.
+In a shared repository, stage an artifact by explicit path at the gates section 4 names, propose the message, and let the user commit; in a private one, stage nothing from the spec folder (section 5).
 During Implement, the orchestrator commits each verified slice itself (section 11).
 
 ### What a spec is not
@@ -137,6 +140,7 @@ During Implement, the orchestrator commits each verified slice itself (section 1
 10. **Commits follow approval.**
     The user commits gate artifacts and review fixes: you stage them by explicit path and propose the message.
     During Implement, the orchestrator commits each slice once it has verified it, because the user approved the spec, plan and tasks it builds and QAs the result at the end.
+    In a private repository (section 5) no spec file is staged or committed, so a gate records its approval in the artifact alone and only code is committed.
     Nobody but the user pushes.
 
 ---
@@ -208,11 +212,13 @@ Once set, it must match: refreshing a stale artifact means revising it against i
 
 ### Every SDD skill starts the same way
 
-1. **Find the working folder** `docs/sdd/<slug>/`.
+1. **Find the spec.**
    Use the slug from the argument.
    Otherwise use the spec whose `branch` matches the current git branch.
    Otherwise list the existing folders and ask.
 2. **Read the state** with `sdd status <slug>`.
+   It also reports the spec folder's path and the repository's mode, shared or private (section 5).
+   Read and write every spec file through that path, since the folder is not always under the current directory, and follow the mode wherever a step stages or commits a spec file.
 3. **Check this phase's preconditions.**
    If they aren't met, stop.
    Tell the user which phase the work is actually in and which skill to run.
@@ -225,10 +231,11 @@ Once set, it must match: refreshing a stale artifact means revising it against i
 2. **Present** the artifact, a short summary of the decisions it contains, and any open questions.
    Ask for approval.
 3. **Record approval only when the user gives it,** with `sdd approve <slug> <artifact>` for the spec, design, plan and tasks, and `sdd set-status <slug> review accepted` for the review.
-   Then stage that artifact by explicit path (`git add docs/sdd/<slug>/<artifact>.md`) and propose a commit message in the repo's convention; the user commits.
+   Then, in a shared repository, stage that artifact by explicit path (`git add <spec folder>/<artifact>.md`) and propose a commit message in the repo's convention; the user commits.
+   In a private repository stage nothing and propose no commit: the file records the approval.
 4. **Name the next skill.**
    Recommend a fresh session before `sdd-implement`.
-   The files in `docs/sdd/<slug>/` are the handoff.
+   The files in the spec folder are the handoff.
 
 ### Gate rules
 
@@ -253,7 +260,7 @@ Once set, it must match: refreshing a stale artifact means revising it against i
 ## 5. Working files
 
 ```
-<project root>/docs/sdd/<slug>/
+docs/sdd/<slug>/
   spec.md     # Outline
   design.md   # Design: the prompt, the record, or the skip
   design/     # Design: the snapshot of the approved Design artifact
@@ -264,6 +271,24 @@ Once set, it must match: refreshing a stale artifact means revising it against i
 ```
 
 - **Project root** is the git top-level directory, or the current directory outside git.
+- **Spec folder.**
+  A spec's working folder is always `docs/sdd/<slug>/` inside the project, but which checkout holds it follows the repository's mode, so it is not always under the current directory.
+  `sdd status <slug>` reports its path as `folder` beside the `mode`, and `sdd root` prints the `docs/sdd/` folder that holds every spec.
+  Take every spec file's path from there and never build one by hand.
+- **Mode.**
+  A repository is shared or private, and git decides which; nobody is asked.
+  The mode belongs to the repository, never to one branch, because every worktree shares the one exclude file that keeps a private folder out of git.
+  It changes only with what git tracks: the helper removes its exclude entry once a file under `docs/sdd/` is tracked and adds it again once none is, and specs written while the repository was private stay in the main checkout's folder.
+  A directory outside git counts as private, with the folder under the current directory.
+  - **Shared:** some checkout of the repository tracks at least one file under `docs/sdd/`, a spec or an empty `docs/sdd/.gitkeep`.
+    The spec folder is the current checkout's own, since tracked files travel with the branch.
+    It is committed on the feature branch, so the pull request carries the spec, plan, tasks and review beside the code, and the history shows when each gate passed.
+    Stage an artifact by explicit path at the gates section 4 names and let the user commit; never `git add -A`.
+  - **Private:** git tracks nothing under `docs/sdd/`.
+    The helper makes git ignore the folder through the repository's local exclude file (`.git/info/exclude`), never through `.gitignore`, so nothing in the repository changes and collaborators see nothing.
+    Every worktree shares one spec folder, the main checkout's, so a spec is reachable from any worktree and survives removing one.
+    You MUST NOT stage or commit anything under it, and MUST NOT force it past the ignore rule with `git add -f`.
+    Wherever a step stages or commits a spec file, leave that part out: a gate records its approval in the file alone, a commit that would hold only spec files is not made, and a commit of code is made without them.
 - **Slug** is a short kebab-case name for the change.
   It defaults to the current feature branch name.
   When Outline starts on a shared branch, record the intended feature branch with `sdd init <slug> --branch <name>`; `sdd-implement` creates it, and `sdd find` matches the spec to that branch from then on.
@@ -273,9 +298,6 @@ Once set, it must match: refreshing a stale artifact means revising it against i
   Every skill reads the base from the helper, and none works out a default branch of its own: `sdd status` reports the recorded base, and `sdd base` prints it, detecting it the same way for a spec that records none and when no spec matches the current branch.
   `sdd set-base <slug>` records the detected base on a spec that has none, which `sdd lint` reports as an error.
   The field sits outside the content hash, so recording it never stales an approval.
-- **Tracked by git.**
-  The folder is committed on the feature branch, so the pull request carries the spec, plan, tasks and review beside the code, and the history shows when each gate passed.
-  Stage an artifact by explicit path at the gates section 4 names and let the user commit; never `git add -A`.
 - **Templates** live in `.claude/sdd/templates/` and are generated from this document's appendices by `sdd templates sync`.
   The appendices are canonical, and `sdd templates sync --check` reports drift.
   Every `<...>` placeholder in a template is filled or deleted before approval; `sdd lint` reports any that remain, in every artifact including `review.md`.
@@ -367,6 +389,7 @@ Anything you can learn by reading the code, standard language conventions, tutor
    Continue only if the user wants the chain.
 2. **Create the working folder** with `sdd init <slug>` if it doesn't exist, adding `--branch <name>` when you are not on the feature branch yet (section 5).
    `init` records the base from git (section 5); ask the user for it only when `init` reports that git could not tell.
+   It also prints the repository's mode, and in a private repository makes git ignore the folder before it writes the spec.
 3. **Ground yourself in the code.**
    Read the project context (section 6).
    Explore the relevant code without changing anything, and identify existing behavior, the patterns to follow and the interfaces to reuse.
@@ -547,7 +570,7 @@ It works like a unit test for the spec.
 
 **Purpose:** get a UI design for the approved spec from Claude Design, check it against the spec, and record the version the user approves, before any plan commits to components, files and states.
 **Starts when:** the spec is approved, its UI surfaces section lists a surface, and the user asks for a design, whether at the end of Outline, at the start of Plan, or by running `sdd-design`.
-**Produces:** `design.md` (Appendix B) and a snapshot under `docs/sdd/<slug>/design/`, approved; or `design.md` recorded as `skipped`.
+**Produces:** `design.md` (Appendix B) and a snapshot under `design/` in the spec folder, approved; or `design.md` recorded as `skipped`.
 
 The phase is optional.
 A spec whose UI surfaces section is absent or empty never enters it, and no `design.md` is written.
@@ -566,8 +589,8 @@ This phase writes the prompt for it and records its result; it never invokes `/d
   The plan records the design's `approved_hash` as its `based_on`, so re-approving the design, or a spec change that stales it, stales the plan and everything below it.
 
 Every request, skip, cancel and approval happens only on the user's word in the conversation.
-After each, stage `design.md` (and `design/` at approval) by explicit path and propose a commit message; the user commits.
-The committed `design.md` is the handoff: any later session running `sdd-design` resumes from its state.
+After each, in a shared repository, stage `design.md` (and `design/` at approval) by explicit path and propose a commit message; the user commits.
+`design.md` is the handoff: any later session running `sdd-design` resumes from its state.
 
 ### Steps
 
@@ -608,10 +631,10 @@ The prompt never carries secrets, credentials, customer PII or restricted materi
 
 ### The snapshot
 
-Claude Design keeps no version history, so the link cannot pin what the user approved; the committed snapshot is the record.
+Claude Design keeps no version history, so the link cannot pin what the user approved; the saved snapshot is the record.
 
 - Read the Design artifact through its link with the Artifact tool: `project/canvas.json`, every `project/*.dc.html` artboard file, and the copied design system's `tokens.json` under `project/ds/` when the canvas used one.
-  Save them under `docs/sdd/<slug>/design/`, deleting the artboard files of any earlier read first.
+  Save them under `design/` in the spec folder, deleting the artboard files of any earlier read first.
   Images the canvas holds stay links to the artifact.
 - Record in `design.md` the `link`, the `read` date, the artifact `version` id read (so a later read can tell whether the canvas changed), and the `design_system` the canvas used or `none`.
 - List each artboard under Artboards with its UI ID, screen, state and requirement IDs, and beside it any PNG the user placed in `design/` named after the artboard's file stem.
@@ -632,7 +655,8 @@ Claude Design keeps no version history, so the link cannot pin what the user app
 
 Every miss and gap is answered, `sdd lint <slug> design` passes, and the user approves in the conversation.
 Record it with `sdd approve <slug> design`, which refuses on a lint error or a missing `link`, `version` or `read`.
-Stage `design.md` and `design/` by explicit path, propose a commit message, and name `sdd-plan` as the next step.
+In a shared repository, stage `design.md` and `design/` by explicit path and propose a commit message.
+Name `sdd-plan` as the next step.
 
 ---
 
@@ -752,7 +776,10 @@ Every line of code, test and task evidence comes from an `implementer` in a fres
 The build keeps the journal (section 5), so that `tasks.md`, the journal and `git status` together say where an interrupted build stands.
 Each `implementer` records its report there before sending it.
 The orchestrator records each question it stops on for the user before asking it, the answer before acting on it, and any decision the user gives unasked.
-It records `resolved` in the same command as each commit that settles a report or QA, with the journal staged in that commit, so no session can end between a journal that calls work settled and the commit that settles it.
+It records `resolved` in the same command as each commit that settles a report or QA, with the journal staged in that commit when the repository is shared, so no session can end between a journal that calls work settled and the commit that settles it.
+
+In a private repository (section 5) no commit of this phase holds `tasks.md`, `spec.md` or the journal.
+Wherever a step below commits only those files, the file is written and no commit is made; wherever it commits them with code, the code is committed alone.
 
 ### Steps
 
@@ -770,7 +797,7 @@ It records `resolved` in the same command as each commit that settles a report o
    The user approves any, all or none.
    Write the approved UI IDs to `tasks.md`'s `render_check` frontmatter key, comma-separated, or `none` while no surface is approved, and every ID asked about to `render_check_asked`.
    Each key is written on the first answer and extended on later ones, since no template or helper writes them; an approved ID replaces a recorded `none`.
-   Commit both before the next dispatch.
+   In a shared repository, commit both before the next dispatch.
    Frontmatter sits outside the content hash, so the tasks stay approved, and no surface is asked about twice.
    With `none`, no render check runs.
 4. **For each slice, one at a time:**
@@ -785,7 +812,7 @@ It records `resolved` in the same command as each commit that settles a report o
    4. **Verify** before committing, since a report is a claim: rerun each "Done when" check, run the full suite, confirm the reported files and test files match every changed path apart from `tasks.md` and the journal, confirm `tasks.md` changed only in this slice's boxes, Evidence lines and Follow-ups, and confirm with `sdd status` that it is unchanged since approval.
       A failing test in a file the slice added or changed belongs to the slice; any other failing test that also fails at `HEAD`, checked in a temporary worktree with dependencies installed rather than by stashing, is recorded as pre-existing.
       Any other failure goes back to the same agent once; a second failure stops the run with the evidence and no commit.
-   5. **Commit** the verified slice: check its close-out item, stage by explicit path, including `docs/sdd/<slug>/tasks.md` and the journal so the progress log lands with the slice, and commit with the agent's judgment calls in the body.
+   5. **Commit** the verified slice: check its close-out item, stage by explicit path, including `tasks.md` and the journal in a shared repository so the progress log lands with the slice, and commit with the agent's judgment calls in the body.
       Never use `git add -A` or `git add .`, and never push.
 5. **QA.**
    When every slice is checked off, run `sdd lint <slug>`, start the app when the change has a runnable surface, and hand the user one QA script whose every observation maps to a "Done when" check or an acceptance criterion.
@@ -794,7 +821,7 @@ It records `resolved` in the same command as each commit that settles a report o
    The script is a question the session stops on, so a session resuming at QA hands the recorded script over again without a second render pass.
    A bug the user finds goes to a fresh `implementer` as a red-first fix, which the orchestrator verifies and commits before QA resumes.
 6. **Finish.**
-   When the user confirms QA, set `tasks.md` to `done` and commit that change, stop the processes the session started, and report what was built, where the build stopped and how each stop was resolved, the judgment calls made, any pre-existing failures, and the follow-ups.
+   When the user confirms QA, set `tasks.md` to `done`, commit that change in a shared repository, stop the processes the session started, and report what was built, where the build stopped and how each stop was resolved, the judgment calls made, any pre-existing failures, and the follow-ups.
    Recommend `sdd-review` next in the same session, since its reviewers run in fresh contexts of their own; the user may still choose a fresh session.
 
 ### While working
@@ -885,6 +912,7 @@ Without a spec the skill skips the start and finish protocols and the steps mark
   Uncommitted work would be reviewed as if it ships.
   If the tree isn't clean, list the paths and stop.
   The spec's own `review.md` is not such work: the review writes it and leaves it uncommitted until acceptance, so `sdd uncommitted <slug>` lists every uncommitted path except that file, and this gate and the fix check both read the tree through it.
+  In a private repository git lists nothing under the spec folder, so the same command lists only the branch's own work.
   A review already in progress settles its uncommitted paths under Resume instead of stopping.
 - **Base branch:** the argument if given, otherwise the base `sdd base` prints: the one the spec records, else the remote's default branch.
   The comparison reads it as `origin/<base>` when the remote has that branch, since a local copy can lag behind it.
@@ -986,7 +1014,7 @@ Continue it from that file alone: skip Run, Triage and writing the report, and r
   Acceptance decides no finding: put each one still `open` to the user first.
   The draft has four parts: a summary paragraph following the rules in section 7, what changed, how it was verified (with evidence), and any decisions made and follow-ups.
   Don't push or open the PR unless the user asks.
-- _(spec only)_ Stage `docs/sdd/<slug>/review.md` by explicit path and propose its commit message.
+- _(spec only)_ In a shared repository, stage `review.md` by explicit path and propose its commit message.
   The folder stays as the record of the change.
 
 Nothing is pushed from this phase.
@@ -1044,7 +1072,9 @@ Either way the review is accepted again through Confirm intent and close, with t
 | Duplicate build         | Code described as existing gets rebuilt                                               | Label existing behavior; name the modules to reuse              |
 | Overloaded context      | The whole spec set plus unrelated history loaded at once                              | Load only what the phase needs; fresh sessions at breaks        |
 | Scope creep             | Refactors and extras appear in the diff                                               | Record them as follow-ups                                       |
-| Unstaged artifacts      | An approved artifact never reaches the branch, so the PR lacks the spec that drove it | Stage `docs/sdd/<slug>/` files by explicit path at every gate   |
+| Unstaged artifacts      | A shared repository's approved artifact never reaches the branch, and the PR lacks it | Stage the spec folder's files by explicit path at every gate    |
+| Leaked spec             | A private repository's spec file is staged, committed or added with `git add -f`      | Stage nothing under a private spec folder (section 5)           |
+| Hand-built path         | A spec file is sought under the current directory, where a worktree may not hold it   | Take every spec file's path from `sdd status`                   |
 
 ---
 
@@ -1071,6 +1101,7 @@ Either way the review is accepted again through Confirm intent and close, with t
 4. Treat a description of existing behavior as a new requirement.
 5. Add abstraction or features that no requirement calls for.
 6. Commit a gate artifact or a review fix on the user's behalf, or stage with `git add -A` instead of by explicit path.
+7. Stage or commit a spec file in a private repository, or build a spec file's path by hand instead of taking it from `sdd status`.
 
 ---
 

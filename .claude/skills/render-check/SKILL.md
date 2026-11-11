@@ -25,7 +25,7 @@ Arguments: `$ARGUMENTS`, optional surfaces to check and an optional `--base <ref
 2. **Surfaces**, from the first source that yields any:
    - The surfaces the argument names.
    - The changed paths since the base, committed or not, that match the `applies-to:` globs of `docs/standards/ux-standards.md`, mapped to the screens that render them.
-   - A `docs/sdd/<slug>/spec.md` the change touches whose `## UI surfaces` section lists a surface, or whose user scenarios or requirements name one.
+   - The spec for this branch, when `.claude/sdd/bin/sdd find` names one: its `spec.md`, under the `folder` that `.claude/sdd/bin/sdd status <slug> --json` reports, when the `## UI surfaces` section lists a surface or its user scenarios or requirements name one.
 
    No surface found: say so in one line and end.
 
@@ -34,7 +34,7 @@ Arguments: `$ARGUMENTS`, optional surfaces to check and an optional `--base <ref
 5. **Bar**, the same sources `render-checker` judges against:
    - The WCAG 2.2 AA floors in `docs/standards/ux-standards.md`, measured on the rendered page.
    - `DESIGN.md`'s decisions, or the standards' starting values where `DESIGN.md` is absent, unfilled or silent.
-   - For a surface `design.md` records, its artboard files under `docs/sdd/<slug>/design/` and the Not built list.
+   - For a surface `design.md` records, the absolute path of its artboard files under `<folder>/design/` and the Not built list.
    - The spec's UI surfaces and states, when there is a spec.
 
 Announce the scope in one line, "Checking N surfaces since <base>", naming the base ref and the merge-base's short sha, before launching anything, so the user can stop a wrong read.

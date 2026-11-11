@@ -29,11 +29,13 @@ Arguments: `$ARGUMENTS`, an optional slug.
 2. Resolve the slug: the argument, else `.claude/sdd/bin/sdd find`, else list the folders it prints and ask.
 3. Run `.claude/sdd/bin/sdd status <slug> --json` and check the preconditions.
    Note the plan's `approved_hash`.
+   Note `folder` and `mode` too (section 5 (Working files)): every spec file is read and written under `folder`, the spec folder's absolute path, which in a private repository is the main checkout's and can sit outside the current directory.
 4. Load only what this phase needs: the project context (section 6 (Project principles and context)); the commands `CLAUDE.md` names, or the ones the `tdd` discovery in `.claude/skills/tdd/references/discover.md` finds for this repo, which supply the commands for `Done when`; the approved plan in full; and from the spec only the requirement IDs, user scenarios and acceptance criteria.
 
 ## Steps (section 10 (Tasks), Task shape and Rules)
 
-1. **Draft `tasks.md`** from `.claude/sdd/templates/tasks.md` into `docs/sdd/<slug>/tasks.md`. Set `title` and the H1 from the spec's title, `slug`, `updated`, and `based_on` to the plan's `approved_hash`.
+1. **Draft `tasks.md`** from `.claude/sdd/templates/tasks.md` into `<folder>/tasks.md`.
+   Set `title` and the H1 from the spec's title, `slug`, `updated`, and `based_on` to the plan's `approved_hash`.
    Replace or delete every `<...>` placeholder, since lint reports any that remain.
 2. **Slices**: one `## P<n>: <story>` per user story, in the plan's order, so each slice ships alone.
    Within a slice, foundations before what depends on them.
@@ -48,7 +50,7 @@ Arguments: `$ARGUMENTS`, an optional slug.
 
 ## Outputs
 
-- `docs/sdd/<slug>/tasks.md`, status `approved`, `approved_hash` and `based_on` recorded by the helper.
+- `tasks.md` in the spec folder, status `approved`, `approved_hash` and `based_on` recorded by the helper.
 
 ## Finish (section 4 (The workflow), finish protocol)
 
@@ -57,10 +59,11 @@ Arguments: `$ARGUMENTS`, an optional slug.
    Ask for approval.
 3. Only after the user approves in the conversation, run `.claude/sdd/bin/sdd approve <slug> tasks`.
    Never approve on their behalf.
-   Then stage `docs/sdd/<slug>/tasks.md` by explicit path and propose a commit message in the repo's convention; the user commits.
+   Then, when `mode` is `shared`, stage `<folder>/tasks.md` by explicit path and propose a commit message in the repo's convention; the user commits.
+   When it is `private`, stage nothing and propose no commit, and never force a spec file in with `git add -f`: git ignores the folder so that it stays out of the repository, and the file alone records the approval.
 4. Name `sdd-implement` as the next skill and recommend starting it in a fresh session.
    Do not start it unless the user said to run end to end.
 
 ## Next
 
-`sdd-implement` in a fresh session, with `docs/sdd/<slug>/` as the handoff.
+`sdd-implement` in a fresh session, with the spec folder as the handoff.

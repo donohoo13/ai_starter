@@ -1,7 +1,7 @@
 # Record a design
 
 Read this when the user brings back a Design artifact link for a `requested` design, or a new link for an approved one, and when a re-check needs the misses-and-gaps procedure.
-It turns the link into a committed snapshot under `docs/sdd/<slug>/design/`, fills `design.md`'s record, and puts each miss and gap to the user.
+It turns the link into a saved snapshot under `<folder>/design/`, where `folder` is the spec folder's absolute path that `sdd status` reports, fills `design.md`'s record, and puts each miss and gap to the user.
 Every failure below writes no snapshot and leaves the design `requested`, because a half-read design recorded as the approved one is worse than none.
 
 ## Read the artifact
@@ -21,9 +21,9 @@ Every failure below writes no snapshot and leaves the design `requested`, becaus
 
 ## Save the snapshot
 
-1. Delete every `*.dc.html` file already under `docs/sdd/<slug>/design/`, and an earlier `tokens.json`, so no artboard from an earlier read survives beside the new ones.
+1. Delete every `*.dc.html` file already under `<folder>/design/`, and an earlier `tokens.json`, so no artboard from an earlier read survives beside the new ones.
    Leave the user's PNG files alone.
-2. Copy `canvas.json`, each `*.dc.html` file and, when fetched, `tokens.json` into `docs/sdd/<slug>/design/` under their base names, byte for byte as served.
+2. Copy `canvas.json`, each `*.dc.html` file and, when fetched, `tokens.json` into `<folder>/design/` under their base names, byte for byte as served.
    Images the canvas holds are not fetched; the artboards' references to them stay links to the artifact.
 3. Set `design.md`'s frontmatter: `link` to the link, `read` to today's date, `version` to the version id the read reported, and `design_system` to the design system `canvas.json` names (its link when it records one) or `none`.
 
