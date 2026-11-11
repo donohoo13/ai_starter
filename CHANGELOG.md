@@ -73,6 +73,7 @@ In a project created from the template, this file is template residue: delete it
     `transactional-email.md` keeps its 44×44px CTA target as an email starting value.
   - `.prettierignore` excludes `docs/sdd/*/design/`, so the pre-commit hook leaves a design snapshot byte for byte as it was read.
   - New `docs/standards/ruby.md` holds Ruby conventions for tooling, RBS types and language idioms, with Rails-only rules in their own section.
+  - The opt-in macOS kit under `scripts/setup/machine/` is removed, with `machine-install.battery.mjs` and the README's "Setting Up a Mac" section.
 - **Why**: the design restructure gets better results from design sessions.
   Role-named tokens and component bindings give a building session exact values to compose from instead of prose to interpret, and the linter catches broken references and contrast failures before a surface ships.
   `DESIGN.md` is the filename the format's spec and tooling use, and the skill that fills it now carries the same name.
@@ -93,6 +94,7 @@ In a project created from the template, this file is template residue: delete it
   A scaffold at the root and a copy in `design-init` drifted apart, so one template in the skill and a lint-clean finish leave a project with either a complete `DESIGN.md` or none, and the Design System in Claude is built from that file so mockups use the project's own tokens.
   The skill body cap had no reliable measure and pushed skills to trim guidance that served quality.
   Ruby projects created from the template had no conventions for tooling, types or idioms.
+  The machine kit leaves because one Mac's setup is personal, not project payload, and a dedicated dotfiles repository now carries it.
 - **Adaptation notes**:
   - A `docs/specs/*.md` spec in flight finishes under the old skills before taking this release, or is outlined again with `sdd-outline` into `docs/sdd/<slug>/`; nothing migrates it.
   - A project that edited `sdd-implement` reapplies its edits to the orchestrator, or to `implementer` when they concerned how a task is built.
@@ -130,6 +132,7 @@ In a project created from the template, this file is template residue: delete it
   - A project that extended the process battery's allowlist of skills naming `render-checker` adds `sdd-implement` to it.
   - A project that edited `.prettierignore` adds the `docs/sdd/*/design/` line.
   - `ruby.md`'s `applies-to:` globs match Ruby files and `mise.toml`, so a project without Ruby deletes it to keep it off `mise.toml` changes.
+  - `scripts/setup/machine/` and `scripts/test/machine-install.battery.mjs` are gone: a project that used the kit keeps its own copy of both or deletes them, and files the kit already installed on a machine (`~/.config/zsh/ai-starter.zsh`, `~/.config/git/ai-starter.gitconfig`, `~/.config/mise/conf.d/ai-starter.toml`, `~/.claude/rules/ai-starter.md`) stay until removed by hand.
 
 ## v0.2.0 — 2026-10-22
 
