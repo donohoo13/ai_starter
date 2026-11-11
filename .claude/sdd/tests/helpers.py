@@ -3,6 +3,8 @@
 Each test case gets a throwaway git repo on a feature branch, a temporary SDD
 home (document plus templates) selected through SDD_HOME, and an in-process
 runner for the CLI.
+The repo tracks docs/sdd/.gitkeep, so it is shared, unless the case sets
+SHARED to False for a private one.
 """
 import contextlib
 import importlib.machinery
@@ -550,6 +552,8 @@ Adds thumbnails to the invoice PDF so reviewers judge attachments from the list.
 class SddCase(unittest.TestCase):
     """A temp SDD home, a temp git repo on a feature branch, and an in-process CLI runner."""
 
+    SHARED = True
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
@@ -573,6 +577,8 @@ class SddCase(unittest.TestCase):
         git(self.repo, "config", "user.name", "Test User")
         (self.repo / "README.md").write_text("# repo\n")
         git(self.repo, "add", "README.md")
+        if self.SHARED:
+            self.track_gitkeep(self.repo)
         git(self.repo, "commit", "-q", "-m", "init")
         git(self.repo, "switch", "-q", "-c", BRANCH)
         self.cli = load_cli()
@@ -586,6 +592,22 @@ class SddCase(unittest.TestCase):
         with chdir(cwd or self.repo), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             code = self.cli.main(list(argv))
         return code, out.getvalue(), err.getvalue()
+
+    def track_gitkeep(self, checkout):
+        """Stage an empty docs/sdd/.gitkeep, the file that makes a repository shared before any spec exists."""
+        (checkout / "docs" / "sdd").mkdir(parents=True, exist_ok=True)
+        (checkout / "docs" / "sdd" / ".gitkeep").write_text("")
+        git(checkout, "add", "-f", "docs/sdd/.gitkeep")
+
+    def add_worktree(self, branch, start="main"):
+        """A real linked worktree on a new branch, beside the repo; returns its path."""
+        path = Path(self.tmp.name).resolve() / ("worktree-" + branch.replace("/", "-"))
+        git(self.repo, "worktree", "add", "-q", "-b", branch, str(path), start)
+        return path
+
+    def exclude_lines(self):
+        exclude = self.repo / ".git" / "info" / "exclude"
+        return exclude.read_text().splitlines() if exclude.exists() else []
 
     def folder(self, slug=SLUG):
         return self.repo / "docs" / "sdd" / slug

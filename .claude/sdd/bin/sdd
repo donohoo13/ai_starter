@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """sdd: state and mechanical checks for spec-driven development.
 
-Keeps the working files under <project root>/docs/sdd/<slug>/ honest: creates
-them from the templates, hashes and approves them, lints their structure,
-derives the current phase, keeps the journal of what is in flight, and keeps
-the templates in sync with the document.
+Keeps the working files under docs/sdd/<slug>/ honest: creates them from the
+templates, hashes and approves them, lints their structure, derives the
+current phase, keeps the journal of what is in flight, and keeps the templates
+in sync with the document.
+Git decides where that folder is: the current checkout's own while any checkout
+tracks a file under docs/sdd/, and otherwise the main checkout's, ignored
+through the repository's local exclude file and shared by every worktree.
 Behavior follows sections 4 and 5 of .claude/sdd/spec-driven-development.md,
 which lives beside this script; SDD_HOME overrides that location for tests.
 """
@@ -12,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import functools
 import hashlib
 import json
 import os
@@ -72,8 +76,153 @@ def project_root() -> Path:
     return Path(top) if top else Path.cwd()
 
 
+STORE_DIR = "docs/sdd"
+SHARED = "shared"
+PRIVATE = "private"
+EXCLUDE_PATTERN = "/%s/" % STORE_DIR
+EXCLUDE_NOTE = "# sdd: git tracks nothing under %s/ here, so this repository's specs stay out of git" % STORE_DIR
+
+
+class Store(NamedTuple):
+    """The folder that holds every spec's working folder, and how git treats it (section 5)."""
+
+    mode: str  # SHARED: tracked, staged and committed; PRIVATE: ignored, never staged
+    path: Path
+    checkout: Path | None  # the checkout that holds `path`, or None outside git
+
+
+def worktree_paths(checkout: Path) -> list[Path]:
+    """The path git lists for every worktree of the repository, the main one first."""
+    listing = git("worktree", "list", "--porcelain", cwd=checkout) or ""
+    prefix = "worktree "
+    return [Path(line[len(prefix) :]) for line in listing.splitlines() if line.startswith(prefix)]
+
+
+def tracks_spec_files(checkout: Path) -> bool:
+    return checkout.is_dir() and bool(git("ls-files", "--", STORE_DIR, cwd=checkout))
+
+
+def is_main_checkout(checkout: Path) -> bool:
+    """Whether this checkout owns the git directory, rather than being a linked worktree of it."""
+    git_dir = git("rev-parse", "--absolute-git-dir", cwd=checkout)
+    common_dir = git("rev-parse", "--git-common-dir", cwd=checkout)
+    return bool(git_dir and common_dir) and Path(git_dir).resolve() == (checkout / common_dir).resolve()
+
+
+def is_checkout(path: Path) -> bool:
+    """Whether the path is the top of a work tree; git also lists a bare repository, or a git directory kept apart from its checkout, as the main worktree."""
+    top = git("rev-parse", "--show-toplevel", cwd=path) if path.is_dir() else None
+    return bool(top) and Path(top).resolve() == path.resolve()
+
+
+def main_checkout(current: Path, listed: list[Path]) -> Path | None:
+    """The checkout that outlives every linked worktree, or None when git lists none."""
+    if is_main_checkout(current) or not listed:
+        return current
+    return listed[0] if is_checkout(listed[0]) else None
+
+
+def resolve_store() -> Store:
+    """Ask git where the specs live: shared when any checkout of the repository tracks a file under docs/sdd/, private otherwise.
+
+    Every worktree shares one local exclude file, so the mode is the repository's, never one branch's.
+    """
+    top = git("rev-parse", "--show-toplevel")
+    if not top:
+        return Store(PRIVATE, Path.cwd() / STORE_DIR, None)
+    current = Path(top)
+    listed = worktree_paths(current)
+    others = [path for path in listed if path.resolve() != current.resolve()]
+    if any(tracks_spec_files(checkout) for checkout in [current, *others]):
+        return Store(SHARED, current / STORE_DIR, current)
+    main = main_checkout(current, listed)
+    if main is None:
+        raise Refusal(
+            "git tracks nothing under %s/, so this repository's specs are private and live in its main checkout, "
+            "but git lists none: the main worktree is bare, or its git directory sits apart from its checkout; "
+            "run this from the main checkout or a clone that has one, or track the specs by committing %s/.gitkeep"
+            % (STORE_DIR, STORE_DIR)
+        )
+    return Store(PRIVATE, main / STORE_DIR, main)
+
+
+def is_ignored(checkout: Path) -> bool:
+    """Whether some ignore rule already hides the spec folder of this checkout."""
+    return git("check-ignore", "-q", STORE_DIR + "/", cwd=checkout) is not None
+
+
+def exclude_file(checkout: Path) -> Path:
+    """The repository's local exclude file, which every worktree shares and no commit carries."""
+    return checkout / (git("rev-parse", "--git-path", "info/exclude", cwd=checkout) or ".git/info/exclude")
+
+
+def note(message: str) -> None:
+    """Say what the helper did or found on its own, on stderr so `--json` output stays parseable."""
+    print("sdd: %s" % message, file=sys.stderr)
+
+
+def sync_exclude(store: Store) -> None:
+    """Keep the local exclude file in step with the mode: a private folder is ignored once it exists, and a shared one is not hidden by the entry a private run left."""
+    if store.checkout is None:
+        return
+    exclude = exclude_file(store.checkout)
+    lines = exclude.read_text().splitlines(keepends=True) if exclude.is_file() else []
+    others = [line for line in lines if line.strip() not in (EXCLUDE_PATTERN, EXCLUDE_NOTE)]
+    has_entry = others != lines
+    if store.mode == SHARED:
+        if has_entry:
+            exclude.write_text("".join(others))
+            note(
+                "shared repository: removed %s from %s, since git now tracks files under %s/"
+                % (EXCLUDE_PATTERN, exclude, STORE_DIR)
+            )
+        return
+    if has_entry or not store.path.is_dir() or is_ignored(store.checkout):
+        return
+    separator = "" if not lines or lines[-1].endswith("\n") else "\n"
+    exclude.parent.mkdir(parents=True, exist_ok=True)
+    exclude.write_text("".join(lines) + separator + EXCLUDE_NOTE + "\n" + EXCLUDE_PATTERN + "\n")
+    note(
+        "private repository: added %s to %s, so git ignores the spec folder in every worktree"
+        % (EXCLUDE_PATTERN, exclude)
+    )
+
+
+def report_stray_folders(store: Store) -> None:
+    """A private repository reads only its main checkout's folder, so a spec folder inside another worktree is unread, and is deleted with that worktree."""
+    if store.mode != PRIVATE or store.checkout is None:
+        return
+    current = project_root()
+    if current.resolve() == store.checkout.resolve():
+        return
+    strays = sorted(path.parent.name for path in (current / STORE_DIR).glob("*/spec.md"))
+    if strays:
+        note(
+            "warning: %s holds spec folders this private repository does not read (%s); move them to %s"
+            % (current / STORE_DIR, ", ".join(strays), store.path)
+        )
+
+
+@functools.lru_cache(maxsize=None)
+def spec_store() -> Store:
+    """The store for this run, resolved once; `main` forgets it, since a later run may start in another repository."""
+    store = resolve_store()
+    sync_exclude(store)
+    report_stray_folders(store)
+    return store
+
+
+def describe_mode(store: Store) -> str:
+    """The mode and what it means for staging, as `init`, `status` and `root` print it."""
+    if store.mode == SHARED:
+        return "shared (git tracks %s/: stage spec files by explicit path)" % STORE_DIR
+    if store.checkout is None:
+        return "private (not a git repository: nothing to stage or commit)"
+    return "private (git ignores %s/ and every worktree reads this one folder: never stage or commit a spec file)" % STORE_DIR
+
+
 def sdd_dir() -> Path:
-    return project_root() / "docs" / "sdd"
+    return spec_store().path
 
 
 def current_branch() -> str:
@@ -496,11 +645,12 @@ def find_slug() -> str:
     )
 
 
-@command("root", "Print the project root and its docs/sdd/ path")
+@command("root", "Print the project root, the folder that holds every spec, and whether git tracks it")
 def cmd_root(args: argparse.Namespace) -> int:
-    root = project_root()
-    print("root: %s" % root)
-    print("sdd: %s" % (root / "docs" / "sdd"))
+    store = spec_store()
+    print("root: %s" % project_root())
+    print("store: %s" % store.path)
+    print("mode: %s" % describe_mode(store))
     return 0
 
 
@@ -524,7 +674,7 @@ def record_detected_base(slug: str) -> str:
 
 @command(
     "init",
-    "Create docs/sdd/<slug>/spec.md from the template",
+    "Create spec.md from the template in a new docs/sdd/<slug>/, ignored by git when the repository is private",
     (["slug"], {}),
     (["--branch"], {"help": "feature branch to record; defaults to the current branch"}),
     (
@@ -552,10 +702,12 @@ def cmd_init(args: argparse.Namespace) -> int:
         },
     )
     text = re.sub(r"^# .*$", "# " + title, text, count=1, flags=re.MULTILINE)
+    store = spec_store()
     path.parent.mkdir(parents=True, exist_ok=True)
+    sync_exclude(store)
     path.write_text(text)
     print("created %s" % path)
-    print("it is tracked by git: stage it by explicit path once the user approves it")
+    print("mode: %s" % describe_mode(store))
     if base:
         print("base: %s, from %s; `sdd set-base %s <branch>` changes it" % (base, base_source, args.slug))
     else:
@@ -649,7 +801,7 @@ def uncommitted_lines(root: Path, left_out: Path) -> list[str]:
 
 @command(
     "uncommitted",
-    "List every uncommitted path except the spec's own review.md, which a review leaves uncommitted until acceptance",
+    "List every uncommitted path except the spec's own review.md, which a review leaves uncommitted until acceptance; a private spec folder is never listed",
     (["slug"], {"nargs": "?"}),
 )
 def cmd_uncommitted(args: argparse.Namespace) -> int:
@@ -661,10 +813,11 @@ def cmd_uncommitted(args: argparse.Namespace) -> int:
     lines = uncommitted_lines(root, review)
     for line in lines:
         print(line)
-    print(
-        "%d uncommitted path%s, not counting %s"
-        % (len(lines), "" if len(lines) == 1 else "s", path_from_root(review, root))
-    )
+    count = "%d uncommitted path%s" % (len(lines), "" if len(lines) == 1 else "s")
+    if spec_store().mode == SHARED:
+        print("%s, not counting %s" % (count, path_from_root(review, root)))
+    else:
+        print("%s; git lists nothing under the private spec folder %s" % (count, sdd_dir()))
     return 0
 
 
@@ -1021,6 +1174,8 @@ def collect_status(slug: str) -> dict:
     spec = read_artifact(slug, "spec")
     return {
         "slug": slug,
+        "folder": str(sdd_dir() / slug),
+        "mode": spec_store().mode,
         "branch": spec[0].get("branch") if spec else None,
         "base": (spec[0].get("base") or None) if spec else None,
         "current_branch": current_branch(),
@@ -1065,7 +1220,7 @@ def describe_base(slug: str, report: dict) -> str:
 
 @command(
     "status",
-    "Report each artifact's state, task progress, the phase and the skill to run",
+    "Report the spec folder's path and mode, each artifact's state, task progress, the phase and the skill to run",
     (["slug"], {"nargs": "?"}),
     (["--json"], {"action": "store_true"}),
 )
@@ -1076,6 +1231,8 @@ def cmd_status(args: argparse.Namespace) -> int:
         print(json.dumps(report, indent=2))
         return 0
     print("slug: %s" % slug)
+    print("folder: %s" % report["folder"])
+    print("mode: %s" % describe_mode(spec_store()))
     print("branch: %s (current: %s)" % (report["branch"] or "?", report["current_branch"] or "?"))
     print("base: %s" % describe_base(slug, report))
     for name in ARTIFACTS:
@@ -1949,6 +2106,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    spec_store.cache_clear()
     try:
         return args.fn(args)
     except Refusal as refusal:
