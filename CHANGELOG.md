@@ -94,6 +94,8 @@ In a project created from the template, this file is template residue: delete it
     `sdd set-status <slug> review accepted` records the tasks' `approved_hash` as the review's `based_on`, so tasks re-approved after a late change make the accepted review stale and `sdd status` reports `6. Validate` instead of `Done`.
     `sdd set-status <slug> review open` reopens an accepted review, which `sdd-review` does for a stale review and, on the user's word, for pull request feedback, taking each item through its triage and fixes.
     `sdd status` prints the review's `based_on` and whether it is current or stale, and a `note` line (`note` in `--json`) naming the next step whenever the review was accepted before.
+  - `sdd-review` compares against `origin/<base>` when the remote has that branch, as `render-check` already did.
+  - The template's own specs under `docs/sdd/` are removed, and the folder is kept with a `.gitkeep`.
 - **Why**: the design restructure gets better results from design sessions.
   Role-named tokens and component bindings give a building session exact values to compose from instead of prose to interpret, and the linter catches broken references and contrast failures before a surface ships.
   `DESIGN.md` is the filename the format's spec and tooling use, and the skill that fills it now carries the same name.
@@ -119,6 +121,7 @@ In a project created from the template, this file is template residue: delete it
   Ruby projects created from the template had no conventions for tooling, types or idioms.
   The machine kit leaves because one Mac's setup is personal, not project payload, and a dedicated dotfiles repository now carries it.
   A task added to a built slice was never built, because `sdd-implement` resumes at the first unchecked close-out, yet it kept `tasks.md` from reaching `done`; and an accepted review survived every later change, so a rebuilt run read as done without a second review and pull request feedback had no phase to go to.
+  The template's own two specs leave because they predate the recorded base and the review dispositions, and a new project should not inherit another project's specs.
 - **Adaptation notes**:
   - A `docs/specs/*.md` spec in flight finishes under the old skills before taking this release, or is outlined again with `sdd-outline` into `docs/sdd/<slug>/`; nothing migrates it.
   - A project that edited `sdd-implement` reapplies its edits to the orchestrator, or to `implementer` when they concerned how a task is built.
@@ -169,6 +172,7 @@ In a project created from the template, this file is template residue: delete it
   - A `review.md` accepted under an earlier helper has no `based_on` and still reads `Done`; reopening it and accepting it again records one.
     A `tasks.md` already approved with an unchecked task under a checked close-out fails `sdd lint` at the QA step of `sdd-implement`: uncheck that close-out and resume.
     A project that edited `sdd-review`, `sdd-task` or `sdd-implement` merges the Reopen section and the revised resume and revision lines by hand, then runs `.claude/sdd/bin/sdd check-refs`.
+  - `docs/sdd/` ships with only a `.gitkeep`: a project that wants its own specs committed keeps that file, and one that kept the template's two example specs deletes them by hand.
 
 ## v0.2.0 — 2026-10-22
 

@@ -55,6 +55,7 @@ It rewrites the report for the new range without losing a decision: every findin
   Review-only mode: `git status --porcelain` prints nothing.
   Otherwise list the paths and stop; uncommitted work would be reviewed as if it ships.
 - Base: the argument; else what `.claude/sdd/bin/sdd base` prints, run with the slug in spec mode: the base the spec records, else the remote's default branch.
+  Compare against `origin/<base>` when the remote has that branch, since a local copy can lag behind it.
   Ask the user which branch the work merges into only when the helper refuses because git could not tell.
 - Effort and cap: the arguments.
   Absent, ask once with the AskUserQuestion tool, suggesting `high` or `xhigh` and a cap of 3 to 5 scaled to `git diff --stat <base>...HEAD`.

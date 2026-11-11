@@ -885,6 +885,7 @@ Without a spec the skill skips the start and finish protocols and the steps mark
   The spec's own `review.md` is not such work: the review writes it and leaves it uncommitted until acceptance, so `sdd uncommitted <slug>` lists every uncommitted path except that file, and this gate and the fix check both read the tree through it.
   A review already in progress settles its uncommitted paths under Resume instead of stopping.
 - **Base branch:** the argument if given, otherwise the base `sdd base` prints: the one the spec records, else the remote's default branch.
+  The comparison reads it as `origin/<base>` when the remote has that branch, since a local copy can lag behind it.
   Ask the user only when it reports that git could not tell.
 - **Effort and findings cap:** the argument if given.
   Otherwise ask once, suggesting `high` or `xhigh` with a cap of 3 to 5 scaled to the size of the diff.
