@@ -29,8 +29,10 @@ The first token is the slug when it contains a hyphen or names an existing `docs
 3. Run `.claude/sdd/bin/sdd status <slug> --json`.
    When a spec exists and `phase` is later than `1. Outline`, the spec is approved: ask whether the user wants to revise it (section 14 (Changing course)), warn that the design, plan and tasks built on it go stale, and continue only on yes.
 4. Create the folder when it is missing.
-   On the default branch or another shared branch, propose `feature/<slug>` (the `<type>/<kebab-slug>` convention in `CLAUDE.md`) and record it: `.claude/sdd/bin/sdd init <slug> --branch <name>`.
+   On a shared branch, one that other work also merges into such as `main` or `staging`, propose `feature/<slug>` (the `<type>/<kebab-slug>` convention in `CLAUDE.md`) and record it: `.claude/sdd/bin/sdd init <slug> --branch <name>`.
    Otherwise `.claude/sdd/bin/sdd init <slug>`.
+   `init` also records the spec's base, the branch this work is cut from and merges back into, as the remote's default branch that git reports, so ask nothing about it; add `--base <name>` only when the user has said the work builds on another branch.
+   When `init` prints that git could not tell, ask the user and record their answer: `.claude/sdd/bin/sdd set-base <slug> <branch>`.
    The folder is tracked by git; nothing ignores it.
 5. Load only what this phase needs: the project context (section 6 (Project principles and context)) and the existing spec, if any.
 

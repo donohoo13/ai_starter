@@ -49,6 +49,7 @@ SPEC_TEMPLATE = """---
 title: <Feature name>
 slug: <slug>
 branch: <feature branch>
+base: <base branch>
 status: draft
 owner: <person>
 created: YYYY-MM-DD
@@ -328,6 +329,7 @@ VALID_SPEC = """---
 title: Invoice thumbnails
 slug: %(slug)s
 branch: %(branch)s
+base: main
 status: draft
 owner: Test User
 created: 2026-10-29

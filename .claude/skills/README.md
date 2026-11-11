@@ -14,6 +14,7 @@ Headless runs (`claude -p`) of the skills that dispatch agents (`sdd-outline`, `
 `.claude/sdd/spec-driven-development.md` is the source of truth for the six phases.
 The `sdd-*` skills point into it by section and never restate its rules, and `.claude/sdd/bin/sdd` keeps the state (approvals with content hashes, staleness down the chain, structural lint, templates generated from the appendices) so no skill tracks it by hand.
 Working files live in `docs/sdd/<slug>/` and are committed on the feature branch at each gate, so the pull request carries the spec, plan, tasks and review beside the code.
+Each spec records its base, the branch its feature branch is cut from and merges back into, which the helper reads from git as the remote's default branch, and `sdd-implement`, `sdd-review` and `render-check` take it from the helper instead of working out a default branch.
 [`.claude/sdd/README.md`](../sdd/README.md) explains the helper and how to change the document.
 
 - **sdd-outline** (`/sdd-outline [slug] [brief]`): phase 1, an idea to an approved `spec.md`.
@@ -27,7 +28,7 @@ Working files live in `docs/sdd/<slug>/` and are committed on the feature branch
   One observable behavior per task with its requirements, seam, files and done-when check, grouped into slices that each end in a close-out; a requirement the user verifies another way is recorded under Verified elsewhere, inside the content hash.
 - **sdd-implement** (`/sdd-implement [slug]`): phase 5, the session orchestrates and a fresh `implementer` builds each slice from a pointer-only brief.
   Asks at the start which UI surfaces get a render check, with a recommendation and reason each, and dispatches `render-checker` once before QA for the surfaces the user picked.
-  Brings every `BLOCKED` question to the user (with `skeptic`'s case first for an undecided trunk change), verifies each report with its own checks, commits each verified slice, runs one QA pass before `tasks.md` reaches `done`, and recommends `/sdd-review` next in the same session, starting it only on an end-to-end request; offers the worktree helpers when the main checkout should stay on the default branch.
+  Brings every `BLOCKED` question to the user (with `skeptic`'s case first for an undecided trunk change), verifies each report with its own checks, commits each verified slice, runs one QA pass before `tasks.md` reaches `done`, and recommends `/sdd-review` next in the same session, starting it only on an end-to-end request; offers the worktree helpers when the checkout should stay on the branch it is on, and never commits on the spec's base.
 - **sdd-review** (`/sdd-review [slug] [effort] [--max-findings n] [base]`): phase 6, and the pre-PR review of any branch.
   Every reviewer runs in a fresh context on a pointer-only brief, so it can run in the session that built the branch.
   With a spec: evidence from the suite, spec conformance in a fresh subagent, Claude Code's `/code-review` (a forked skill) for correctness beside `standards-reviewer` for legibility and usability, one `review.md` report, fixes on the user's pick built by a fresh `implementer`, and a PR description draft once the user confirms the intent; without a spec, the two reviews and the same report in the conversation.
@@ -38,7 +39,7 @@ Working files live in `docs/sdd/<slug>/` and are committed on the feature branch
 ## Other skills
 
 - **render-check** (`/render-check [surfaces] [--base <ref>]`): user-only, since a pass is slow and token-heavy; `sdd-implement` runs its own pass before QA.
-  Finds the touched surfaces since the merge-base, or takes them from the argument, owns the app server, dispatches `render-checker` with the WCAG 2.2 AA floors, `DESIGN.md` or the standards' starting values, and any recorded design as the bar, and reports pass or fail per surface, width and theme without fixing anything.
+  Finds the touched surfaces since the merge-base with `--base` or the base the helper reports, or takes them from the argument, owns the app server, dispatches `render-checker` with the WCAG 2.2 AA floors, `DESIGN.md` or the standards' starting values, and any recorded design as the bar, and reports pass or fail per surface, width and theme without fixing anything.
 - **stage-for-commit**: for small changes that needed no spec. Stages exactly this session's files by explicit path, proves the staged set, and hands back a commit message. Never commits, branches, or pushes.
 - **curate-context**: the gate on the prescriptive context files (every `CLAUDE.md` and `CLAUDE.local.md`, `README.md`, `DESIGN.md`, `.claude/rules/`, `docs/standards/`), loaded on any edit to one by its description and the `CLAUDE.md` rule, with no hook behind it. Attributes friction-born candidates, holds an admission bar, routes to the narrowest file, and lands nothing model-invented without approval; zero net growth is the benchmark.
   On `DESIGN.md` it refuses a value below its WCAG 2.2 AA floor, and after an approved edit offers a warned re-sync of the project's Design System in Claude.

@@ -262,6 +262,12 @@ Once set, it must match: refreshing a stale artifact means revising it against i
 - **Slug** is a short kebab-case name for the change.
   It defaults to the current feature branch name.
   When Outline starts on a shared branch, record the intended feature branch with `sdd init <slug> --branch <name>`; `sdd-implement` creates it, and `sdd find` matches the spec to that branch from then on.
+- **Base** is the branch the feature branch is cut from and merges back into.
+  Git decides it and nobody is asked: `sdd init` records the remote's default branch in the spec's `base` field, read from the `origin/HEAD` this clone records and, when that is missing, from the remote itself.
+  Only when both fail does the session ask the user, and `sdd set-base <slug> <branch>` records the answer; that command, or `sdd init --base <name>`, also names the base of work that does not build on the remote's default branch.
+  Every skill reads the base from the helper, and none works out a default branch of its own: `sdd status` reports the recorded base, and `sdd base` prints it, detecting it the same way for a spec that records none and when no spec matches the current branch.
+  `sdd set-base <slug>` records the detected base on a spec that has none, which `sdd lint` reports as an error.
+  The field sits outside the content hash, so recording it never stales an approval.
 - **Tracked by git.**
   The folder is committed on the feature branch, so the pull request carries the spec, plan, tasks and review beside the code, and the history shows when each gate passed.
   Stage an artifact by explicit path at the gates section 4 names and let the user commit; never `git add -A`.
@@ -329,6 +335,7 @@ Anything you can learn by reading the code, standard language conventions, tutor
    If it's trivial or small, say so and recommend `tdd` instead.
    Continue only if the user wants the chain.
 2. **Create the working folder** with `sdd init <slug>` if it doesn't exist, adding `--branch <name>` when you are not on the feature branch yet (section 5).
+   `init` records the base from git (section 5); ask the user for it only when `init` reports that git could not tell.
 3. **Ground yourself in the code.**
    Read the project context (section 6).
    Explore the relevant code without changing anything, and identify existing behavior, the patterns to follow and the interfaces to reuse.
@@ -705,14 +712,16 @@ Name `sdd-implement` as the next step, and recommend starting it in a fresh sess
 **Produces:** code and tests, one commit per slice plus any trunk commits, and `tasks.md` checked off with status `done`.
 
 The session running `sdd-implement` is the **orchestrator**.
-It dispatches, verifies, commits and talks to the user, and writes nothing but `tasks.md`'s status, close-out boxes and `render_check` and `render_check_asked` frontmatter keys, the spec's `branch` field, git commits and the processes it starts.
+It dispatches, verifies, commits and talks to the user, and writes nothing but `tasks.md`'s status, close-out boxes and `render_check` and `render_check_asked` frontmatter keys, the spec's `branch` and `base` fields, git commits and the processes it starts.
 Every line of code, test and task evidence comes from an `implementer` in a fresh context, so the build follows the approved artifacts instead of the memory of the conversation that produced them.
 
 ### Steps
 
 1. **Check the branch.**
-   The spec's `branch` field names the feature branch.
-   If you're on the default or a shared branch, propose creating it and ask first; if the user picks another name, update the spec's `branch` field, which sits outside the hash.
+   The spec's `branch` field names the feature branch, and its `base` field the branch that one is cut from and merges back into (section 5).
+   When the spec records no base, record the one git detects with `sdd set-base <slug>` first, and ask the user only when that fails.
+   If you're on the base or another shared branch, propose creating the feature branch from the base and ask first; if the user picks another name, update the spec's `branch` field, which sits outside the hash.
+   Every commit of this phase lands on the feature branch, never on the base.
 2. **Resume** at the first slice whose close-out item is unchecked, and set `tasks.md` to `in-progress`.
    If there are uncommitted changes, list them and let the user choose between handing them to a fresh `implementer` to continue that slice and setting them aside by hand; never discard them.
 3. **Render checks.**
@@ -832,7 +841,8 @@ Without a spec the skill skips the start and finish protocols and the steps mark
 - **Feature branch with a clean tree.**
   Uncommitted work would be reviewed as if it ships.
   If the tree isn't clean, list the paths and stop.
-- **Base branch:** the argument if given, otherwise the repo's default branch.
+- **Base branch:** the argument if given, otherwise the base `sdd base` prints: the one the spec records, else the remote's default branch.
+  Ask the user only when it reports that git could not tell.
 - **Effort and findings cap:** the argument if given.
   Otherwise ask once, suggesting `high` or `xhigh` with a cap of 3 to 5 scaled to the size of the diff.
 
@@ -970,6 +980,7 @@ Nothing is pushed from this phase.
 title: <Feature name>
 slug: <slug>
 branch: <feature branch>
+base: <base branch>
 status: draft
 owner: <person>
 created: YYYY-MM-DD

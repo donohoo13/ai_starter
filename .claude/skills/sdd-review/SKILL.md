@@ -34,7 +34,8 @@ State which mode you are in, and why, as your first line.
   Anything else: stop, tell the user the phase and the skill `status` names, and do no other phase's work.
 - A feature branch with a clean tree: `git status --porcelain` prints nothing.
   Otherwise list the paths and stop; uncommitted work would be reviewed as if it ships.
-- Base: the argument; else the repo's default branch from `git symbolic-ref --short refs/remotes/origin/HEAD` without the `origin/` prefix; else a local `main` or `master`.
+- Base: the argument; else what `.claude/sdd/bin/sdd base` prints, run with the slug in spec mode: the base the spec records, else the remote's default branch.
+  Ask the user which branch the work merges into only when the helper refuses because git could not tell.
 - Effort and cap: the arguments.
   Absent, ask once with the AskUserQuestion tool, suggesting `high` or `xhigh` and a cap of 3 to 5 scaled to `git diff --stat <base>...HEAD`.
 

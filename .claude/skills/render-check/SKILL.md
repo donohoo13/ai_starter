@@ -2,6 +2,7 @@
 name: render-check
 description: Checks how the surfaces a branch touched actually render, by dispatching the render-checker agent against the running app at mobile and desktop widths in every shipped theme, then reports pass or fail per surface with evidence. User-only, run as /render-check when the user decides a surface needs a look, because a pass is slow and token-heavy.
 argument-hint: "[surfaces] [--base <ref>]"
+allowed-tools: Bash(.claude/sdd/bin/sdd *)
 disable-model-invocation: true
 ---
 
@@ -17,9 +18,10 @@ Arguments: `$ARGUMENTS`, optional surfaces to check and an optional `--base <ref
 ## Discover
 
 1. **Base.**
-   The merge-base of `HEAD` with the `--base` ref when the argument names one, otherwise with `origin/<default>`, the default from `origin/HEAD`, else `git ls-remote --symref origin HEAD`, else a local `main` or `master`.
-   A branch stacked on another feature branch needs that branch as `--base`, since nothing detects a stack on its own.
-   A `--base` that does not resolve is reported in one line and ends the run.
+   The merge-base of `HEAD` with the `--base` ref when the argument names one, otherwise with the base `.claude/sdd/bin/sdd base` prints, read as `origin/<base>` when the remote has that branch, since a local copy can lag behind it.
+   The helper prints the base the spec for this branch records, else the remote's default branch.
+   A branch with no spec that is stacked on another feature branch needs that branch as `--base`, since nothing detects a stack on its own.
+   A base that does not resolve, or that the helper could not detect, is reported in one line with the helper's reason and ends the run.
 2. **Surfaces**, from the first source that yields any:
    - The surfaces the argument names.
    - The changed paths since the base, committed or not, that match the `applies-to:` globs of `docs/standards/ux-standards.md`, mapped to the screens that render them.
