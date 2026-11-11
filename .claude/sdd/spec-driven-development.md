@@ -33,7 +33,7 @@ Every SDD skill points into it.
 | `tdd`           | Used by phases 5 and 6, and on its own | 12      | Red-green discipline for any change a test can lock down                                     |
 | `sdd-review`    | 6. Validate                            | 13      | Prove the branch meets the spec, review it, and prepare the PR                               |
 
-The helper `.claude/sdd/bin/sdd`, run from the repository root, keeps state and the mechanical checks out of the skills' hands: `init`, `find`, `status`, `hash`, `lint`, `approve`, `set-status`, `templates sync` and `check-refs`.
+The helper `.claude/sdd/bin/sdd`, run from the repository root, keeps state and the mechanical checks out of the skills' hands: `init`, `find`, `status`, `hash`, `lint`, `approve`, `set-status`, `journal`, `templates sync` and `check-refs`.
 It checks structure and state, not quality.
 
 ---
@@ -255,6 +255,7 @@ Once set, it must match: refreshing a stale artifact means revising it against i
   design/     # Design: the snapshot of the approved Design artifact
   plan.md     # Plan
   tasks.md    # Tasks; also the progress log during Implement
+  journal.md  # Implement: agent reports, questions, answers and decisions
   review.md   # Validate report and PR description draft
 ```
 
@@ -270,6 +271,30 @@ Once set, it must match: refreshing a stale artifact means revising it against i
   Every `<...>` placeholder in a template is filled or deleted before approval; `sdd lint` reports any that remain, in every artifact including `review.md`.
 - **Lifetime.**
   The folder stays after the merge as the record of the change; delete it only when the user asks.
+
+### The journal
+
+`journal.md` holds what a phase would otherwise keep only in its conversation: an agent's report, a question put to the user, the user's answer, and a decision later work must follow.
+A session can end at any moment, and the next one resumes from files alone.
+Implement is the phase that keeps one (section 11).
+
+- **Written only through the helper.**
+  `sdd journal <slug> add <kind> [--ref <ref>]` appends one entry, taking its text on stdin or in `--text` and recording the phase and the time itself; `sdd journal <slug> show [<kind>] [--ref <ref>]` prints entries.
+  The ref says what an entry is about, such as a slice.
+  No entry is edited or removed afterwards.
+- **Kinds.**
+  A `report` is an agent's report, recorded by the agent before it sends it.
+  A `question` is one the session stops on for the user, an `answer` is the user's reply in their words, and a `decision` is one the user gives with no question behind it.
+  A `resolved` entry says the entries before it are settled.
+- **Pending.**
+  The last entry is pending until a `resolved` entry follows it or the phase that wrote it ends.
+  `sdd status` reports it with what it waits on, the user for a `question` and the session for the rest, so a fresh session reads where the work stopped.
+- **Outside every approval.**
+  It is a file of its own that no hash covers, so writing to it never makes an artifact changed.
+- **Kept with `tasks.md`.**
+  Wherever `tasks.md` is staged and committed, the journal goes with it.
+- **No secrets.**
+  An entry never quotes a secret, a credential or customer data; describe it instead.
 
 ---
 
@@ -705,8 +730,13 @@ Name `sdd-implement` as the next step, and recommend starting it in a fresh sess
 **Produces:** code and tests, one commit per slice plus any trunk commits, and `tasks.md` checked off with status `done`.
 
 The session running `sdd-implement` is the **orchestrator**.
-It dispatches, verifies, commits and talks to the user, and writes nothing but `tasks.md`'s status, close-out boxes and `render_check` and `render_check_asked` frontmatter keys, the spec's `branch` field, git commits and the processes it starts.
+It dispatches, verifies, commits and talks to the user, and writes nothing but `tasks.md`'s status, close-out boxes and `render_check` and `render_check_asked` frontmatter keys, the spec's `branch` field, its journal entries, git commits and the processes it starts.
 Every line of code, test and task evidence comes from an `implementer` in a fresh context, so the build follows the approved artifacts instead of the memory of the conversation that produced them.
+
+The build keeps the journal (section 5), so that `tasks.md`, the journal and `git status` together say where an interrupted build stands.
+Each `implementer` records its report there before sending it.
+The orchestrator records each question it stops on for the user before asking it, the answer before acting on it, and any decision the user gives unasked.
+It records `resolved` in the same command as each commit that settles a report or QA, with the journal staged in that commit, so no session can end between a journal that calls work settled and the commit that settles it.
 
 ### Steps
 
@@ -714,7 +744,8 @@ Every line of code, test and task evidence comes from an `implementer` in a fres
    The spec's `branch` field names the feature branch.
    If you're on the default or a shared branch, propose creating it and ask first; if the user picks another name, update the spec's `branch` field, which sits outside the hash.
 2. **Resume** at the first slice whose close-out item is unchecked, and set `tasks.md` to `in-progress`.
-   If there are uncommitted changes, list them and let the user choose between handing them to a fresh `implementer` to continue that slice and setting them aside by hand; never discard them.
+   If there are uncommitted changes that no report still awaiting its `resolved` entry names, list them and let the user choose between handing them to a fresh `implementer` to continue that slice and setting them aside by hand; never discard them.
+   When `sdd status` reports a pending journal entry, continue from it before any new dispatch: act on a `report` as if it had just arrived, put a `question` to the user again, and act on an `answer` or `decision`, handing it to a fresh `implementer` when the agent it was meant for is gone.
 3. **Render checks.**
    When the spec lists a UI ID that `tasks.md`'s `render_check_asked` frontmatter key does not, on the first start or any resume, since a spec re-approved mid-build can add a surface, list those surfaces and recommend each that is new, has an approved design, changes layout between the mobile and desktop widths, or uses a color pairing no existing surface uses, naming the criterion in one line.
    The user approves any, all or none.
@@ -724,22 +755,24 @@ Every line of code, test and task evidence comes from an `implementer` in a fres
    Frontmatter sits outside the content hash, so the tasks stay approved, and no surface is asked about twice.
    With `none`, no render check runs.
 4. **For each slice, one at a time:**
-   1. **Dispatch** a fresh `implementer` with a brief of pointers only: the slug, the slice heading, the facts earlier slices reported as notes, and the user's decisions for this slice.
+   1. **Dispatch** a fresh `implementer` with a brief of pointers only: the slug, the slice heading, the facts earlier slices reported as notes, the user's decisions for this slice, and any uncommitted paths the agent inherits from one that is gone.
       The agent loads its tasks, requirements, plan sections and seams itself, builds each task through `tdd` (section 12), checks off each task with one `- Evidence:` line, and checks its diff against the matching `docs/standards/` files before it reports.
+      Inherited paths become the agent's own work, and its report lists them with the paths it changed.
    2. **Blocked.**
       The agent stops for the conditions under Stop and ask.
-      Put its question to the user with options and a recommendation, dispatching the `skeptic` agent first when the question is a trunk change, then resume the same agent with the answer.
+      Put its question to the user with options and a recommendation, dispatching the `skeptic` agent first when the question is a trunk change, then resume the same agent with the answer, or dispatch a fresh one with it when that agent is gone.
    3. **Trunk commit.**
       An approved trunk change is built first and reported on its own; run the full suite, commit it alone with a body that opens `Trunk change:` and records the skeptic's verdict and the user's decision, then resume the agent to finish the slice.
-   4. **Verify** before committing, since a report is a claim: rerun each "Done when" check, run the full suite, confirm the reported files and test files match every changed path, confirm `tasks.md` changed only in this slice's boxes, Evidence lines and Follow-ups, and confirm with `sdd status` that it is unchanged since approval.
+   4. **Verify** before committing, since a report is a claim: rerun each "Done when" check, run the full suite, confirm the reported files and test files match every changed path apart from `tasks.md` and the journal, confirm `tasks.md` changed only in this slice's boxes, Evidence lines and Follow-ups, and confirm with `sdd status` that it is unchanged since approval.
       A failing test in a file the slice added or changed belongs to the slice; any other failing test that also fails at `HEAD`, checked in a temporary worktree with dependencies installed rather than by stashing, is recorded as pre-existing.
       Any other failure goes back to the same agent once; a second failure stops the run with the evidence and no commit.
-   5. **Commit** the verified slice: check its close-out item, stage by explicit path, including `docs/sdd/<slug>/tasks.md` so the progress log lands with the slice, and commit with the agent's judgment calls in the body.
+   5. **Commit** the verified slice: check its close-out item, stage by explicit path, including `docs/sdd/<slug>/tasks.md` and the journal so the progress log lands with the slice, and commit with the agent's judgment calls in the body.
       Never use `git add -A` or `git add .`, and never push.
 5. **QA.**
    When every slice is checked off, run `sdd lint <slug>`, start the app when the change has a runnable surface, and hand the user one QA script whose every observation maps to a "Done when" check or an acceptance criterion.
    When `render_check` names surfaces, dispatch `render-checker` once for all of them before handing over the script, and put each failure into the script with its evidence and screenshot path; only the failures the user picks go to a fresh `implementer` as QA bugs.
    Each surface or state its report lists under Not reached goes into the script with its reason, as an item the user checks by hand.
+   The script is a question the session stops on, so a session resuming at QA hands the recorded script over again without a second render pass.
    A bug the user finds goes to a fresh `implementer` as a red-first fix, which the orchestrator verifies and commits before QA resumes.
 6. **Finish.**
    When the user confirms QA, set `tasks.md` to `done` and commit that change, stop the processes the session started, and report what was built, where the build stopped and how each stop was resolved, the judgment calls made, any pre-existing failures, and the follow-ups.
@@ -759,7 +792,7 @@ The `implementer` holds these rules; the orchestrator checks the result against 
   Skipping tests, loosening assertions and suppressing errors are not fixes; when nothing else makes a check pass, the same approach has failed twice, which is a reason to stop and ask.
 - **Manage context.**
   Each slice runs in its agent's fresh context, so the orchestrator's own context holds only reports and verification.
-  `tasks.md` is the memory a resumed session reads, so it stays current.
+  `tasks.md` and the journal are the memory a resumed session reads, so they stay current.
 
 ### Stop and ask when
 

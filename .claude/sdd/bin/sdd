@@ -3,7 +3,8 @@
 
 Keeps the working files under <project root>/docs/sdd/<slug>/ honest: creates
 them from the templates, hashes and approves them, lints their structure,
-derives the current phase, and keeps the templates in sync with the document.
+derives the current phase, keeps the journal of what is in flight, and keeps
+the templates in sync with the document.
 Behavior follows sections 4 and 5 of .claude/sdd/spec-driven-development.md,
 which lives beside this script; SDD_HOME overrides that location for tests.
 """
@@ -68,6 +69,10 @@ def current_branch() -> str:
 
 def today() -> str:
     return datetime.date.today().isoformat()
+
+
+def now() -> str:
+    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 # --- frontmatter -------------------------------------------------------------
@@ -361,6 +366,184 @@ def task_progress(body: str) -> dict:
     }
 
 
+# --- journal -----------------------------------------------------------------
+
+# Each kind of entry and what it waits on; a `resolved` entry settles the ones before it.
+JOURNAL_AWAITS = {
+    "report": "the session to act on it",
+    "question": "the user's answer",
+    "answer": "the session to act on it",
+    "decision": "the session to act on it",
+    "resolved": None,
+}
+JOURNAL_ENTRY = re.compile(r"^## (\d+)\. (\w+) (\w+)(?: ([\w.-]+))?, (\S+)$")
+JOURNAL_REF = re.compile(r"^[\w.-]+$")
+JOURNAL_FENCE = re.compile(r"^(`{3,})text$")
+BACKTICK_RUN = re.compile(r"`+")
+
+
+def journal_path(slug: str) -> Path:
+    return artifact_path(slug, "journal")
+
+
+def shown_path(path: Path) -> str:
+    """A path as git prints it, relative to the project root, or absolute when it sits outside."""
+    try:
+        return str(path.relative_to(project_root()))
+    except ValueError:
+        return str(path)
+
+
+def phase_word(phase: str) -> str:
+    """`5. Implement` as `implement`, the form a journal entry records."""
+    return phase.split(" ")[-1].lower()
+
+
+def read_journal(slug: str) -> list[dict]:
+    """Every journal entry in the order written.
+
+    An entry's text sits inside a fence, so a line of it can never pass for the next entry's heading.
+    """
+    path = journal_path(slug)
+    if not path.is_file():
+        return []
+    entries: list[dict] = []
+    lines: list[str] = []
+    closing_fence = None
+    for line in path.read_text().splitlines():
+        if closing_fence:
+            if line == closing_fence:
+                entries[-1]["text"] = "\n".join(lines)
+                closing_fence = None
+            else:
+                lines.append(line)
+            continue
+        heading = JOURNAL_ENTRY.match(line)
+        if heading:
+            number, phase, kind, ref, at = heading.groups()
+            entries.append({"number": int(number), "phase": phase, "kind": kind, "ref": ref, "at": at, "text": ""})
+            continue
+        opening = JOURNAL_FENCE.match(line)
+        if opening and entries:
+            closing_fence, lines = opening.group(1), []
+    return entries
+
+
+def entry_label(entry: dict) -> str:
+    return " ".join(part for part in (entry["phase"], entry["kind"], entry["ref"]) if part)
+
+
+def journal_header(slug: str) -> str:
+    title = read_artifact(slug, "spec")[0].get("title") or title_from_slug(slug)
+    return (
+        "# %s journal\n\n"
+        "Append-only record of the agent reports, questions, answers and decisions behind this change, written by `sdd journal`.\n"
+        "Never edit an entry by hand.\n" % title
+    )
+
+
+def journal_entry_text(entry: dict) -> str:
+    """One entry as it is appended, written the way Prettier would: no trailing whitespace, and a fence longer than any backtick run in the text."""
+    longest_run = max((len(run) for run in BACKTICK_RUN.findall(entry["text"])), default=0)
+    fence = "`" * max(3, longest_run + 1)
+    return "\n## %d. %s, %s\n\n%stext\n%s\n%s\n" % (
+        entry["number"],
+        entry_label(entry),
+        entry["at"],
+        fence,
+        entry["text"],
+        fence,
+    )
+
+
+def journal_state(slug: str, phase: str) -> dict:
+    """What `sdd status` reports: the last entry is pending until a `resolved` entry or a later phase settles it."""
+    entries = read_journal(slug)
+    pending = None
+    if entries:
+        last = entries[-1]
+        awaits = JOURNAL_AWAITS.get(last["kind"])
+        if awaits and last["phase"] == phase_word(phase):
+            pending = dict(last, awaits=awaits)
+    return {"path": shown_path(journal_path(slug)), "entries": len(entries), "pending": pending}
+
+
+def describe_journal(journal: dict) -> str:
+    count = "%d entr%s" % (journal["entries"], "y" if journal["entries"] == 1 else "ies")
+    pending = journal["pending"]
+    if not pending:
+        return "journal: %s, nothing pending" % count
+    about = " ".join(part for part in (pending["kind"], pending["ref"]) if part)
+    return "journal: %s, pending #%d %s (%s), awaiting %s" % (
+        count,
+        pending["number"],
+        about,
+        pending["at"],
+        pending["awaits"],
+    )
+
+
+def add_journal_entry(slug: str, kind: str | None, ref: str | None, text: str | None) -> int:
+    if not kind:
+        raise Refusal("journal add needs a kind: %s" % ", ".join(JOURNAL_AWAITS))
+    if text is None:
+        text = "" if sys.stdin.isatty() else sys.stdin.read()
+    text = "\n".join(line.rstrip() for line in text.splitlines()).strip("\n")
+    if not text:
+        raise Refusal("journal add needs the entry text, in --text or on stdin")
+    entry = {
+        "number": len(read_journal(slug)) + 1,
+        "phase": phase_word(collect_status(slug)["phase"]),
+        "kind": kind,
+        "ref": ref,
+        "at": now(),
+        "text": text,
+    }
+    path = journal_path(slug)
+    is_new = not path.is_file()
+    with path.open("a") as journal:
+        if is_new:
+            journal.write(journal_header(slug))
+        journal.write(journal_entry_text(entry))
+    print("recorded #%d %s in %s" % (entry["number"], entry_label(entry), shown_path(path)))
+    return 0
+
+
+def show_journal(slug: str, kind: str | None, ref: str | None) -> int:
+    entries = [
+        entry
+        for entry in read_journal(slug)
+        if (not kind or entry["kind"] == kind) and (not ref or entry["ref"] == ref)
+    ]
+    if not entries:
+        print("no journal entries%s" % (" match" if kind or ref else ""))
+        return 0
+    for entry in entries:
+        print("%d. %s, %s" % (entry["number"], entry_label(entry), entry["at"]))
+        print(entry["text"])
+        print()
+    return 0
+
+
+@command(
+    "journal",
+    "Append an entry to a spec's journal of reports, questions, answers and decisions, or print its entries",
+    (["slug"], {}),
+    (["action"], {"choices": ["add", "show"]}),
+    (["kind"], {"nargs": "?", "choices": list(JOURNAL_AWAITS), "help": "the kind to add, or the kind to show"}),
+    (["--ref"], {"help": "what the entry is about, such as a slice (P1); with show, only entries about it"}),
+    (["--text"], {"help": "the entry text for add; read from stdin when absent"}),
+)
+def cmd_journal(args: argparse.Namespace) -> int:
+    if not artifact_path(args.slug, "spec").is_file():
+        raise Refusal("no spec for %s under %s" % (args.slug, sdd_dir()))
+    if args.ref and not JOURNAL_REF.match(args.ref):
+        raise Refusal("--ref %r must be one word of letters, digits, dots, dashes or underscores" % args.ref)
+    if args.action == "show":
+        return show_journal(args.slug, args.kind, args.ref)
+    return add_journal_entry(args.slug, args.kind, args.ref, args.text)
+
+
 # --- status ------------------------------------------------------------------
 
 MARKER = "[NEEDS CLARIFICATION"
@@ -466,6 +649,7 @@ def collect_status(slug: str) -> dict:
         "artifacts": states,
         "clarifications": markers,
         "tasks": task_progress(tasks[1]) if tasks else None,
+        "journal": journal_state(slug, phase),
         "phase": phase,
         "skill": skill,
     }
@@ -509,6 +693,8 @@ def cmd_status(args: argparse.Namespace) -> int:
     for name in ARTIFACTS:
         print(describe_artifact(name, report["artifacts"][name], report["tasks"]))
     print("clarification markers: %d" % report["clarifications"])
+    if report["journal"]["entries"]:
+        print(describe_journal(report["journal"]))
     print("phase: %s" % report["phase"])
     print("next skill: %s" % (report["skill"] or "none"))
     return 0
