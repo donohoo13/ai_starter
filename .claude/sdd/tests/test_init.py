@@ -4,13 +4,14 @@ from helpers import BRANCH, SLUG, SddCase, git
 
 
 class RootTests(SddCase):
-    def test_prints_git_top_level_and_sdd_path(self):
+    def test_prints_git_top_level_and_the_store(self):
         sub = self.repo / "app"
         sub.mkdir()
         code, out, err = self.run_sdd("root", cwd=sub)
         self.assertEqual(code, 0, err)
         self.assertIn("root: %s" % self.repo.resolve(), out)
-        self.assertIn("sdd: %s" % (self.repo.resolve() / "docs" / "sdd"), out)
+        self.assertIn("store: %s" % (self.repo.resolve() / "docs" / "sdd"), out)
+        self.assertIn("mode: shared", out)
 
     def test_falls_back_to_cwd_outside_git(self):
         plain = self.repo.parent / "plain"
@@ -49,14 +50,14 @@ class InitTests(SddCase):
         self.assertIn("already exists", err)
         self.assertEqual(self.read_artifact("spec"), before)
 
-    def test_leaves_the_new_spec_tracked_and_touches_no_ignore_file(self):
+    def test_a_shared_repository_says_to_stage_the_new_spec_and_touches_no_ignore_file(self):
         code, out, err = self.run_sdd("init", SLUG)
         self.assertEqual(code, 0, err)
-        self.assertIn("tracked by git", out)
+        self.assertIn("mode: shared", out)
+        self.assertIn("stage spec files by explicit path", out)
         self.assertFalse((self.repo / ".gitignore").exists())
-        exclude = self.repo / ".git" / "info" / "exclude"
-        self.assertNotIn("sdd", exclude.read_text() if exclude.exists() else "")
-        self.assertEqual(git(self.repo, "status", "--porcelain").strip(), "?? docs/")
+        self.assertNotIn("sdd", "\n".join(self.exclude_lines()))
+        self.assertEqual(git(self.repo, "status", "--porcelain").strip(), "?? docs/sdd/%s/" % SLUG)
 
     def test_works_outside_git(self):
         plain = self.repo.parent / "plain"

@@ -1,6 +1,6 @@
 ---
 name: sdd-design
-description: Get a Claude Design mockup for an approved spec that lists UI surfaces, and record the design the user approves before any plan exists. Reads design.md's state and does one step on the user's word, writing the design prompt, recording a skip or cancel, revising the prompt after a spec change, reading a returned Design artifact link into a committed snapshot, putting each miss and gap to the user, re-checking a recorded design against a revised spec, or approving it. Use when the user says "design this", "get mockups first", "write the design prompt", "sdd design", "here's the design link", "the design is approved", "skip the design", or when sdd status names sdd-design. Phase 2 of spec-driven development, section 8 of .claude/sdd/spec-driven-development.md.
+description: Get a Claude Design mockup for an approved spec that lists UI surfaces, and record the design the user approves before any plan exists. Reads design.md's state and does one step on the user's word, writing the design prompt, recording a skip or cancel, revising the prompt after a spec change, reading a returned Design artifact link into a saved snapshot, putting each miss and gap to the user, re-checking a recorded design against a revised spec, or approving it. Use when the user says "design this", "get mockups first", "write the design prompt", "sdd design", "here's the design link", "the design is approved", "skip the design", or when sdd status names sdd-design. Phase 2 of spec-driven development, section 8 of .claude/sdd/spec-driven-development.md.
 argument-hint: "[slug] [Design artifact link]"
 allowed-tools: Bash(.claude/sdd/bin/sdd *)
 ---
@@ -30,7 +30,8 @@ Arguments: `$ARGUMENTS`, an optional slug and, when the user is bringing a desig
 2. Resolve the slug: the argument, else `.claude/sdd/bin/sdd find`, else list the folders it prints and ask.
 3. Run `.claude/sdd/bin/sdd status <slug> --json` and check the preconditions.
    Note the spec's `approved_hash` and `artifacts.design`.
-4. Load only what this phase needs: the project context (section 6 (Project principles and context)), the approved spec, `docs/sdd/<slug>/design.md` when it exists, and `DESIGN.md` when writing a prompt.
+   Note `folder` and `mode` too (section 5 (Working files)): every spec file is read and written under `folder`, the spec folder's absolute path, which in a private repository is the main checkout's and can sit outside the current directory.
+4. Load only what this phase needs: the project context (section 6 (Project principles and context)), the approved spec, `design.md` when it exists, and `DESIGN.md` when writing a prompt.
 
 ## Pick the step
 
@@ -47,13 +48,15 @@ Arguments: `$ARGUMENTS`, an optional slug and, when the user is bringing a desig
 
 ## Steps (section 8 (Design), Steps)
 
-Each step that writes `design.md` runs only on the user's word in the conversation, because a request, skip, cancel or approval is their decision; then stage `docs/sdd/<slug>/design.md` by explicit path and propose a commit message in the repo's convention, and the user commits.
+Each step that writes `design.md` runs only on the user's word in the conversation, because a request, skip, cancel or approval is their decision.
+When `mode` is `shared`, the step then stages `<folder>/design.md` by explicit path and proposes a commit message in the repo's convention, and the user commits.
+When it is `private`, every "stage and propose the commit" below is left out: git ignores the spec folder so that it stays out of the repository, so stage nothing under it, never force a file in with `git add -f`, and let the file alone record the decision.
 
 ### Request
 
 1. Run `.claude/sdd/bin/sdd set-status <slug> design requested`, which creates `design.md` from its template and records `based_on`; on an existing `design.md` it also clears the recorded `link`, `version`, `read`, `design_system` and approval, so the old design cannot be approved as the new one.
 2. Write the prompt by the template in [references/design-prompt.md](references/design-prompt.md) under `## Prompt`, and write "None" under every other section.
-3. Show the same text in the conversation as one fenced block the user can copy whole, so the committed prompt and the one they run never differ.
+3. Show the same text in the conversation as one fenced block the user can copy whole, so the recorded prompt and the one they run never differ.
    Tell them to run it after `/design` in Claude Code or paste it into a Claude chat with Design selected, iterate there, and bring back the approved design's link, in this session or any later one.
 4. Stage and propose the commit.
    A session without the Artifact tool, such as one authenticated by API key, Bedrock or Vertex, still writes the prompt; say that reading the link back needs a claude.ai-authenticated session.
@@ -80,7 +83,7 @@ A gap the user adds to the spec ends this run: name `sdd-outline`, and leave the
 ### Re-check
 
 The spec changed after a design was recorded.
-Run the misses-and-gaps check of `references/record-design.md` against the revised spec and the committed snapshot, without reading the link again and without writing a new prompt; write a new prompt through Request only when the user asks for one.
+Run the misses-and-gaps check of `references/record-design.md` against the revised spec and the saved snapshot, without reading the link again and without writing a new prompt; write a new prompt through Request only when the user asks for one.
 Then set `based_on` in `design.md`'s frontmatter to the spec's new `approved_hash`.
 Approve's lint checks this hand-set value before `approve` recomputes the approval hash, which includes it.
 Go to Approve.
@@ -92,12 +95,12 @@ Go to Approve.
 3. Present the artboards, the accepted misses, the not-built list and the design system the canvas used, and ask for approval.
 4. Only after the user approves in the conversation, run `.claude/sdd/bin/sdd approve <slug> design`, which refuses on a lint error or a missing `link`, `version` or `read`.
    Never approve on their behalf.
-5. Stage `docs/sdd/<slug>/design.md` and `docs/sdd/<slug>/design/` by explicit path (the folder path also stages the artboard files a re-read deleted), and propose a commit message; the user commits.
+5. When `mode` is `shared`, stage `<folder>/design.md` and `<folder>/design/` by explicit path (the folder path also stages the artboard files a re-read deleted), and propose a commit message; the user commits.
 
 ## Outputs
 
-- `docs/sdd/<slug>/design.md`: `requested` with its prompt, `skipped` with its reason, or `approved` with its record.
-- `docs/sdd/<slug>/design/`: the snapshot of the approved Design artifact.
+- `design.md` in the spec folder: `requested` with its prompt, `skipped` with its reason, or `approved` with its record.
+- `design/` in the spec folder: the snapshot of the approved Design artifact.
 
 ## Finish (section 4 (The workflow), finish protocol)
 
@@ -107,4 +110,4 @@ Go to Approve.
 
 ## Next
 
-`sdd-plan`, with `docs/sdd/<slug>/` as the handoff.
+`sdd-plan`, with the spec folder as the handoff.

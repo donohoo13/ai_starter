@@ -20,7 +20,7 @@ Arguments: `$ARGUMENTS`, an optional slug.
   A later phase means the plan is approved and current: ask whether the user wants to revise it (section 14 (Changing course)), warn that the tasks go stale, and continue only on yes.
 - `3. Plan` on a spec whose UI surfaces section lists a surface, with no `design.md`: before any other step, ask whether to run `sdd-design` first or skip the design, recommending `sdd-design` when a surface is new.
   A run: stop, write nothing, and name `sdd-design`.
-  A skip: run `.claude/sdd/bin/sdd set-status <slug> design skipped`, which records the user's git `user.name`, the date and the surfaces it covers; write their reason under `design.md`'s Skip reason and "None" under every other section, stage `docs/sdd/<slug>/design.md` by explicit path, propose a commit message, and continue planning.
+  A skip: run `.claude/sdd/bin/sdd set-status <slug> design skipped`, which records the user's git `user.name`, the date and the surfaces it covers; write their reason under `design.md`'s Skip reason and "None" under every other section, stage `<folder>/design.md` by explicit path and propose a commit message only when `mode` is `shared`, and continue planning.
   Record the skip only on the user's word.
 - A `plan.md` that already exists is revised or resumed.
   A stale plan is refreshed, not rewritten: read the spec's Changelog and any change to `design.md`, revise every section the change touches, set `based_on` to the new `approved_hash` of its upstream (the design while it is approved, otherwise the spec), then lint.
@@ -32,6 +32,7 @@ Arguments: `$ARGUMENTS`, an optional slug.
 2. Resolve the slug: the argument, else `.claude/sdd/bin/sdd find`, else list the folders it prints and ask.
 3. Run `.claude/sdd/bin/sdd status <slug> --json` and check the preconditions.
    Note the spec's `approved_hash`, and the design's when `artifacts.design.status` is `approved`.
+   Note `folder` and `mode` too (section 5 (Working files)): every spec file is read and written under `folder`, the spec folder's absolute path, which in a private repository is the main checkout's and can sit outside the current directory.
 4. Load only what this phase needs: the project context (section 6 (Project principles and context)), the approved spec, the approved `design.md` with its artboard list when there is one, and the existing plan if any.
 
 ## Steps (section 9 (Plan), Steps)
@@ -41,7 +42,8 @@ Arguments: `$ARGUMENTS`, an optional slug.
    Never rely on memory for a version-specific fact.
    Record each finding with its source under Research notes.
    For a scoped question that would stall the conversation, dispatch the `research-analyst` agent with the question, why it matters, the source order, pinned Context7 library IDs when the repo's `CLAUDE.md` lists them, and a scope bound, and keep working.
-2. **Draft `plan.md`** from `.claude/sdd/templates/plan.md` into `docs/sdd/<slug>/plan.md`. Set `title` and the H1 from the spec's title, `slug`, `updated`, and `based_on` to the design's `approved_hash` when the design is approved, otherwise the spec's.
+2. **Draft `plan.md`** from `.claude/sdd/templates/plan.md` into `<folder>/plan.md`.
+   Set `title` and the H1 from the spec's title, `slug`, `updated`, and `based_on` to the design's `approved_hash` when the design is approved, otherwise the spec's.
    Keep every template heading, since lint requires them; write "None" under a heading that does not apply.
    Replace or delete every `<...>` placeholder, since lint reports any that remain.
 3. **Offer options.**
@@ -64,7 +66,7 @@ Arguments: `$ARGUMENTS`, an optional slug.
 
 ## Outputs
 
-- `docs/sdd/<slug>/plan.md`, status `approved`, `approved_hash` and `based_on` recorded by the helper.
+- `plan.md` in the spec folder, status `approved`, `approved_hash` and `based_on` recorded by the helper.
 
 ## Finish (section 4 (The workflow), finish protocol)
 
@@ -73,10 +75,11 @@ Arguments: `$ARGUMENTS`, an optional slug.
    Ask for approval.
 3. Only after the user approves in the conversation, run `.claude/sdd/bin/sdd approve <slug> plan`.
    Never approve on their behalf.
-   Then stage `docs/sdd/<slug>/plan.md` by explicit path and propose a commit message in the repo's convention; the user commits.
+   Then, when `mode` is `shared`, stage `<folder>/plan.md` by explicit path and propose a commit message in the repo's convention; the user commits.
+   When it is `private`, stage nothing and propose no commit, and never force a spec file in with `git add -f`: git ignores the folder so that it stays out of the repository, and the file alone records the approval.
 4. Name `sdd-task` as the next skill.
    Do not start it unless the user said to run end to end.
 
 ## Next
 
-`sdd-task`, with `docs/sdd/<slug>/` as the handoff.
+`sdd-task`, with the spec folder as the handoff.

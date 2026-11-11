@@ -18,7 +18,7 @@ Arguments: `$ARGUMENTS`.
 
 ## Mode
 
-Parse the arguments: a token is the slug only when `docs/sdd/<token>/` exists; one of `low`, `medium`, `high`, `xhigh`, `max` is the effort; `--max-findings n` is the findings cap; the remaining token, if any, is the base.
+Parse the arguments: a token is the slug only when `.claude/sdd/bin/sdd status <token> --json` reports `artifacts.spec.exists` true; one of `low`, `medium`, `high`, `xhigh`, `max` is the effort; `--max-findings n` is the findings cap; the remaining token, if any, is the base.
 
 - **Spec mode** when a slug was given, or when `.claude/sdd/bin/sdd find` resolves one and `.claude/sdd/bin/sdd status <slug> --json` reports `phase` `6. Validate` or `Done`.
   Runs the full Validate phase inside the start and finish protocols of section 4 (The workflow).
@@ -51,7 +51,7 @@ It rewrites the report for the new range without losing a decision: every findin
 - Spec mode: `status` reports `6. Validate`, so every task is done, or `Done`, which Reopen below returns to `6. Validate` on the user's word.
   Anything else: stop, tell the user the phase and the skill `status` names, and do no other phase's work.
 - A feature branch with a clean tree.
-  Spec mode: `.claude/sdd/bin/sdd uncommitted <slug>` reports `0 uncommitted paths`; it lists what `git status --porcelain` lists except this spec's own `review.md`, which the review leaves uncommitted until acceptance.
+  Spec mode: `.claude/sdd/bin/sdd uncommitted <slug>` reports `0 uncommitted paths`; it lists what `git status --porcelain` lists except this spec's own `review.md`, which the review leaves uncommitted until acceptance, and in a private repository no spec file at all, since git ignores the spec folder.
   Review-only mode: `git status --porcelain` prints nothing.
   Otherwise list the paths and stop; uncommitted work would be reviewed as if it ships.
 - Base: the argument; else what `.claude/sdd/bin/sdd base` prints, run with the slug in spec mode: the base the spec records, else the remote's default branch.
@@ -79,7 +79,8 @@ The review closes again through Confirm intent and close.
 ## Start _(spec only)_ (section 4 (The workflow), start protocol)
 
 1. Read sections 1–5 of the document once per session, then section 13 (Validate).
-2. Load the spec, the plan's Traceability table and seams, and the tasks.
+2. Note `folder` and `mode` in `status` (section 5 (Working files)): every spec file is read and written under `folder`, the spec folder's absolute path, which in a private repository is the main checkout's and can sit outside the current directory.
+   Load the spec, the plan's Traceability table and seams, and the tasks.
    Load the repo's test-running skill when it has one.
 
 ## Run (section 13 (Validate), Run), in parallel where possible
@@ -87,7 +88,7 @@ The review closes again through Confirm intent and close.
 1. **Evidence** _(spec only)_: run the full suite once on the clean tree with the repo's test tiers, from the commands `CLAUDE.md` names, or the ones the `tdd` discovery in `.claude/skills/tdd/references/discover.md` finds for this repo.
    Map each acceptance criterion to the test that proves it, by file and test name.
    Measure each non-functional requirement instead of assuming it.
-2. **Spec conformance** _(spec only)_: dispatch a general-purpose subagent through the Agent tool with the prompt in [references/conformance-review.md](references/conformance-review.md), its five placeholders filled in: the spec, plan and tasks paths, the repository root, and the base.
+2. **Spec conformance** _(spec only)_: dispatch a general-purpose subagent through the Agent tool with the prompt in [references/conformance-review.md](references/conformance-review.md), its five placeholders filled in: the absolute paths of the spec, plan and tasks under `folder`, the repository root, and the base.
    It gets the files and the diff, never your reasoning.
 3. **Correctness**: invoke the `code-review` skill through the Skill tool with the effort level, `--max-findings <n>`, and this branch against the base as its target, in the form `<effort> --max-findings <n> <base>...HEAD`.
    It runs as a forked skill, a subagent that does not see this conversation, so pass nothing but that target.
@@ -104,7 +105,7 @@ Do not pad the report with style preferences.
 
 ## Report, then wait (section 13 (Validate), Report, then wait)
 
-- Spec mode: write `docs/sdd/<slug>/review.md` from `.claude/sdd/templates/review.md`, with `base`, `range`, `effort`, `max_findings` and `updated` filled in and every section populated from the runs above, with no template placeholder left in them.
+- Spec mode: write `<folder>/review.md` from `.claude/sdd/templates/review.md`, with `base`, `range`, `effort`, `max_findings` and `updated` filled in and every section populated from the runs above, with no template placeholder left in them.
   Leave the PR description draft section as the template wrote it: its placeholders stay until acceptance, and `lint` reports them until then.
   Name the head in `range` by its commit hash rather than `HEAD`, since a later session compares it with the branch.
   Write each conformance gap, correctness finding and standards finding as its own top-level bullet with `- Disposition: open` under it, as the template shows, and `- None` in a section with no finding; a later session resumes from those lines.
@@ -133,12 +134,14 @@ Offer to rerun the review when the fixes are substantial; a rerun follows the la
    Spec mode: write the draft into `review.md` first, run `.claude/sdd/bin/sdd lint <slug>` as the exit check until `review.md` reports 0 errors, then `.claude/sdd/bin/sdd set-status <slug> review accepted`, which refuses while review lint reports an error.
    A lint error for a finding still `open` or `picked` clears only through the user's decision or the finished fix, never by editing the disposition to pass.
    Review-only mode: put the draft in the conversation.
-3. In spec mode, stage `docs/sdd/<slug>/review.md` by explicit path and propose its commit message; the folder stays as the record of the change.
+3. In spec mode with `mode` `shared`, stage `<folder>/review.md` by explicit path and propose its commit message.
+   With `mode` `private`, stage nothing and propose no commit, and never force a spec file in with `git add -f`: git ignores the folder so that it stays out of the repository.
+   The folder stays as the record of the change either way.
    Never push or open the PR unless the user asks.
 
 ## Outputs
 
-- Spec mode: `docs/sdd/<slug>/review.md` at `accepted` with the PR description draft, and the fixes the user picked, committed on their word.
+- Spec mode: `review.md` in the spec folder at `accepted` with the PR description draft, and the fixes the user picked, committed on their word.
 - Review-only mode: the report and the PR description draft in the conversation, and the fixes the user picked.
 
 ## Next

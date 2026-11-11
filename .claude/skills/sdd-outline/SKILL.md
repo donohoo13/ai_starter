@@ -11,7 +11,7 @@ Turn intent into an approved `spec.md`. The rules live in section 7 (Outline) of
 Where the two differ, the document wins.
 
 Arguments: `$ARGUMENTS`.
-The first token is the slug when it contains a hyphen or names an existing `docs/sdd/` folder; otherwise the whole argument is the brief.
+The first token is the slug when it contains a hyphen or names an existing spec, one for which `.claude/sdd/bin/sdd status <token> --json` reports `artifacts.spec.exists` true; otherwise the whole argument is the brief.
 
 ## Preconditions
 
@@ -19,7 +19,7 @@ The first token is the slug when it contains a hyphen or names an existing `docs
   Trivial: say so and recommend making the change directly, with `tdd` only if behavior changes.
   Small: recommend `tdd` as a one-shot, then `sdd-review` before the PR.
   Continue only if the user still wants the chain.
-- If `docs/sdd/<slug>/spec.md` already exists, this run revises or resumes it.
+- If the spec already exists, this run revises or resumes it.
   Start over only when the user asks.
 
 ## Start (section 4 (The workflow), start protocol)
@@ -27,13 +27,15 @@ The first token is the slug when it contains a hyphen or names an existing `docs
 1. Read sections 1–5 of the document once per session, then section 7 (Outline).
 2. Resolve the slug: the argument; else `.claude/sdd/bin/sdd find`; else, on a feature branch, the branch name in kebab-case (section 5 (Working files)); else list the folders `find` prints and, when none fits, propose a short kebab-case slug and confirm it.
 3. Run `.claude/sdd/bin/sdd status <slug> --json`.
+   It reports `folder`, the spec folder's absolute path, and `mode`, `shared` or `private` (section 5 (Working files)).
+   Read and write every spec file under `folder`, never at a path built by hand: in a private repository every worktree shares the main checkout's folder, so it can sit outside the current directory.
    When a spec exists and `phase` is later than `1. Outline`, the spec is approved: ask whether the user wants to revise it (section 14 (Changing course)), warn that the design, plan and tasks built on it go stale, and continue only on yes.
 4. Create the folder when it is missing.
    On a shared branch, one that other work also merges into such as `main` or `staging`, propose `feature/<slug>` (the `<type>/<kebab-slug>` convention in `CLAUDE.md`) and record it: `.claude/sdd/bin/sdd init <slug> --branch <name>`.
    Otherwise `.claude/sdd/bin/sdd init <slug>`.
    `init` also records the spec's base, the branch this work is cut from and merges back into, as the remote's default branch that git reports, so ask nothing about it; add `--base <name>` only when the user has said the work builds on another branch.
    When `init` prints that git could not tell, ask the user and record their answer: `.claude/sdd/bin/sdd set-base <slug> <branch>`.
-   The folder is tracked by git; nothing ignores it.
+   `init` prints the mode too, and in a private repository it makes git ignore the folder through the local exclude file before it writes the spec, so run nothing of your own to track or ignore it.
 5. Load only what this phase needs: the project context (section 6 (Project principles and context)) and the existing spec, if any.
 
 ## Steps (section 7 (Outline), Steps)
@@ -59,13 +61,13 @@ The first token is the slug when it contains a hyphen or names an existing `docs
    Run the spec readiness checklist from section 7 (Outline) and `.claude/sdd/bin/sdd lint <slug> spec`.
    Fix every error; answer every warning with a number or a rewrite.
 6. **Adversarial review.**
-   Dispatch a general-purpose subagent with the prompt in [references/adversarial-review.md](references/adversarial-review.md), its three placeholders filled in: the spec path, the project context paths, and the repository root.
+   Dispatch a general-purpose subagent with the prompt in [references/adversarial-review.md](references/adversarial-review.md), its three placeholders filled in: the spec's absolute path under `folder`, the project context paths, and the repository root.
    Turn each finding into a fix or a clarification marker, then lint again.
 7. **Interview again** for the markers the review raised, then clear them.
 
 ## Outputs
 
-- `docs/sdd/<slug>/spec.md`, with status `approved` and `approved_hash` recorded by the helper.
+- `spec.md` in the spec folder, with status `approved` and `approved_hash` recorded by the helper.
 
 ## Finish (section 4 (The workflow), finish protocol)
 
@@ -74,15 +76,16 @@ The first token is the slug when it contains a hyphen or names an existing `docs
    Ask for approval.
 3. Only after the user approves in the conversation, run `.claude/sdd/bin/sdd approve <slug> spec`.
    Never approve on their behalf.
-   Then stage `docs/sdd/<slug>/spec.md` by explicit path and propose a commit message in the repo's convention; the user commits.
+   Then, when `mode` is `shared`, stage `<folder>/spec.md` by explicit path and propose a commit message in the repo's convention; the user commits.
+   When it is `private`, stage nothing and propose no commit, and never force a spec file in with `git add -f`: git ignores the folder so that it stays out of the repository, and the file alone records the approval.
 4. Name the next skill.
    When `design.md` exists, offer no skip and name the skill `sdd status` reports: `sdd-design` at `2. Design` for a requested or approved design, which it re-checks against the revised spec, or for a skip that misses a surface the spec now lists.
    When `design.md` is absent and the UI surfaces section lists a surface, name each listed surface and offer `sdd-design` for a Claude Design mockup before planning, with `sdd-plan` as the alternative.
-   When the user skips the design, run `.claude/sdd/bin/sdd set-status <slug> design skipped`, which records their git `user.name`, the date and the surfaces the skip covers; write their reason under `design.md`'s Skip reason and "None" under every other section, then stage `docs/sdd/<slug>/design.md` by explicit path and propose a commit message.
+   When the user skips the design, run `.claude/sdd/bin/sdd set-status <slug> design skipped`, which records their git `user.name`, the date and the surfaces the skip covers; write their reason under `design.md`'s Skip reason and "None" under every other section, then, only when `mode` is `shared`, stage `<folder>/design.md` by explicit path and propose a commit message.
    Record a skip only on the user's word, never by default.
    When the spec lists no UI surface, name `sdd-plan` only and write no `design.md`.
    Do not start the next skill unless the user said to run end to end.
 
 ## Next
 
-`sdd-design` when `sdd status` reports `2. Design`, or the spec lists a UI surface and the user wants a design, otherwise `sdd-plan`, with `docs/sdd/<slug>/` as the handoff.
+`sdd-design` when `sdd status` reports `2. Design`, or the spec lists a UI surface and the user wants a design, otherwise `sdd-plan`, with the spec folder as the handoff.

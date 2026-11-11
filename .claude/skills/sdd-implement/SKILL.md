@@ -49,11 +49,26 @@ Keep every entry abridged: write what a later session needs in order to act, nev
 - `answer`: what the user decided and the reason they gave, in a line or two rather than their words, recorded before you act on it.
 - `decision`: an instruction the user gives for a slice with no question behind it.
 - `resolved`: one line naming what a commit settles, recorded in the same command that stages and makes that commit, so no session can end between a journal that calls work settled and the commit that settles it.
-  The trunk, slice, QA-fix and finish commits each take one, and each stages the journal.
+  The trunk, slice, QA-fix and finish commits each take one, and each stages the journal when the repository is shared (Spec files and git, below).
 
 Each `implementer` records its own report before sending it.
 `status` names the journal file as `journal.path` and reports the last entry as `journal.pending` until a `resolved` entry follows it.
 An entry never quotes a secret or a credential; describe it instead.
+
+## Spec files and git (section 5 (Working files))
+
+`status` reports `folder`, the spec folder's absolute path, and `mode`.
+`tasks.md`, `spec.md`, `design.md` and the journal are read and written under `folder`, never at a path built by hand: in a private repository every worktree shares the main checkout's folder, so it can sit outside this checkout.
+In a shared repository the folder is the checkout's own, so run `status` again after moving into a worktree and take `folder` from that run.
+
+When `mode` is `shared`, the spec files are tracked, and the steps below stage and commit them by explicit path.
+When it is `private`, git ignores the spec folder so that it stays out of the repository: stage nothing under it, never force a file in with `git add -f`, and take each step that names a spec file this way:
+
+- A commit that would hold only spec files is not made.
+  Steps 2 and 3 and Finish still write the file, and stop there.
+- A commit that holds code is made without the spec files.
+  The trunk, slice and QA-fix commits stage the reported code paths alone, and still record `resolved` in the same command.
+- `tasks.md` has no committed copy, so Verify compares it with a copy saved before the dispatch instead of with `HEAD`.
 
 ## Preconditions
 
@@ -91,7 +106,7 @@ An entry never quotes a secret or a credential; describe it instead.
    On the base or another shared branch: propose creating the spec's branch from the base, ask, then create it, through `scripts/setup/gwt-add.sh --no-open <branch> <base>` and the EnterWorktree tool when this checkout should stay on the branch it is on, leaving off `<base>`, the start point, when the branch already exists; if the user picks another name, set the spec's `branch` field to it (frontmatter sits outside the content hash, so the spec stays approved).
    On a different feature branch: ask whether to switch to the spec's branch or record the current one the same way.
 2. **Mark in progress**: `.claude/sdd/bin/sdd set-status <slug> tasks in-progress` (a no-op when already in progress).
-   When this or step 1 changed `tasks.md` or `spec.md`, stage those files by explicit path and commit them before the first dispatch, so every later diff holds only an agent's work.
+   When this or step 1 changed `tasks.md` or `spec.md` in a shared repository, stage those files by explicit path and commit them before the first dispatch, so every later diff holds only an agent's work.
 3. **Settle render checks** when the spec's `## UI surfaces` section lists a UI ID that `tasks.md`'s `render_check_asked` frontmatter key does not, whether this is the first start or a resume after slices were committed, since a spec re-approved mid-build can add a surface.
    A render pass costs minutes and many tokens, so the user picks the surfaces worth it.
    List only those surfaces and recommend each one that meets a criterion, with a one-line reason naming the criterion that applies: a new surface, a surface with an approved design in `design.md`, a layout that changes between the mobile and desktop widths, or a color pairing no existing surface uses.
@@ -100,10 +115,11 @@ An entry never quotes a secret or a credential; describe it instead.
    `render_check` holds the approved IDs (`render_check: UI-001, UI-003`), or `render_check: none` while no surface is approved; an approved ID replaces a recorded `none`.
    `render_check_asked` holds every ID asked about.
    Frontmatter sits outside the content hash, so the tasks stay approved.
-   Stage `docs/sdd/<slug>/tasks.md` by explicit path and commit it before the next dispatch, so a later session reads the answer instead of asking again.
+   In a shared repository, stage `<folder>/tasks.md` by explicit path and commit it before the next dispatch; either way the written keys are what a later session reads instead of asking again.
    With `none`, `render-checker` is never dispatched in this build.
 4. **For each slice from the resume point**, in order, finish one before dispatching the next:
    1. **Dispatch** a fresh `implementer` through the Agent tool, with `effort: high` unless the user named another level for this run.
+      In a private repository, first save a copy of `<folder>/tasks.md` outside the repository, such as in the session's temporary directory, for Verify to compare with.
       The brief carries only the slug, the slice heading, the notes earlier slices reported, any decisions the user made for this slice, and, when the tree holds uncommitted changes beyond `tasks.md` and the journal, their paths as inherited, since an agent that is gone left them; the agent loads its tasks, requirements, plan sections and seams itself, because anything more you add is this session's bias reaching a context built to be free of it.
       A session that did not see them reads the notes in the earlier slices' reports (`.claude/sdd/bin/sdd journal <slug> show report`) and the decisions in this slice's `answer` and `decision` entries (`show --ref <slice ID>`), giving each answer with the question it answers.
    2. **Act on the report's status**: `BLOCKED` goes to Blocked, `TRUNK_READY` to Trunk commit, and `DONE` or `DONE_WITH_CONCERNS` to Verify.
@@ -112,7 +128,7 @@ An entry never quotes a secret or a credential; describe it instead.
 
 ### Blocked
 
-1. When the condition is an undecided trunk change, first dispatch `skeptic` with the intent (the spec path and the slice), the agent's description of the proposed change, and the consumers of each touched symbol, and wait for its verdict.
+1. When the condition is an undecided trunk change, first dispatch `skeptic` with the intent (the spec's absolute path and the slice), the agent's description of the proposed change, and the consumers of each touched symbol, and wait for its verdict.
 2. Record the question in the journal, then put it to the user with options and a recommendation, quoting the skeptic's verdict and its strongest case against the change when there is one, and wait for the answer.
 3. Record the answer in the journal, then resume the same agent with it through `SendMessage`, so it keeps its full context.
    When that agent is no longer reachable, such as after a new session, dispatch a fresh `implementer` with the question and its answer listed as a decision for the slice.
@@ -123,7 +139,7 @@ An entry never quotes a secret or a credential; describe it instead.
 On `TRUNK_READY`:
 
 1. Run the full suite, handling failures as in Verify.
-2. Check `git branch --show-current` is not the spec's base, then in one command record `resolved` for the trunk change, stage only the trunk paths the report names and the journal by explicit path, and commit them alone.
+2. Check `git branch --show-current` is not the spec's base, then in one command record `resolved` for the trunk change, stage by explicit path only the trunk paths the report names, with the journal in a shared repository, and commit them alone.
    The body opens with `Trunk change: <touch point> (<n> consumers)`, then records the skeptic's verdict and the user's decision, because the pull request's risk section quotes it from there.
 3. Resume the same agent through `SendMessage` to finish the slice, telling it the trunk paths are committed so its next report lists only what it changes from here, and act on that report.
 
@@ -135,8 +151,9 @@ Check the agent's work yourself before committing, since a report is a claim:
 2. Run the full suite with the repo's test tiers.
 3. Compare the report's files with every path `git status --porcelain --untracked-files=all` lists, `tasks.md` and the journal aside, and its test files with the test files among them; both match exactly, and "none" matches none.
    An unreported change would otherwise be left out of the commit.
-4. Diff `tasks.md` against `HEAD`: only this slice's task boxes went from unchecked to checked, each checked task gained exactly one `- Evidence:` line under it, Follow-ups gained only entries, and nothing else changed.
+4. Diff `tasks.md` against `HEAD`, or in a private repository against the copy saved before the dispatch: only this slice's task boxes went from unchecked to checked, each checked task gained exactly one `- Evidence:` line under it, Follow-ups gained only entries, and nothing else changed.
    The slice's own close-out box may already be checked, when an earlier session verified the slice and ended before its commit.
+   When a private repository has no saved copy, because the session that dispatched the agent is gone, read the slice instead: every task in it is checked with exactly one `- Evidence:` line, and step 5 covers the rest of the file.
 5. Run `.claude/sdd/bin/sdd status <slug> --json` and confirm `tasks.md` is unchanged since approval.
 
 When a full-suite test fails, decide whether the failure is pre-existing:
@@ -153,9 +170,9 @@ When every check passes, go to Slice commit.
 
 ### Slice commit
 
-1. Check the slice's close-out box in `tasks.md`, so it lands in the slice's own commit and a crash can never leave a committed slice that looks unbuilt.
+1. Check the slice's close-out box in `tasks.md` before the commit, so a crash can never leave a committed slice that looks unbuilt; in a shared repository the box lands in the slice's own commit.
 2. Check `git branch --show-current` is not the spec's base, the `base` that `status` reported in Verify.
-3. In one command, record `resolved` for the slice, stage the report's files, which Verify matched against `git status`, with `docs/sdd/<slug>/tasks.md` and the journal by explicit path, and commit without asking; never `git add -A` or `git add .`.
+3. In one command, record `resolved` for the slice, stage by explicit path the report's files, which Verify matched against `git status`, with `<folder>/tasks.md` and the journal in a shared repository, and commit without asking; never `git add -A` or `git add .`.
    The subject names the slice's behavior in the repo's convention, and the body records the agent's judgment calls, any you made, and any pre-existing failures.
    Never push.
 4. Carry the report's notes for later slices into the next brief.
@@ -174,7 +191,7 @@ Green checks prove the code does what the tests say; only the user confirms it d
    - The running app's URL; when the app did not start, skip the dispatch and say in the script that the render check could not run, and why.
    - Each approved surface by UI ID and name, with its states from the spec's scenarios and acceptance criteria and, for a surface `design.md` records, from its Artboards lines.
    - The shipped themes, from `DESIGN.md` and the app's theme styles.
-   - The bar: the WCAG 2.2 AA floors in `docs/standards/ux-standards.md`; `DESIGN.md`'s decisions, or the standards' starting values where `DESIGN.md` is absent, unfilled or silent; and for each designed surface its artboard files under `docs/sdd/<slug>/design/` and `design.md`'s Not built list.
+   - The bar: the WCAG 2.2 AA floors in `docs/standards/ux-standards.md`; `DESIGN.md`'s decisions, or the standards' starting values where `DESIGN.md` is absent, unfilled or silent; and for each designed surface the absolute path of its artboard files under `<folder>/design/` and `design.md`'s Not built list.
    - The instruction to return only its report, with screenshot paths and never images.
 
    Wait for the report, and keep the screenshots on disk rather than reading them into this session.
@@ -191,7 +208,7 @@ Green checks prove the code does what the tests say; only the user confirms it d
 Record the user's reply in the journal as an `answer` with ref `QA` before any dispatch.
 A bug the user reports goes to a fresh `implementer` with the slug, the bug in the user's words with its reproduction steps, and the requirement IDs it touches, to fix red-first.
 A render failure is a QA bug only when the user picks it: each picked failure goes to its own fresh `implementer` with the failure's evidence as the reproduction, and a failure the user does not pick stays in the report unfixed.
-Verify its report with the full suite and the test-file check from Verify, then commit the fix alone with the journal, recording `resolved` in the same command, refusing the spec's base and staging by explicit path, with a subject naming the bug and a body naming the red test and its passing run.
+Verify its report with the full suite and the test-file check from Verify, then commit the fix alone, with the journal in a shared repository, recording `resolved` in the same command, refusing the spec's base and staging by explicit path, with a subject naming the bug and a body naming the red test and its passing run.
 Then return to QA with the script's affected steps.
 
 ## Finish
@@ -199,7 +216,7 @@ Then return to QA with the script's affected steps.
 When the user confirms QA:
 
 1. Record the confirmation in the journal as an `answer` with ref `QA`.
-   Then in one command record `resolved`, run `.claude/sdd/bin/sdd set-status <slug> tasks done`, stage `docs/sdd/<slug>/tasks.md` and the journal by explicit path, and commit the status change.
+   Then in one command record `resolved`, run `.claude/sdd/bin/sdd set-status <slug> tasks done` and, in a shared repository, stage `<folder>/tasks.md` and the journal by explicit path and commit the status change.
 2. Stop every process this session started, the server included; leave a server it reused running.
 3. Report, in this order: what was built, slice by slice; each stop with how it was resolved; the judgment calls of the agents and of this session, gathered from the journal and the commit bodies; any pre-existing failures; any render failures left unfixed; and the Follow-ups in `tasks.md`.
 

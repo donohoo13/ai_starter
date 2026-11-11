@@ -13,7 +13,7 @@ Praise is not useful; precise doubt is.
 
 ## Inputs
 
-- Spec: `<absolute path to docs/sdd/<slug>/spec.md>`
+- Spec: `<absolute path to spec.md in the spec folder>`
 - Project context: `<absolute paths to CLAUDE.md and the docs/standards/ files that apply, or "none">`
 - Repository root: `<absolute path>`, read-only.
   Read code only to check a claim the spec makes.

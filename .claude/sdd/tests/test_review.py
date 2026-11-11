@@ -21,9 +21,10 @@ class UncommittedPathsTests(SddCase):
         git(self.repo, "add", "-A")
         git(self.repo, "commit", "-q", "-m", "work")
 
-    def untrack_the_spec_folder(self):
+    def make_the_repository_private(self):
         git(self.repo, "rm", "-r", "-q", "--cached", "docs")
         git(self.repo, "commit", "-q", "-m", "untrack the spec files")
+        return "git lists nothing under the private spec folder %s" % (self.repo.resolve() / "docs" / "sdd")
 
     def uncommitted(self, *argv, cwd=None):
         code, out, err = self.run_sdd("uncommitted", *argv, cwd=cwd)
@@ -69,20 +70,17 @@ class UncommittedPathsTests(SddCase):
         self.write_review(slug="other-spec")
         self.assertIn("?? docs/sdd/other-spec/review.md", self.uncommitted(SLUG))
 
-    def test_an_untracked_spec_folder_still_leaves_only_the_review_out(self):
-        self.untrack_the_spec_folder()
+    def test_a_private_spec_folder_reports_zero_paths(self):
+        nothing_listed = self.make_the_repository_private()
         self.write_review()
-        self.assertEqual(
-            self.uncommitted(SLUG),
-            ["?? docs/sdd/%s/spec.md" % SLUG, "1 uncommitted path, not counting %s" % REVIEW_PATH],
-        )
+        self.write_plan()
+        self.assertEqual(self.uncommitted(SLUG), ["0 uncommitted paths; %s" % nothing_listed])
 
-    def test_an_ignored_spec_folder_reports_zero_paths(self):
-        self.untrack_the_spec_folder()
-        (self.repo / ".git" / "info").mkdir(exist_ok=True)
-        (self.repo / ".git" / "info" / "exclude").write_text("docs/sdd/\n")
+    def test_a_private_spec_folder_is_left_out_of_the_other_paths(self):
+        nothing_listed = self.make_the_repository_private()
         self.write_review()
-        self.assertEqual(self.uncommitted(SLUG), [NO_PATHS])
+        (self.repo / "README.md").write_text("# changed\n")
+        self.assertEqual(self.uncommitted(SLUG), [" M README.md", "1 uncommitted path; %s" % nothing_listed])
 
     def test_the_slug_defaults_to_the_spec_of_the_current_branch(self):
         self.write_review()

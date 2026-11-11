@@ -12,9 +12,9 @@ Work only from the files named here and the repository; you cannot see the conve
 
 ## Inputs
 
-- Spec: `<absolute path to docs/sdd/<slug>/spec.md>`
-- Plan: `<absolute path to docs/sdd/<slug>/plan.md>`
-- Tasks: `<absolute path to docs/sdd/<slug>/tasks.md>`
+- Spec: `<absolute path to spec.md in the spec folder>`
+- Plan: `<absolute path to plan.md in the spec folder>`
+- Tasks: `<absolute path to tasks.md in the spec folder>`
 - Repository root: `<absolute path>`, read-only
 - Base: `<base>`.
   Read the change with `git log <base>..HEAD` and `git diff <base>...HEAD`.

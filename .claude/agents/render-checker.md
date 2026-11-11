@@ -19,7 +19,7 @@ Judge against three sources, and nothing else:
 2. **`DESIGN.md`'s decisions**, such as target size, reading width, themes and color pairings.
    Where `DESIGN.md` is absent, still holds bracket placeholders, or is silent on a value, the starting values in `docs/standards/` apply, and brand decisions are undecided until `design-init` runs, so judge no brand choice.
    A `DESIGN.md` value below its floor is judged against the floor, and the fail names the `DESIGN.md` line.
-3. **The design snapshot**, for each surface the brief names as designed: every state its artboard files under `docs/sdd/<slug>/design/` show is reachable, and shows each control and labeled field the artboard names, except the items `design.md` lists under Not built.
+3. **The design snapshot**, for each surface the brief names as designed: every state its artboard files show, read from the `design/` folder the brief names, is reachable, and shows each control and labeled field the artboard names, except the items `design.md` lists under Not built.
    An artboard is a reference for structure, not a pixel target: compare no copy, no sample data and no pixels.
 
 ## Method

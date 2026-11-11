@@ -14,7 +14,7 @@ The six `sdd-*` skills under `.claude/skills/` read from it by repository-relati
 - `bin/sdd`: the helper CLI, Python 3 standard library only, run directly as a script.
   It keeps state and runs mechanical checks so the skills do not track them by hand; it checks structure and state, not quality.
   It has no dependencies and no project environment, so `uv` has nothing to manage for it.
-- `tests/`: the helper's `unittest` suite, run against throwaway git repos and a temp copy of this folder selected through the `SDD_HOME` environment variable.
+- `tests/`: the helper's `unittest` suite, run against throwaway git repos with real worktrees and a temp copy of this folder selected through the `SDD_HOME` environment variable.
   `scripts/test/sdd-helper.battery.mjs` runs it under `pnpm test:scripts`, with the template and reference checks below.
 
 The skills live beside this folder:
@@ -39,28 +39,44 @@ The agents in `.claude/agents/` are dispatched by the skills: `implementer` and 
   A spec that lists UI surfaces is offered `/sdd-design` before planning, or a recorded skip.
   Each phase ends by naming the next skill; you run it when you are ready, in a fresh session before `sdd-implement`.
 - A small change: `/tdd <what to build>` as a one-shot, then `/sdd-review` before the PR.
-- Where am I: `.claude/sdd/bin/sdd status` prints each artifact's state, the task progress, the phase and the skill to run.
+- Where am I: `.claude/sdd/bin/sdd status` prints the spec folder's path and mode, each artifact's state, the task progress, the phase and the skill to run.
 
-Working files live in `docs/sdd/<slug>/` and are tracked by git.
-Each skill stages the artifact it approved by explicit path and proposes a commit message; you commit, so the branch records when each gate passed.
+## Where specs live
+
+Working files always live in `docs/sdd/<slug>/` inside the project.
+A repository is shared or private, and git decides which; nothing asks you.
+
+- **Shared**: some checkout of the repository tracks at least one file under `docs/sdd/`, a spec or an empty `docs/sdd/.gitkeep`.
+  The spec folder is the current checkout's own `docs/sdd/`.
+  Each skill stages the artifact it approved by explicit path and proposes a commit message; you commit, so the branch records when each gate passed.
+- **Private**: git tracks nothing under `docs/sdd/`.
+  The helper adds `/docs/sdd/` to the repository's local exclude file (`.git/info/exclude`), never to `.gitignore`, so nothing in the repository or its history changes, and no spec file is ever staged or committed.
+  Every worktree reads one spec folder, the main checkout's `docs/sdd/`, so a spec is reachable from any worktree and survives removing the one that built it.
+
+A new project that wants its specs committed needs an empty `docs/sdd/.gitkeep` committed before its first spec, so the helper recognises the repository as shared before any spec exists; the template ships that file.
+A repository the helper already treated as private becomes shared the same way, with `git add -f docs/sdd/.gitkeep` because the folder is ignored by then.
+The helper then removes its exclude entry, and the specs written so far stay in the main checkout's `docs/sdd/` as untracked files, to move into the checkout that builds them.
+A shared repository whose last tracked file under `docs/sdd/` is deleted becomes private at the next helper run.
+
+`sdd status` reports the mode and the spec folder's absolute path, and the skills and agents take every spec file's path from it instead of spelling `docs/sdd/<slug>/` under the current directory.
 The folder stays after the merge as the record of the change.
 
 ## The helper
 
 ```
-sdd root                                              project root and its docs/sdd/ path
-sdd init <slug> [--branch <name>] [--base <name>]     create spec.md from the template, recording the feature branch and its base
+sdd root                                              project root, the docs/sdd/ folder that holds every spec, and the mode, shared or private
+sdd init <slug> [--branch <name>] [--base <name>]     create spec.md from the template, recording the feature branch and its base; ignores a private folder first, and says whether to stage
 sdd find                                              the slug whose spec branch is the current branch
 sdd base [slug]                                       the base the spec records, else the remote's default branch from origin/HEAD or the remote itself
 sdd set-base <slug> [branch]                          record a spec's base: the named branch, or the remote's default branch when none is named
-sdd status [slug] [--json]                            artifact states, task progress, pending journal entry, phase, next skill, and a note naming the next step once a review was accepted
+sdd status [slug] [--json]                            the spec folder's path and mode, artifact states, task progress, pending journal entry, phase, next skill, and a note naming the next step once a review was accepted
 sdd hash <file>                                       content hash of the body below the frontmatter
 sdd lint <slug> [spec|design|plan|tasks|review]       structure, traceability and unfilled template placeholders; no artifact means every one present
 sdd approve <slug> <spec|design|plan|tasks>           record the user's approval (only after they give it); refused on lint errors, and a design without its link, version and read
 sdd set-status <slug> <design|tasks|review> <status>  design to requested or skipped; tasks to in-progress or done; review to accepted, refused while review lint has errors, or from accepted back to open
 sdd journal <slug> add <kind> [--ref <ref>]           append a report, question, answer, decision or resolved entry to journal.md; text on stdin or in --text
 sdd journal <slug> show [<kind>] [--ref <ref>]        print the journal's entries, all or only one kind or ref
-sdd uncommitted [slug]                                every uncommitted path except the spec's own review.md, one file per line, then a count
+sdd uncommitted [slug]                                every uncommitted path except the spec's own review.md, one file per line, then a count; nothing under a private spec folder is listed
 sdd templates sync [--check]                          regenerate templates from Appendix A (Spec template) to Appendix E (Review report template)
 sdd check-refs                                        every section reference in the skills and this README matches a heading
 ```

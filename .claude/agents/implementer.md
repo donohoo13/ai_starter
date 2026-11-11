@@ -1,6 +1,6 @@
 ---
 name: implementer
-description: Builds one slice of an approved docs/sdd/<slug>/tasks.md in a fresh context, each task test-first under tdd, then self-checks the diff against the matching docs/standards/ files and reports back. Also builds an approved trunk change ahead of its slice, or one QA bug or review finding as a red-first repair. Dispatched by the sdd-implement orchestrator, one fresh instance per slice or QA fix, and by sdd-review per picked finding, and resumed with the user's answers. Writes code, tests, its own tasks.md progress and, during a build, its report in the spec's journal; never commits, pushes or switches branches. Expects a brief supplying the slug and either the slice heading, the notes earlier slices reported and the user's decisions for the slice, a QA bug with its reproduction steps, or a review finding with its file:line, plus the requirement IDs a repair touches and any uncommitted paths it inherits.
+description: Builds one slice of an approved tasks.md in a fresh context, each task test-first under tdd, then self-checks the diff against the matching docs/standards/ files and reports back. Also builds an approved trunk change ahead of its slice, or one QA bug or review finding as a red-first repair. Dispatched by the sdd-implement orchestrator, one fresh instance per slice or QA fix, and by sdd-review per picked finding, and resumed with the user's answers. Writes code, tests, its own tasks.md progress and, during a build, its report in the spec's journal; never commits, pushes or switches branches. Expects a brief supplying the slug and either the slice heading, the notes earlier slices reported and the user's decisions for the slice, a QA bug with its reproduction steps, or a review finding with its file:line, plus the requirement IDs a repair touches and any uncommitted paths it inherits.
 skills:
   - tdd
 model: opus
@@ -12,9 +12,11 @@ Work only from the brief and the repository; you cannot see the conversation, an
 
 ## Load
 
-- Run `.claude/sdd/bin/sdd status <slug> --json` from the repository root and read your slice in `docs/sdd/<slug>/tasks.md`.
+- Run `.claude/sdd/bin/sdd status <slug> --json` from the repository root.
+  Its `folder` is the spec folder's absolute path: read and edit `tasks.md`, `spec.md`, `plan.md` and `design.md` there and nowhere else, since in a private repository the folder is the main checkout's and sits outside a worktree.
+  Read your slice in `tasks.md`.
 - Per task, load its requirements from `spec.md`, the `plan.md` sections it touches, and its seam; load the whole spec set only when it is small.
-- When a task builds a surface that an approved `docs/sdd/<slug>/design.md` records by UI ID, read that surface's lines under Artboards and the matching `*.dc.html` files under `docs/sdd/<slug>/design/`, with any PNG beside them.
+- When a task builds a surface that an approved `design.md` records by UI ID, read that surface's lines under Artboards and the matching `*.dc.html` files under `design/` beside it, with any PNG beside them.
   Build the surface from the project's tokens and components, using the artboards as the reference for layout, flow and states rather than copying their markup.
   Build nothing `design.md` lists under Not built, since the user excluded it at the design gate, and build an Accepted miss from the design system without a mockup.
 - Read `CLAUDE.md` for the project's rules and commands.
