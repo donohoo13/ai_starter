@@ -62,6 +62,11 @@ In a project created from the template, this file is template residue: delete it
     `set-status <slug> design` on an existing `design.md` no longer refuses when the spec lists no UI surface, so a requested design can still be cancelled after a re-approved spec drops its surfaces.
     A repeat request also clears a skip's `decided_by` and `surfaces`.
     `sdd lint` rejects any bullet under a spec's `## UI surfaces` that is not a `UI-` line with a colon after its ID.
+  - Each spec records its base, the branch its feature branch is cut from and merges back into, in a `base` field beside `branch`.
+    Git decides it and nobody is asked: `sdd init` records the remote's default branch, read from the `origin/HEAD` the clone records and otherwise from the remote with `git ls-remote --symref origin HEAD`, and `--base <name>` names another for work that does not build on it.
+    `sdd status` reports the base, the new `sdd base [slug]` prints it, detecting it the same way for a spec that records none and when no spec matches the current branch, and the new `sdd set-base <slug> [branch]` records the detected or the named base without staling an approval.
+    `sdd lint` fails a spec with no base, so none is approved without one, and the user is asked only when git cannot tell.
+    `sdd-implement` cuts the feature branch from the base and refuses to commit on it, and `sdd-review` and `render-check` diff against it, in place of each skill's own way of finding a default branch.
   - `sdd-implement` asks, at the first start or at a resume that meets a new UI ID, which listed surfaces get a render check, recommending each by criterion: a new surface, an approved design, a layout that changes between mobile and desktop widths, or a color pairing no existing surface uses.
     It records the answer in `tasks.md`'s frontmatter as `render_check` (the approved IDs, or `none`) and `render_check_asked` (every ID asked about), outside the content hash, so the tasks stay approved.
     When every slice is committed and a surface was approved, it dispatches `render-checker` once before QA, puts each failure in the QA script with its evidence, and sends only the failures the user picks to a fresh `implementer`.
@@ -90,6 +95,7 @@ In a project created from the template, this file is template residue: delete it
   The grounding stayed in the session, the brief's framing went unchecked, and the options rested on an error source nobody had read up on.
   No phase requested or recorded a UI design, so implementers decided layout and flow mid-build, behavior a design implied bypassed the spec, and nobody saw a layout until QA; the Design phase puts an approved, committed design in front of the plan.
   A design, plan or tasks re-approved with an unchanged body against a changed upstream kept its old hash, so everything built on it still read current.
+  `sdd-review` read the default branch from `origin/HEAD` and then a local `main` or `master`, `render-check` from `origin/HEAD` and then the remote, and `sdd-implement` by no stated method, and no spec recorded the answer, so in a repository whose work merges into `staging` the commit guard could pass on `staging` and the review and the render check could diff against different branches.
   The standards hard-coded values such as a 44×44px target and a px ban that each project's design system should own, so they overrode it; only the WCAG 2.2 AA floors stay fixed, and `DESIGN.md` is the one home for every other value.
   A scaffold at the root and a copy in `design-init` drifted apart, so one template in the skill and a lint-clean finish leave a project with either a complete `DESIGN.md` or none, and the Design System in Claude is built from that file so mockups use the project's own tokens.
   The skill body cap had no reliable measure and pushed skills to trim guidance that served quality.
@@ -128,6 +134,11 @@ In a project created from the template, this file is template residue: delete it
     A spec without `## UI surfaces` still lints and never meets the Design phase, and a build in flight whose spec lists a surface gets the render-check question at its next `sdd-implement` resume.
     A project that edited the SDD document or its skills merges the renumbering, then runs `.claude/sdd/bin/sdd templates sync` and `.claude/sdd/bin/sdd check-refs`.
   - A `plan.md` or `tasks.md` approved under an earlier helper keeps its body-only hash and still reads current, so nothing needs re-approving; its next approval records the new hash.
+  - A spec written before the `base` field records none: `sdd status` prints `base: ?`, `sdd lint <slug> spec` reports an error, and `sdd-implement` records the detected base at its next start.
+    `.claude/sdd/bin/sdd set-base <slug>` records it by hand; the approval stays current.
+    A project whose work merges into a branch other than the remote's default passes `--base` to `sdd init`, or runs `sdd set-base <slug> <branch>`.
+    A clone that records no `origin/HEAD` makes the helper ask the remote over the network; `git remote set-head origin --auto` records it once.
+    A project that edited `sdd-outline`, `sdd-implement`, `sdd-review`, `render-check` or the SDD document merges the base wording by hand, then runs `.claude/sdd/bin/sdd templates sync` and `.claude/sdd/bin/sdd check-refs`.
   - A project that pinned or quoted `ux-standards.md` values in its own rules, such as the 44×44px target or the px ban, re-reads the split between Floors and Starting values: a value above its floor now belongs in `DESIGN.md`, and only the floor is fixed.
   - A project that extended the process battery's allowlist of skills naming `render-checker` adds `sdd-implement` to it.
   - A project that edited `.prettierignore` adds the `docs/sdd/*/design/` line.

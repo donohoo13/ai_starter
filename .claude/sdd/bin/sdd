@@ -40,13 +40,19 @@ def skills_dir() -> Path:
     return sdd_home().parent / "skills"
 
 
-def git(*args: str, cwd: Path | None = None) -> str | None:
-    """Run a git command and return its stdout, or None when it fails."""
+def git(*args: str, cwd: Path | None = None, timeout: float | None = None) -> str | None:
+    """Run a git command and return its stdout, or None when it fails, would prompt, or outlasts the timeout."""
     try:
         result = subprocess.run(
-            ["git", *args], cwd=cwd, capture_output=True, text=True, check=False
+            ["git", *args],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=timeout,
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
         )
-    except FileNotFoundError:
+    except (FileNotFoundError, subprocess.TimeoutExpired):
         return None
     if result.returncode != 0:
         return None
@@ -64,6 +70,25 @@ def sdd_dir() -> Path:
 
 def current_branch() -> str:
     return git("symbolic-ref", "--short", "HEAD") or ""
+
+
+REMOTE_HEAD = re.compile(r"^ref: refs/heads/(\S+)\s+HEAD$", re.MULTILINE)
+REMOTE_TIMEOUT_SECONDS = 20
+
+
+def default_branch() -> tuple[str, str]:
+    """The remote's default branch and where it was read from, or two empty strings when git cannot tell.
+
+    The origin/HEAD recorded in this clone answers first; the remote is asked only when that is missing.
+    """
+    recorded = git("symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD")
+    if recorded:
+        return recorded.split("/", 1)[-1], "origin/HEAD"
+    listing = git("ls-remote", "--symref", "origin", "HEAD", timeout=REMOTE_TIMEOUT_SECONDS)
+    reported = REMOTE_HEAD.search(listing or "")
+    if reported:
+        return reported.group(1), "the remote"
+    return "", ""
 
 
 def today() -> str:
@@ -267,11 +292,28 @@ def title_from_slug(slug: str) -> str:
     return " ".join(words).strip().capitalize()
 
 
+def ask_for_base(slug: str | None) -> str:
+    """What to do when git cannot tell the base, the one case where the user is asked."""
+    ask = (
+        "git could not tell the remote's default branch (origin/HEAD is not recorded and the remote did not answer); "
+        "ask the user which branch this work merges into"
+    )
+    return "%s, then run `sdd set-base %s <branch>`" % (ask, slug) if slug else ask
+
+
+def record_detected_base(slug: str) -> str:
+    return "run `sdd set-base %s` to record the remote's default branch" % slug
+
+
 @command(
     "init",
     "Create docs/sdd/<slug>/spec.md from the template",
     (["slug"], {}),
     (["--branch"], {"help": "feature branch to record; defaults to the current branch"}),
+    (
+        ["--base"],
+        {"help": "branch the work is cut from and merges back into; defaults to the remote's default branch"},
+    ),
 )
 def cmd_init(args: argparse.Namespace) -> int:
     path = artifact_path(args.slug, "spec")
@@ -279,12 +321,14 @@ def cmd_init(args: argparse.Namespace) -> int:
         raise Refusal("%s already exists; run the skill on it to revise or resume" % path)
     text = template("spec")
     title = title_from_slug(args.slug)
+    base, base_source = (args.base, "--base") if args.base else default_branch()
     text = set_frontmatter(
         text,
         {
             "title": title,
             "slug": args.slug,
             "branch": args.branch or current_branch(),
+            "base": base,
             "owner": git("config", "user.name") or "",
             "created": today(),
             "updated": today(),
@@ -295,12 +339,78 @@ def cmd_init(args: argparse.Namespace) -> int:
     path.write_text(text)
     print("created %s" % path)
     print("it is tracked by git: stage it by explicit path once the user approves it")
+    if base:
+        print("base: %s, from %s; `sdd set-base %s <branch>` changes it" % (base, base_source, args.slug))
+    else:
+        print("base: not recorded; %s" % ask_for_base(args.slug))
     return 0
 
 
 @command("find", "Print the slug whose spec branch matches the current branch")
 def cmd_find(args: argparse.Namespace) -> int:
     print(find_slug())
+    return 0
+
+
+def recorded_base(slug: str) -> str:
+    """The base the spec records, or "" for a spec written before the field existed."""
+    found = read_artifact(slug, "spec")
+    if not found:
+        raise Refusal("spec.md is missing for %s" % slug)
+    return found[0].get("base", "")
+
+
+def matching_slug() -> str | None:
+    try:
+        return find_slug()
+    except Refusal:
+        return None
+
+
+@command(
+    "base",
+    "Print the base branch: the one the spec records, else the remote's default branch",
+    (["slug"], {"nargs": "?"}),
+)
+def cmd_base(args: argparse.Namespace) -> int:
+    slug = args.slug or matching_slug()
+    recorded = recorded_base(slug) if slug else ""
+    if recorded:
+        print("base: %s" % recorded)
+        print("source: spec %s" % slug)
+        return 0
+    base, source = default_branch()
+    if not base:
+        raise Refusal(ask_for_base(slug))
+    print("base: %s" % base)
+    if slug:
+        print("source: detected from %s; spec.md records none, %s" % (source, record_detected_base(slug)))
+    else:
+        print("source: detected from %s; no spec matches the current branch" % source)
+    return 0
+
+
+@command(
+    "set-base",
+    "Record a spec's base: the named branch, or the remote's default branch when none is named",
+    (["slug"], {}),
+    (["branch"], {"nargs": "?"}),
+)
+def cmd_set_base(args: argparse.Namespace) -> int:
+    found = read_artifact(args.slug, "spec")
+    if not found:
+        raise Refusal("spec.md is missing for %s" % args.slug)
+    if args.branch is None:
+        base, source = default_branch()
+        if not base:
+            raise Refusal(ask_for_base(args.slug))
+        how = " (detected from %s)" % source
+    else:
+        base, how = args.branch.strip(), ""
+        if not base:
+            raise Refusal("the base cannot be empty; name the branch this work merges into")
+    write_artifact(args.slug, "spec", set_frontmatter(found[2], {"base": base, "updated": today()}))
+    print("spec.md base is now %s%s" % (base, how))
     return 0
 
 
@@ -462,6 +572,7 @@ def collect_status(slug: str) -> dict:
     return {
         "slug": slug,
         "branch": spec[0].get("branch") if spec else None,
+        "base": (spec[0].get("base") or None) if spec else None,
         "current_branch": current_branch(),
         "artifacts": states,
         "clarifications": markers,
@@ -492,6 +603,14 @@ def describe_artifact(name: str, state: dict, progress: dict | None) -> str:
     return "  ".join(parts)
 
 
+def describe_base(slug: str, report: dict) -> str:
+    if report["base"]:
+        return report["base"]
+    if not report["artifacts"]["spec"]["exists"]:
+        return "?"
+    return "? (not recorded; %s)" % record_detected_base(slug)
+
+
 @command(
     "status",
     "Report each artifact's state, task progress, the phase and the skill to run",
@@ -506,6 +625,7 @@ def cmd_status(args: argparse.Namespace) -> int:
         return 0
     print("slug: %s" % slug)
     print("branch: %s (current: %s)" % (report["branch"] or "?", report["current_branch"] or "?"))
+    print("base: %s" % describe_base(slug, report))
     for name in ARTIFACTS:
         print(describe_artifact(name, report["artifacts"][name], report["tasks"]))
     print("clarification markers: %d" % report["clarifications"])
@@ -749,6 +869,12 @@ def lint_spec(slug: str) -> Lint:
     for title in SPEC_SECTIONS:
         if not find_section(section_map, title):
             lint.error('missing section "%s"' % title)
+    if not fields.get("base"):
+        lint.error(
+            "no base branch recorded; %s, or name another with `sdd set-base %s <branch>`"
+            % (record_detected_base(slug), slug),
+            frontmatter_line(text, "base"),
+        )
     if fields.get("description"):
         lint_description(lint, text, fields["description"])
     lint_summary(lint, section_map, offset)

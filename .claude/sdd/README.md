@@ -49,8 +49,10 @@ The folder stays after the merge as the record of the change.
 
 ```
 sdd root                                              project root and its docs/sdd/ path
-sdd init <slug> [--branch <name>]                     create spec.md from the template
+sdd init <slug> [--branch <name>] [--base <name>]     create spec.md from the template, recording the feature branch and its base
 sdd find                                              the slug whose spec branch is the current branch
+sdd base [slug]                                       the base the spec records, else the remote's default branch from origin/HEAD or the remote itself
+sdd set-base <slug> [branch]                          record a spec's base: the named branch, or the remote's default branch when none is named
 sdd status [slug] [--json]                            artifact states, task progress, phase, next skill
 sdd hash <file>                                       content hash of the body below the frontmatter
 sdd lint <slug> [spec|design|plan|tasks|review]       structure, traceability and unfilled template placeholders; no artifact means every one present

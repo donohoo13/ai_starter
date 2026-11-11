@@ -19,7 +19,7 @@ Only these, so that every line of code and test comes from an agent whose work t
 
 - `tasks.md`'s `status` field and each slice's close-out box.
 - `tasks.md`'s `render_check` and `render_check_asked` frontmatter keys, the user's render-check answer and the UI IDs it covers.
-- The spec's `branch` field.
+- The spec's `branch` and `base` fields.
 - Git staging and commits.
 - The processes it starts and stops.
 
@@ -52,9 +52,10 @@ Never take the next step until the report is in; when it has not arrived, end th
 ## Steps (section 11 (Implement), Steps)
 
 1. **Check the branch.**
-   The spec's `branch` field names the feature branch.
-   On it: continue.
-   On the default or a shared branch: propose creating the spec's branch, ask, then create it, through `scripts/setup/gwt-add.sh --no-open <branch>` and the EnterWorktree tool when this checkout should stay on the default branch; if the user picks another name, set the spec's `branch` field to it (frontmatter sits outside the content hash, so the spec stays approved).
+   The spec's `branch` field names the feature branch and its `base` field the branch that one is cut from and merges back into; `status` reports both.
+   When it reports no base, record the one git detects before going on, `.claude/sdd/bin/sdd set-base <slug>`, and ask the user for the branch only when that refuses.
+   On the feature branch: continue.
+   On the base or another shared branch: propose creating the spec's branch from the base, ask, then create it, through `scripts/setup/gwt-add.sh --no-open <branch> <base>` and the EnterWorktree tool when this checkout should stay on the branch it is on, leaving off `<base>`, the start point, when the branch already exists; if the user picks another name, set the spec's `branch` field to it (frontmatter sits outside the content hash, so the spec stays approved).
    On a different feature branch: ask whether to switch to the spec's branch or record the current one the same way.
 2. **Mark in progress**: `.claude/sdd/bin/sdd set-status <slug> tasks in-progress` (a no-op when already in progress).
    When this or step 1 changed `tasks.md` or `spec.md`, stage those files by explicit path and commit them before the first dispatch, so every later diff holds only an agent's work.
@@ -87,7 +88,7 @@ Never take the next step until the report is in; when it has not arrived, end th
 On `TRUNK_READY`:
 
 1. Run the full suite, handling failures as in Verify.
-2. Check `git branch --show-current` is not the default branch, stage only the trunk paths the report names by explicit path, and commit them alone.
+2. Check `git branch --show-current` is not the spec's base, stage only the trunk paths the report names by explicit path, and commit them alone.
    The body opens with `Trunk change: <touch point> (<n> consumers)`, then records the skeptic's verdict and the user's decision, because the pull request's risk section quotes it from there.
 3. Resume the same agent through `SendMessage` to finish the slice, telling it the trunk paths are committed so its next report lists only what it changes from here, and act on that report.
 
@@ -117,7 +118,7 @@ When every check passes, go to Slice commit.
 ### Slice commit
 
 1. Check the slice's close-out box in `tasks.md`, so it lands in the slice's own commit and a crash can never leave a committed slice that looks unbuilt.
-2. Check `git branch --show-current` is not the default branch.
+2. Check `git branch --show-current` is not the spec's base, the `base` that `status` reported in Verify.
 3. Stage the report's files, which Verify matched against `git status`, and `docs/sdd/<slug>/tasks.md` by explicit path; never `git add -A` or `git add .`.
 4. Commit without asking: the subject names the slice's behavior in the repo's convention, and the body records the agent's judgment calls, any you made, and any pre-existing failures.
    Never push.
@@ -152,7 +153,7 @@ Green checks prove the code does what the tests say; only the user confirms it d
 
 A bug the user reports goes to a fresh `implementer` with the slug, the bug in the user's words with its reproduction steps, and the requirement IDs it touches, to fix red-first.
 A render failure is a QA bug only when the user picks it: each picked failure goes to its own fresh `implementer` with the failure's evidence as the reproduction, and a failure the user does not pick stays in the report unfixed.
-Verify its report with the full suite and the test-file check from Verify, then commit the fix alone, refusing the default branch and staging by explicit path, with a subject naming the bug and a body naming the red test and its passing run.
+Verify its report with the full suite and the test-file check from Verify, then commit the fix alone, refusing the spec's base and staging by explicit path, with a subject naming the bug and a body naming the red test and its passing run.
 Then return to QA with the script's affected steps.
 
 ## Finish
