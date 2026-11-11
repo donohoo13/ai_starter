@@ -67,7 +67,7 @@ An entry never quotes a secret or a credential; describe it instead.
 4. Load the project context (section 6 (Project principles and context)), the full-suite commands `CLAUDE.md` names or the `tdd` discovery in `.claude/skills/tdd/references/discover.md` finds, and `tasks.md`.
    Load no more of the spec and plan than a question in front of you needs; the agents load their own.
 5. **Find the resume point.**
-   The next slice is the first whose close-out box is unchecked.
+   The next slice is the first whose close-out box is unchecked, and only slices with an unchecked close-out are built, since a task list revised after a late change reopens the slices it touched and leaves the rest closed.
    When every close-out box is checked and `tasks.md` is still `in-progress`, the build is done and QA has not been confirmed: settle render checks (Steps, step 3) when no answer is recorded, then go to QA.
 6. **Uncommitted changes** found now are listed for the user with two options: hand them to a fresh `implementer` to continue the resume slice, or set them aside by hand before you go on.
    Leave out of the list `tasks.md`, the journal, and the files named by a `report` entry that no `resolved` entry follows, since the journal already says whose work those are.

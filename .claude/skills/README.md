@@ -25,7 +25,7 @@ Each spec records its base, the branch its feature branch is cut from and merges
 - **sdd-plan** (`/sdd-plan [slug]`): phase 3, an approved spec, and its approved design when there is one, to an approved `plan.md`.
   Asks whether to run `sdd-design` or skip it when a UI spec has no `design.md`, then researches with sources (`research-analyst` for a question that would stall the conversation), presents each significant decision as options with a recommendation, names the seam each slice's tests run at in the vocabulary `tdd` discovers for the repo, checks the plan against `CLAUDE.md` and `docs/standards/`, and fills the traceability table.
 - **sdd-task** (`/sdd-task [slug]`): phase 4, an approved plan to an approved `tasks.md`.
-  One observable behavior per task with its requirements, seam, files and done-when check, grouped into slices that each end in a close-out; a requirement the user verifies another way is recorded under Verified elsewhere, inside the content hash.
+  One observable behavior per task with its requirements, seam, files and done-when check, grouped into slices that each end in a close-out, which a revision reopens when it adds or changes a task in a built slice; a requirement the user verifies another way is recorded under Verified elsewhere, inside the content hash.
 - **sdd-implement** (`/sdd-implement [slug]`): phase 5, the session orchestrates and a fresh `implementer` builds each slice from a pointer-only brief.
   Asks at the start which UI surfaces get a render check, with a recommendation and reason each, and dispatches `render-checker` once before QA for the surfaces the user picked.
   Brings every `BLOCKED` question to the user (with `skeptic`'s case first for an undecided trunk change), verifies each report with its own checks, commits each verified slice, runs one QA pass before `tasks.md` reaches `done`, and recommends `/sdd-review` next in the same session, starting it only on an end-to-end request; offers the worktree helpers when the checkout should stay on the branch it is on, and never commits on the spec's base.
@@ -34,6 +34,7 @@ Each spec records its base, the branch its feature branch is cut from and merges
   Every reviewer runs in a fresh context on a pointer-only brief, so it can run in the session that built the branch.
   With a spec: evidence from the suite, spec conformance in a fresh subagent, Claude Code's `/code-review` (a forked skill) for correctness beside `standards-reviewer` for legibility and usability, one `review.md` report, fixes on the user's pick built by a fresh `implementer`, and a PR description draft once the user confirms the intent; without a spec, the two reviews and the same report in the conversation.
   `review.md` records each finding's disposition, so a later session resumes an open review from the file instead of running the reviewers again.
+  Reopens an accepted review when the tasks were re-approved after it, or on the user's word for pull request feedback, which goes through the same triage and fixes.
   Never pushes or opens the PR.
 - **tdd**: red before green at public seams chosen for the critical paths, discovering the repo's commands and test shapes from its own files first, mocks only at true external boundaries, appearance never a test target, and every bug fix opening with a failing repro at the lowest seam that shows it.
   Preloaded into `implementer`, which runs it per task and per fix, and used directly whenever a test can lock something down.
@@ -81,7 +82,7 @@ A rule every implementer must hold from the first line, because getting it wrong
 
 ## SDD lifecycle
 
-`docs/sdd/<slug>/` holds `spec.md`, `plan.md` and `tasks.md`, each `draft` until the user approves it (`approved`, with its approval hash recorded), `tasks.md` moving to `in-progress` and `done` under `sdd-implement`, and `review.md` moving from `open` to `accepted` under `sdd-review`.
+`docs/sdd/<slug>/` holds `spec.md`, `plan.md` and `tasks.md`, each `draft` until the user approves it (`approved`, with its approval hash recorded), `tasks.md` moving to `in-progress` and `done` under `sdd-implement`, and `review.md` moving from `open` to `accepted` under `sdd-review`, and back to `open` when the tasks are re-approved or feedback arrives after acceptance.
 A spec with UI surfaces adds `design.md`, `requested`, `approved` or `skipped` under `sdd-design`, with the approved design's snapshot under `design/`.
 An approved artifact edited afterwards counts as changed and everything downstream as stale, and `.claude/sdd/bin/sdd status` names the phase and the skill to run.
 The folder is the tracker: no GitHub issues, one commit per slice as the audit trail, and each artifact committed beside the code at the gate that approved it.

@@ -1,6 +1,6 @@
 ---
 name: sdd-review
-description: Review the current branch before a PR. With a spec it runs the full Validate phase: evidence, spec conformance in a fresh subagent, the code-review skill for correctness and the standards-reviewer agent for legibility and usability, then one review.md report that records each finding's disposition and a PR description draft; a review an earlier session left open resumes from that report instead of running again. Without a spec it runs only the correctness and standards reviews and reports in the conversation. Use when the user says "review", "review this branch", "final review", "run the reviews", "sdd review", "resume the review", or wants a branch checked before opening or marking a PR. Phase 6 of spec-driven development, section 13 of .claude/sdd/spec-driven-development.md.
+description: Review the current branch before a PR. With a spec it runs the full Validate phase: evidence, spec conformance in a fresh subagent, the code-review skill for correctness and the standards-reviewer agent for legibility and usability, then one review.md report that records each finding's disposition and a PR description draft; a review an earlier session left open resumes from that report instead of running again. Without a spec it runs only the correctness and standards reviews and reports in the conversation. Use when the user says "review", "review this branch", "final review", "run the reviews", "sdd review", "resume the review", or wants a branch checked before opening or marking a PR. Also use when pull request feedback or a late fix arrives on a branch whose review was already accepted, which reopens that review. Phase 6 of spec-driven development, section 13 of .claude/sdd/spec-driven-development.md.
 argument-hint: "[slug] [effort low|medium|high|xhigh|max] [--max-findings n] [base]"
 allowed-tools: Bash(.claude/sdd/bin/sdd *)
 ---
@@ -20,9 +20,9 @@ Arguments: `$ARGUMENTS`.
 
 Parse the arguments: a token is the slug only when `docs/sdd/<token>/` exists; one of `low`, `medium`, `high`, `xhigh`, `max` is the effort; `--max-findings n` is the findings cap; the remaining token, if any, is the base.
 
-- **Spec mode** when a slug was given, or when `.claude/sdd/bin/sdd find` resolves one and `.claude/sdd/bin/sdd status <slug> --json` reports `phase` `6. Validate`.
+- **Spec mode** when a slug was given, or when `.claude/sdd/bin/sdd find` resolves one and `.claude/sdd/bin/sdd status <slug> --json` reports `phase` `6. Validate` or `Done`.
   Runs the full Validate phase inside the start and finish protocols of section 4 (The workflow).
-  When `find` resolves a spec that is not at `6. Validate`, say so, name the phase and skill `status` reports, and ask before reviewing without it.
+  When `find` resolves a spec at an earlier phase, say so, name the phase and skill `status` reports, and ask before reviewing without it.
 - **Review-only mode** otherwise: a pre-PR review of any branch, for example after a `tdd` one-shot.
   It skips the protocols and every step marked _(spec only)_, writes no file, and reports in the conversation.
 
@@ -48,7 +48,7 @@ It rewrites the report for the new range without losing a decision: every findin
 
 ## Preconditions (section 13 (Validate), Gate)
 
-- Spec mode: `status` reports `6. Validate`, so every task is done.
+- Spec mode: `status` reports `6. Validate`, so every task is done, or `Done`, which Reopen below returns to `6. Validate` on the user's word.
   Anything else: stop, tell the user the phase and the skill `status` names, and do no other phase's work.
 - A feature branch with a clean tree.
   Spec mode: `.claude/sdd/bin/sdd uncommitted <slug>` reports `0 uncommitted paths`; it lists what `git status --porcelain` lists except this spec's own `review.md`, which the review leaves uncommitted until acceptance.
@@ -58,6 +58,22 @@ It rewrites the report for the new range without losing a decision: every findin
   Ask the user which branch the work merges into only when the helper refuses because git could not tell.
 - Effort and cap: the arguments.
   Absent, ask once with the AskUserQuestion tool, suggesting `high` or `xhigh` and a cap of 3 to 5 scaled to `git diff --stat <base>...HEAD`.
+
+## Reopen _(spec only)_ (section 13 (Validate), After acceptance)
+
+`status` carries a `note` whenever `review.md` was accepted before, and `artifacts.review` says which case applies.
+Settle it after the clean-tree check, because reopening edits `review.md`, and before Start:
+
+- **Accepted and stale** (`phase` `6. Validate`, review `status` `accepted`): the tasks were re-approved after the acceptance.
+  Run `.claude/sdd/bin/sdd set-status <slug> review open`, then run the whole review and rewrite the report's sections from the new results, keeping the file's frontmatter.
+- **Accepted and current** (`phase` `Done`): nothing is due until the user brings pull request feedback or a late fix, or asks for another review.
+  Feedback that changes behavior a requirement describes is a spec change: leave the review accepted, stop and name `sdd-outline`.
+  Otherwise confirm that this reopens the accepted review; on a no, stop, since the acceptance stands, and on a yes run the same command.
+  Add each feedback item to the report as a finding that names its source and take it through Triage and Fixes, running the reviewers again only when the user asks or the fixes are substantial.
+- **Reopened earlier** (review `status` `open` with a `based_on`): resume the whole review when `artifacts.review.stale` is true, otherwise the feedback.
+
+Change `review.md`'s `status` only through the helper, which records each reopening and, at acceptance, the tasks the review covers as its `based_on`.
+The review closes again through Confirm intent and close.
 
 ## Start _(spec only)_ (section 4 (The workflow), start protocol)
 

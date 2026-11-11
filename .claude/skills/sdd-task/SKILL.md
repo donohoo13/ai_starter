@@ -17,9 +17,10 @@ Arguments: `$ARGUMENTS`, an optional slug.
 
 - `.claude/sdd/bin/sdd status <slug> --json` reports `phase` `4. Tasks`: the plan is approved, unchanged since approval and not stale.
 - An earlier phase, `2. Design` included: stop, tell the user the phase and the skill `status` names (`sdd-design` for a design that is requested, changed or stale), and do no other phase's work.
-  A later phase means the tasks are approved or in progress: ask whether the user wants to revise them (section 14 (Changing course)), warn that re-approval pauses implementation, and continue only on yes.
+  A later phase means the tasks are approved, in progress or done: ask whether the user wants to revise them (section 14 (Changing course)), warn that re-approval pauses implementation, or returns a finished build to Implement and an accepted review to Validate, and continue only on yes.
 - A `tasks.md` that already exists is revised or resumed.
   Keep task IDs stable; never renumber.
+  On a list that is already partly built, leave each new task unchecked, uncheck a task whose behavior changed and delete its `- Evidence:` line, and uncheck the close-out of every slice that holds an unchecked task, since `sdd-implement` builds only the slices whose close-out is unchecked.
   A stale task list is refreshed against the re-approved plan: revise the affected tasks, set `based_on` to the plan's new `approved_hash`, then lint.
 
 ## Start (section 4 (The workflow), start protocol)
@@ -41,7 +42,7 @@ Arguments: `$ARGUMENTS`, an optional slug.
 4. **Close-outs and decisions**: end every slice with the close-out line from the template.
    Keep the `## Verified elsewhere` section for coverage decisions (step 5) and the `## Follow-ups (out of scope)` section for discoveries during implementation; write `- None` under either when it is empty.
 5. **Lint**: `.claude/sdd/bin/sdd lint <slug> tasks`.
-   Fix every error before presenting: a requirement without a task, an unknown or removed ID, a missing field, a slice without a close-out, a placeholder left from the template.
+   Fix every error before presenting: a requirement without a task, an unknown or removed ID, a missing field, a slice without a close-out, an unchecked task under a checked close-out, a placeholder left from the template.
    An `NFR-` or `INV-` needs a task unless the user decides it is verified another way; record that decision under `## Verified elsewhere` as `- <ID>: <how it is verified>. Decided by <name>.`, which lint accepts in place of a task and the content hash guards after approval.
    Act on every warning: a test-only task is horizontal work, so fold the test into the task that makes it pass.
 

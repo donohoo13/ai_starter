@@ -89,6 +89,11 @@ In a project created from the template, this file is template residue: delete it
   - `.prettierignore` excludes `docs/sdd/*/design/`, so the pre-commit hook leaves a design snapshot byte for byte as it was read.
   - New `docs/standards/ruby.md` holds Ruby conventions for tooling, RBS types and language idioms, with Rails-only rules in their own section.
   - The opt-in macOS kit under `scripts/setup/machine/` is removed, with `machine-install.battery.mjs` and the README's "Setting Up a Mac" section.
+  - A finished SDD run has a recorded way back.
+    `sdd lint` reports an unchecked task under a checked close-out as an error, so `sdd approve <slug> tasks` refuses a revised list until the slice is reopened, and `sdd-task` unchecks new and changed tasks and their slices' close-outs when it revises a built list.
+    `sdd set-status <slug> review accepted` records the tasks' `approved_hash` as the review's `based_on`, so tasks re-approved after a late change make the accepted review stale and `sdd status` reports `6. Validate` instead of `Done`.
+    `sdd set-status <slug> review open` reopens an accepted review, which `sdd-review` does for a stale review and, on the user's word, for pull request feedback, taking each item through its triage and fixes.
+    `sdd status` prints the review's `based_on` and whether it is current or stale, and a `note` line (`note` in `--json`) naming the next step whenever the review was accepted before.
 - **Why**: the design restructure gets better results from design sessions.
   Role-named tokens and component bindings give a building session exact values to compose from instead of prose to interpret, and the linter catches broken references and contrast failures before a surface ships.
   `DESIGN.md` is the filename the format's spec and tooling use, and the skill that fills it now carries the same name.
@@ -113,6 +118,7 @@ In a project created from the template, this file is template residue: delete it
   The skill body cap had no reliable measure and pushed skills to trim guidance that served quality.
   Ruby projects created from the template had no conventions for tooling, types or idioms.
   The machine kit leaves because one Mac's setup is personal, not project payload, and a dedicated dotfiles repository now carries it.
+  A task added to a built slice was never built, because `sdd-implement` resumes at the first unchecked close-out, yet it kept `tasks.md` from reaching `done`; and an accepted review survived every later change, so a rebuilt run read as done without a second review and pull request feedback had no phase to go to.
 - **Adaptation notes**:
   - A `docs/specs/*.md` spec in flight finishes under the old skills before taking this release, or is outlined again with `sdd-outline` into `docs/sdd/<slug>/`; nothing migrates it.
   - A project that edited `sdd-implement` reapplies its edits to the orchestrator, or to `implementer` when they concerned how a task is built.
@@ -160,6 +166,9 @@ In a project created from the template, this file is template residue: delete it
   - A project that edited `.prettierignore` adds the `docs/sdd/*/design/` line.
   - `ruby.md`'s `applies-to:` globs match Ruby files and `mise.toml`, so a project without Ruby deletes it to keep it off `mise.toml` changes.
   - `scripts/setup/machine/` and `scripts/test/machine-install.battery.mjs` are gone: a project that used the kit keeps its own copy of both or deletes them, and files the kit already installed on a machine (`~/.config/zsh/ai-starter.zsh`, `~/.config/git/ai-starter.gitconfig`, `~/.config/mise/conf.d/ai-starter.toml`, `~/.claude/rules/ai-starter.md`) stay until removed by hand.
+  - A `review.md` accepted under an earlier helper has no `based_on` and still reads `Done`; reopening it and accepting it again records one.
+    A `tasks.md` already approved with an unchecked task under a checked close-out fails `sdd lint` at the QA step of `sdd-implement`: uncheck that close-out and resume.
+    A project that edited `sdd-review`, `sdd-task` or `sdd-implement` merges the Reopen section and the revised resume and revision lines by hand, then runs `.claude/sdd/bin/sdd check-refs`.
 
 ## v0.2.0 — 2026-10-22
 

@@ -181,7 +181,7 @@ Each artifact records its state in its frontmatter.
 | `design.md` | `requested` → `approved`, or `skipped`        | `approved_hash`, `based_on` (the spec's `approved_hash`, also recorded at a request or skip)                 |
 | `plan.md`   | `draft` → `approved`                          | `approved_hash`, `based_on` (the design's `approved_hash` when the design is approved, otherwise the spec's) |
 | `tasks.md`  | `draft` → `approved` → `in-progress` → `done` | `approved_hash`, `based_on` (the plan's `approved_hash`)                                                     |
-| `review.md` | `open` → `accepted`                           | None                                                                                                         |
+| `review.md` | `open` → `accepted`, reopened to `open`       | `based_on` (the tasks' `approved_hash`), recorded at acceptance                                              |
 
 The current phase follows from these states:
 
@@ -192,8 +192,8 @@ The current phase follows from these states:
 | Spec approved, design absent, skipped covering every listed UI surface, or approved and current; plan missing or draft | 3. Plan      | `sdd-plan`      |
 | Plan approved; tasks missing or draft                                                                                  | 4. Tasks     | `sdd-task`      |
 | Tasks approved or in progress                                                                                          | 5. Implement | `sdd-implement` |
-| Tasks done; review missing or open                                                                                     | 6. Validate  | `sdd-review`    |
-| Review accepted                                                                                                        | Done         | None            |
+| Tasks done; review missing, open, or accepted but stale                                                                | 6. Validate  | `sdd-review`    |
+| Review accepted and current                                                                                            | Done         | None            |
 
 **Changed and stale artifacts.**
 An approved artifact whose content no longer matches its `approved_hash` counts as changed, and it needs re-approval.
@@ -201,6 +201,7 @@ Every artifact downstream of it becomes **stale** because its `based_on` no long
 The plan's upstream is the design while the design is approved and the spec otherwise, so a design approved after the plan, a re-approved design, or a spec change that stales the design all make the plan stale.
 The approval hash covers the body below the frontmatter plus the artifact's `based_on`, so a re-approval against a changed upstream always records a new hash and stales what follows.
 A design's hash also covers its recorded `version`, so re-recording a changed canvas needs a new approval.
+An accepted review records the tasks' `approved_hash` as its `based_on`, so tasks re-approved after a late change make the review stale and the run returns to Validate.
 Checking off tasks in `tasks.md`, the single `- Evidence:` line under a task, and the Follow-ups section still do not count as a change.
 A draft's `based_on` may stay empty until approval records it.
 Once set, it must match: refreshing a stale artifact means revising it against its upstream and setting `based_on` to the new hash before re-approval.
@@ -243,6 +244,9 @@ Once set, it must match: refreshing a stale artifact means revising it against i
   Don't patch around the gap downstream.
 - Editing an approved artifact makes it changed.
   Re-approve it, then refresh whatever went stale.
+- A finished run goes back the same way, never by editing a status by hand (section 14).
+  Re-approving `tasks.md` returns it from `done` to `approved` and the run to Implement, and an accepted review that goes stale returns the run to Validate.
+  `sdd set-status <slug> review open` reopens an accepted review, when it went stale or when feedback arrives after acceptance (section 13).
 
 ---
 
@@ -716,6 +720,9 @@ Stage `design.md` and `design/` by explicit path, propose a commit message, and 
 - **Slices:** group tasks by user story (P1, P2, P3) so each slice ships on its own.
   Within a slice, build foundations before the things that depend on them.
 - **Slice close:** end every slice with a close-out item covering the full suite, staging and the orchestrator's commit (Appendix D).
+- **Revising a built list:** leave each new task unchecked, and uncheck a task whose behavior changed, deleting its `- Evidence:` line.
+  Uncheck the close-out of every slice that holds an unchecked task, because `sdd-implement` builds only the slices whose close-out is unchecked.
+  `sdd lint` reports an unchecked task under a checked close-out as an error.
 - **Seam:** every task names its seam, taken from the plan.
 - **Coverage:** every functional requirement has at least one task, and every task traces to a requirement that is still in force.
   A non-functional requirement or invariant needs a task too, unless the user decides it is verified another way; record that decision under Verified elsewhere (Appendix D) with the ID, how it is verified and who decided.
@@ -753,6 +760,7 @@ It records `resolved` in the same command as each commit that settles a report o
    If you're on the base or another shared branch, propose creating the feature branch from the base and ask first; if the user picks another name, update the spec's `branch` field, which sits outside the hash.
    Every commit of this phase lands on the feature branch, never on the base.
 2. **Resume** at the first slice whose close-out item is unchecked, and set `tasks.md` to `in-progress`.
+   Build only the slices whose close-out is unchecked, since a revised task list reopens the slices it touched and leaves the rest closed (section 10).
    If there are uncommitted changes that no report still awaiting its `resolved` entry names, list them and let the user choose between handing them to a fresh `implementer` to continue that slice and setting them aside by hand; never discard them.
    When `sdd status` reports a pending journal entry, continue from it before any new dispatch: act on a `report` as if it had just arrived, put a `question` to the user again, and act on an `answer` or `decision`, handing it to a fresh `implementer` when the agent it was meant for is gone.
 3. **Render checks.**
@@ -980,6 +988,20 @@ Continue it from that file alone: skip Run, Triage and writing the report, and r
 
 Nothing is pushed from this phase.
 
+### After acceptance
+
+An accepted review covers the tasks it records as `based_on`.
+A finished run comes back to this phase in two ways, and `sdd status` names the step for each:
+
+- **The tasks were re-approved** after a late change (section 14), so the review is stale and the phase is `6. Validate` again.
+  Reopen the review with `sdd set-status <slug> review open`, run every review again on the rebuilt branch, and replace the report with the new results.
+- **Feedback arrives that changes no artifact,** such as a pull request comment or a bug found after acceptance.
+  On the user's word, reopen the review the same way.
+  Each item joins the report as a finding that names its source, and goes through Triage and Fixes like any other.
+  Feedback that changes behavior a requirement describes is a spec change and goes to `sdd-outline` instead (section 14).
+
+Either way the review is accepted again through Confirm intent and close, with the PR description draft brought up to date.
+
 ---
 
 ## 14. Changing course
@@ -990,6 +1012,10 @@ Nothing is pushed from this phase.
 - **A bug found during Implement.**
   If the code violates the spec, fix it with `tdd`, starting from a failing test.
   If the spec was wrong or incomplete, route back to `sdd-outline`.
+- **A change after the tasks are done or the review is accepted.**
+  It takes the same route: the spec through `sdd-outline`, then the plan and tasks as they go stale.
+  Re-approving the tasks returns the run to Implement, which builds only the slices the revision reopened (section 10), and makes an accepted review stale, so the run passes through Validate again (section 13).
+- **Feedback after the review is accepted** that changes no artifact, such as a pull request comment, reopens the review (section 13).
 - **Drift.**
   When you touch code the spec covers, check that the spec still describes it.
   If it doesn't, say so before going further.
