@@ -33,7 +33,7 @@ Every SDD skill points into it.
 | `tdd`           | Used by phases 5 and 6, and on its own | 12      | Red-green discipline for any change a test can lock down                                     |
 | `sdd-review`    | 6. Validate                            | 13      | Prove the branch meets the spec, review it, and prepare the PR                               |
 
-The helper `.claude/sdd/bin/sdd`, run from the repository root, keeps state and the mechanical checks out of the skills' hands: `init`, `find`, `status`, `hash`, `lint`, `approve`, `set-status`, `templates sync` and `check-refs`.
+The helper `.claude/sdd/bin/sdd`, run from the repository root, keeps state and the mechanical checks out of the skills' hands: `init`, `find`, `status`, `hash`, `lint`, `approve`, `set-status`, `uncommitted`, `templates sync` and `check-refs`.
 It checks structure and state, not quality.
 
 ---
@@ -832,6 +832,8 @@ Without a spec the skill skips the start and finish protocols and the steps mark
 - **Feature branch with a clean tree.**
   Uncommitted work would be reviewed as if it ships.
   If the tree isn't clean, list the paths and stop.
+  The spec's own `review.md` is not such work: the review writes it and leaves it uncommitted until acceptance, so `sdd uncommitted <slug>` lists every uncommitted path except that file, and this gate and the fix check both read the tree through it.
+  A review already in progress settles its uncommitted paths under Resume instead of stopping.
 - **Base branch:** the argument if given, otherwise the repo's default branch.
 - **Effort and findings cap:** the argument if given.
   Otherwise ask once, suggesting `high` or `xhigh` with a cap of 3 to 5 scaled to the size of the diff.
@@ -870,27 +872,64 @@ Don't pad the report with style preferences; chasing every finding leads to over
 
 Write one report to `review.md` (Appendix E), or to the conversation without a spec, and show it:
 
-- _(spec only)_ Spec conformance: each requirement met or not, with evidence.
+- _(spec only)_ Spec conformance: each requirement met or not, with evidence, and each gap.
 - Correctness findings, with severity and `file:line`.
 - Standards findings, with the standards line each one fails.
 - The standards reviewer's reads-well notes.
 - Rejected findings, with the evidence.
+
+`review.md` is also the record a later session resumes from, so it holds two things the conversation would otherwise carry.
+`range` names the reviewed head by its commit hash, which lets a later session tell whether the branch has moved since.
+Each conformance gap, correctness finding and standards finding is a top-level bullet in its section, the only kind of top-level bullet there, with one `- Disposition:` line under it:
+
+- `open`: the user has not decided it.
+  Every finding starts here.
+- `picked`: the user chose to fix it, and the fix is not committed yet.
+- `fixed`: its fix is committed and listed under Fixes.
+- `declined`: the user chose not to fix it, followed by their reason.
+- `deferred`: the user moved it to later work, followed by where that is recorded.
+
+A section with no finding holds `- None`.
+A disposition changes only on the user's decision or when a picked fix is committed.
+`sdd lint <slug> review` reports a finding with no disposition, and one still `open` or `picked`.
 
 Then stop and wait for the user.
 
 ### Fixes
 
 The user picks which findings to fix.
+Record each decision in `review.md` before acting on it: `picked` on a finding to fix, and `declined` or `deferred` on one the user turns down or postpones.
+A rejected finding the user picks moves back to its findings section as `picked`.
 A fresh `implementer` builds each fix red-first from the finding, its `file:line` and the requirement IDs it touches; the reviewing session never writes the fix itself.
-Verify it with the repo's test tiers and by matching the files the agent reports against every changed path.
+Verify it with the repo's test tiers and by matching the files the agent reports against every uncommitted path, read with `sdd uncommitted <slug>` when there is a spec so the report itself is left out.
 Stage it by explicit path and propose a commit message; commit only on the user's word, since a review fix answers a finding the user picked rather than an approved task.
-If the fixes are substantial, offer to rerun the review.
+Once it is committed, list the fix under Fixes with its test and commit, and set the finding to `fixed`.
+If the fixes are substantial, offer to rerun the review (Resume).
+
+### Resume
+
+A `review.md` at `open` when the skill starts is a review in progress.
+Continue it from that file alone: skip Run, Triage and writing the report, and run no reviewer again unless the user chooses a rerun.
+
+- **Read the report.**
+  Its frontmatter records the base, range, effort and cap the review ran with, each finding carries its disposition, and Fixes lists each fix with its commit.
+- **Check that the branch is still the one reviewed.**
+  `range` ends at the commit the reviewers read, and every commit after it should be a fix the report lists.
+  When another commit follows it, or that commit is no longer on the branch, the report describes code that has since changed: show the user the commits and ask whether to rerun the review or continue on the report as written.
+- **Settle uncommitted paths.**
+  Any path `sdd uncommitted <slug>` lists is work an earlier session left unfinished, usually the fix for a `picked` finding.
+  List the paths and let the user choose between handing them to a fresh `implementer` to finish that fix and setting them aside by hand; never discard them.
+- **Continue from the dispositions.**
+  Build the fix for each `picked` finding, put each `open` finding to the user, and go to Confirm intent and close once neither is left.
+- **A rerun** runs the reviewers again on a clean tree and rewrites the report for the new range.
+  Every finding the user has decided keeps its line and disposition, the Fixes entries stay, the new findings replace those still `open`, and a new finding that repeats a decided one is left out.
 
 ### Confirm intent and close
 
 - Passing tests prove the code matches the spec, not that the spec matched the intent.
   Restate in plain language what was built and ask the user to confirm it's what they meant.
-- On the user's acceptance, draft the PR description in `review.md`, or in the conversation without a spec, then set `review.md` to `accepted` with `sdd set-status <slug> review accepted`, which refuses while `sdd lint <slug> review` reports an error, such as a placeholder still in the report.
+- On the user's acceptance, draft the PR description in `review.md`, or in the conversation without a spec, then set `review.md` to `accepted` with `sdd set-status <slug> review accepted`, which refuses while `sdd lint <slug> review` reports an error, such as a placeholder still in the report or a finding still `open` or `picked`.
+  Acceptance decides no finding: put each one still `open` to the user first.
   The draft has four parts: a summary paragraph following the rules in section 7, what changed, how it was verified (with evidence), and any decisions made and follow-ups.
   Don't push or open the PR unless the user asks.
 - _(spec only)_ Stage `docs/sdd/<slug>/review.md` by explicit path and propose its commit message.
@@ -1239,13 +1278,18 @@ updated: YYYY-MM-DD
 | Requirement | Met | Evidence |
 | ----------- | --- | -------- |
 
+- <requirement ID>: <gap, with evidence>
+  - Disposition: open
+
 ## Correctness findings
 
 - [<severity>] <file:line>: <finding>
+  - Disposition: open
 
 ## Standards findings
 
 - <file:line>: <finding>. Fails: "<standards line>"
+  - Disposition: open
 
 ## Reads well
 

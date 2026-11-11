@@ -56,6 +56,7 @@ sdd hash <file>                                       content hash of the body b
 sdd lint <slug> [spec|design|plan|tasks|review]       structure, traceability and unfilled template placeholders; no artifact means every one present
 sdd approve <slug> <spec|design|plan|tasks>           record the user's approval (only after they give it); refused on lint errors, and a design without its link, version and read
 sdd set-status <slug> <design|tasks|review> <status>  design to requested or skipped; tasks to in-progress or done; review to accepted, refused while review lint has errors
+sdd uncommitted [slug]                                every uncommitted path except the spec's own review.md, one file per line, then a count
 sdd templates sync [--check]                          regenerate templates from Appendix A (Spec template) to Appendix E (Review report template)
 sdd check-refs                                        every section reference in the skills and this README matches a heading
 ```

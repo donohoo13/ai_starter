@@ -16,13 +16,18 @@ updated: YYYY-MM-DD
 | Requirement | Met | Evidence |
 | ----------- | --- | -------- |
 
+- <requirement ID>: <gap, with evidence>
+  - Disposition: open
+
 ## Correctness findings
 
 - [<severity>] <file:line>: <finding>
+  - Disposition: open
 
 ## Standards findings
 
 - <file:line>: <finding>. Fails: "<standards line>"
+  - Disposition: open
 
 ## Reads well
 

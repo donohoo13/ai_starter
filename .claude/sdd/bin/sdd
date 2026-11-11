@@ -41,7 +41,13 @@ def skills_dir() -> Path:
 
 
 def git(*args: str, cwd: Path | None = None) -> str | None:
-    """Run a git command and return its stdout, or None when it fails."""
+    """Run a git command and return its stdout without surrounding whitespace, or None when it fails."""
+    output = git_output(*args, cwd=cwd)
+    return None if output is None else output.strip()
+
+
+def git_output(*args: str, cwd: Path | None = None) -> str | None:
+    """Run a git command and return its stdout exactly as printed, or None when it fails."""
     try:
         result = subprocess.run(
             ["git", *args], cwd=cwd, capture_output=True, text=True, check=False
@@ -50,7 +56,7 @@ def git(*args: str, cwd: Path | None = None) -> str | None:
         return None
     if result.returncode != 0:
         return None
-    return result.stdout.strip()
+    return result.stdout
 
 
 def project_root() -> Path:
@@ -301,6 +307,43 @@ def cmd_init(args: argparse.Namespace) -> int:
 @command("find", "Print the slug whose spec branch matches the current branch")
 def cmd_find(args: argparse.Namespace) -> int:
     print(find_slug())
+    return 0
+
+
+def path_from_root(path: Path, root: Path) -> str:
+    """The path relative to the project root, or in full when it lies outside it."""
+    return path.relative_to(root).as_posix() if root in path.parents else str(path)
+
+
+def uncommitted_lines(root: Path, left_out: Path) -> list[str]:
+    """`git status --porcelain` for the whole tree, one line per file, without the file at `left_out`."""
+    pathspecs = ["."]
+    if root in left_out.parents:
+        pathspecs.append(":(exclude,literal)%s" % path_from_root(left_out, root))
+    listing = git_output("status", "--porcelain", "--untracked-files=all", "--", *pathspecs, cwd=root)
+    if listing is None:
+        raise Refusal("git status failed in %s; run this inside the project's git repository" % root)
+    return listing.splitlines()
+
+
+@command(
+    "uncommitted",
+    "List every uncommitted path except the spec's own review.md, which a review leaves uncommitted until acceptance",
+    (["slug"], {"nargs": "?"}),
+)
+def cmd_uncommitted(args: argparse.Namespace) -> int:
+    slug = resolve_slug(args.slug)
+    if not (sdd_dir() / slug).is_dir():
+        raise Refusal("no working folder for %s under %s" % (slug, sdd_dir()))
+    root = project_root()
+    review = artifact_path(slug, "review")
+    lines = uncommitted_lines(root, review)
+    for line in lines:
+        print(line)
+    print(
+        "%d uncommitted path%s, not counting %s"
+        % (len(lines), "" if len(lines) == 1 else "s", path_from_root(review, root))
+    )
     return 0
 
 
@@ -966,6 +1009,47 @@ def lint_tasks(slug: str) -> Lint:
     return lint
 
 
+FINDING_SECTIONS = ("Spec conformance", "Correctness findings", "Standards findings")
+FINDING_LINE = re.compile(r"^- (?!none\.?\s*$)", re.IGNORECASE)
+DISPOSITION_LINE = re.compile(r"^\s+- Disposition:\s*([A-Za-z-]*)", re.IGNORECASE)
+DISPOSITIONS = ("open", "picked", "fixed", "declined", "deferred")
+PENDING_DISPOSITIONS = {
+    "open": "the user has not decided it",
+    "picked": "its fix is not recorded as fixed",
+}
+
+
+def review_findings(body: str) -> dict[int, str | None]:
+    """The body line of each finding, a top-level bullet in a findings section, mapped to its disposition, or to None when no `- Disposition:` line sits under it."""
+    section_map = sections(body)
+    findings: dict[int, str | None] = {}
+    for title in FINDING_SECTIONS:
+        heading_line, lines = find_section(section_map, title) or (0, [])
+        finding = None
+        for index, line in enumerate(lines, start=1):
+            if line.startswith("- "):
+                finding = heading_line + index if FINDING_LINE.match(line) else None
+                if finding:
+                    findings[finding] = None
+                continue
+            mark = DISPOSITION_LINE.match(line)
+            if mark and finding and findings[finding] is None:
+                findings[finding] = mark.group(1).lower()
+    return findings
+
+
+def lint_dispositions(lint: Lint, body: str, offset: int) -> None:
+    """Every finding carries a known disposition, and none is left for the user or a fix to settle."""
+    for body_line, disposition in review_findings(body).items():
+        line = body_line + offset
+        if disposition is None:
+            lint.error("finding has no `- Disposition:` line under it (expected one of %s)" % ", ".join(DISPOSITIONS), line)
+        elif disposition not in DISPOSITIONS:
+            lint.error("disposition %r is not one of %s" % (disposition, ", ".join(DISPOSITIONS)), line)
+        elif disposition in PENDING_DISPOSITIONS:
+            lint.error("finding is still %s; %s" % (disposition, PENDING_DISPOSITIONS[disposition]), line)
+
+
 def lint_review(slug: str) -> Lint:
     lint = Lint("review.md")
     found = read_artifact(slug, "review")
@@ -980,6 +1064,7 @@ def lint_review(slug: str) -> Lint:
     for title in template_headings("review"):
         if not find_section(section_map, title):
             lint.error('missing section "%s"' % title)
+    lint_dispositions(lint, body, body_offset(text, body))
     lint_placeholders(lint, "review", text)
     return lint
 
