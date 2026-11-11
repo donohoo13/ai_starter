@@ -33,6 +33,7 @@ Each spec records its base, the branch its feature branch is cut from and merges
 - **sdd-review** (`/sdd-review [slug] [effort] [--max-findings n] [base]`): phase 6, and the pre-PR review of any branch.
   Every reviewer runs in a fresh context on a pointer-only brief, so it can run in the session that built the branch.
   With a spec: evidence from the suite, spec conformance in a fresh subagent, Claude Code's `/code-review` (a forked skill) for correctness beside `standards-reviewer` for legibility and usability, one `review.md` report, fixes on the user's pick built by a fresh `implementer`, and a PR description draft once the user confirms the intent; without a spec, the two reviews and the same report in the conversation.
+  `review.md` records each finding's disposition, so a later session resumes an open review from the file instead of running the reviewers again.
   Never pushes or opens the PR.
 - **tdd**: red before green at public seams chosen for the critical paths, discovering the repo's commands and test shapes from its own files first, mocks only at true external boundaries, appearance never a test target, and every bug fix opening with a failing repro at the lowest seam that shows it.
   Preloaded into `implementer`, which runs it per task and per fix, and used directly whenever a test can lock something down.

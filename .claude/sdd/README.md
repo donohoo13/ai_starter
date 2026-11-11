@@ -60,6 +60,7 @@ sdd approve <slug> <spec|design|plan|tasks>           record the user's approval
 sdd set-status <slug> <design|tasks|review> <status>  design to requested or skipped; tasks to in-progress or done; review to accepted, refused while review lint has errors
 sdd journal <slug> add <kind> [--ref <ref>]           append a report, question, answer, decision or resolved entry to journal.md; text on stdin or in --text
 sdd journal <slug> show [<kind>] [--ref <ref>]        print the journal's entries, all or only one kind or ref
+sdd uncommitted [slug]                                every uncommitted path except the spec's own review.md, one file per line, then a count
 sdd templates sync [--check]                          regenerate templates from Appendix A (Spec template) to Appendix E (Review report template)
 sdd check-refs                                        every section reference in the skills and this README matches a heading
 ```
