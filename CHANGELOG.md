@@ -96,6 +96,7 @@ In a project created from the template, this file is template residue: delete it
     `sdd status` prints the review's `based_on` and whether it is current or stale, and a `note` line (`note` in `--json`) naming the next step whenever the review was accepted before.
   - `sdd-review` compares against `origin/<base>` when the remote has that branch, as `render-check` already did.
   - The template's own specs under `docs/sdd/` are removed, and the folder is kept with a `.gitkeep`.
+  - Journal entries are abridged: an `answer` records what the user decided and why in a line or two, not their words, since the journal is committed with the spec.
 - **Why**: the design restructure gets better results from design sessions.
   Role-named tokens and component bindings give a building session exact values to compose from instead of prose to interpret, and the linter catches broken references and contrast failures before a surface ships.
   `DESIGN.md` is the filename the format's spec and tooling use, and the skill that fills it now carries the same name.
