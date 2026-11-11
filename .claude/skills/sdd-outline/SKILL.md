@@ -11,7 +11,7 @@ Turn intent into an approved `spec.md`. The rules live in section 7 (Outline) of
 Where the two differ, the document wins.
 
 Arguments: `$ARGUMENTS`.
-The first token is the slug when it contains a hyphen or names an existing spec, one for which `.claude/sdd/bin/sdd status <token> --json` reports `artifacts.spec.exists` true; otherwise the whole argument is the brief.
+The first token is the slug when it contains a hyphen or names an existing spec, one for which `.claude/sdd/bin/sdd status <token> --json` reports `artifacts.spec.exists` true or refuses because another worktree or branch holds it; otherwise the whole argument is the brief.
 
 ## Preconditions
 
@@ -25,17 +25,31 @@ The first token is the slug when it contains a hyphen or names an existing spec,
 ## Start (section 4 (The workflow), start protocol)
 
 1. Read sections 1–5 of the document once per session, then section 7 (Outline).
-2. Resolve the slug: the argument; else `.claude/sdd/bin/sdd find`; else, on a feature branch, the branch name in kebab-case (section 5 (Working files)); else list the folders `find` prints and, when none fits, propose a short kebab-case slug and confirm it.
+2. Resolve the slug: the argument; else `.claude/sdd/bin/sdd find`; else, on a feature branch, the branch name in kebab-case (section 5 (Working files)); else list the folders `find` prints, with the specs it says other worktrees hold, and, when none fits, propose a short kebab-case slug and confirm it.
 3. Run `.claude/sdd/bin/sdd status <slug> --json`.
    It reports `folder`, the spec folder's absolute path, and `mode`, `shared` or `private` (section 5 (Working files)).
    Read and write every spec file under `folder`, never at a path built by hand: in a private repository every worktree shares the main checkout's folder, so it can sit outside the current directory.
+   When it refuses because the spec is in another worktree, or on a branch no worktree has checked out, the spec exists and this session started outside its worktree: make the worktree with the `.claude/sdd/bin/sdd worktree <branch>` the refusal names, when it names one, move into it as step 4 does, and run `status` again there.
    When a spec exists and `phase` is later than `1. Outline`, the spec is approved: ask whether the user wants to revise it (section 14 (Changing course)), warn that the design, plan and tasks built on it go stale, and continue only on yes.
-4. Create the folder when it is missing.
-   On a shared branch, one that other work also merges into such as `main` or `staging`, propose `feature/<slug>` (the `<type>/<kebab-slug>` convention in `CLAUDE.md`) and record it: `.claude/sdd/bin/sdd init <slug> --branch <name>`.
-   Otherwise `.claude/sdd/bin/sdd init <slug>`.
+4. Create the folder when it is missing, on the spec's own branch (section 5 (Working files), The branch and its worktree).
+   On a feature branch of this work's own, run `.claude/sdd/bin/sdd init <slug>`, which records that branch.
+   Anywhere else, on the base, on another shared branch that other work also merges into such as `main` or `staging`, or on a branch that belongs to other work, make the branch and its worktree before the spec, in a shared and a private repository alike: a shared repository commits the spec, which none of those branches can take, and in both the branch is how every later session finds the spec.
+   1. Name the branch in the form the repository's context file states for branches, the `<type>/<kebab-slug>` convention in `CLAUDE.md`, or `feature/<slug>` where it states none.
+   2. Run `.claude/sdd/bin/sdd worktree <branch>`, which prints the worktree's path and how the branch got there: cut from the base, tracking a branch the remote already had, on an existing local branch, or already checked out.
+      Add `--base <name>` only when the user has said the work builds on another branch, and `--path <dir>` only when the context file says where worktrees live; without it the worktree lands under `.claude/worktrees/` in the main checkout.
+      When it prints that git could not tell the base, ask the user and pass their answer as `--base <branch>`, here and to `init`.
+   3. When the repository has `scripts/setup/gwt-add.sh`, run `scripts/setup/gwt-add.sh --no-open <branch>`, which adopts the worktree at that path, copies the local env and settings files into it and installs its dependencies.
+      A failed install does not stop the outline, which needs no dependencies: tell the user what the script printed, since the build will need it fixed.
+   4. Move the session into the worktree: with the `EnterWorktree` tool, pass the printed `path`; without that tool, as under Codex, run every later command with that directory as its working directory and read and write files by absolute path under it.
+      Tell the user the branch and the path.
+   5. Run `status` again there, since a branch that already existed may hold the spec, outlined in an earlier session or on another machine, and then this run resumes it.
+      Otherwise run `.claude/sdd/bin/sdd init <slug>`.
+
    `init` also records the spec's base, the branch this work is cut from and merges back into, as the remote's default branch that git reports, so ask nothing about it; add `--base <name>` only when the user has said the work builds on another branch.
    When `init` prints that git could not tell, ask the user and record their answer: `.claude/sdd/bin/sdd set-base <slug> <branch>`.
    `init` prints the mode too, and in a private repository it makes git ignore the folder through the local exclude file before it writes the spec, so run nothing of your own to track or ignore it.
+   Outside a git repository there is no branch to make, so run `init` where you are.
+
 5. Load only what this phase needs: the project context (section 6 (Project principles and context)) and the existing spec, if any.
 
 ## Steps (section 7 (Outline), Steps)
@@ -77,8 +91,9 @@ The first token is the slug when it contains a hyphen or names an existing spec,
 3. Only after the user approves in the conversation, run `.claude/sdd/bin/sdd approve <slug> spec`.
    Never approve on their behalf.
    Then, when `mode` is `shared`, stage `<folder>/spec.md` by explicit path and propose a commit message in the repo's convention; the user commits.
+   When this session moved into a worktree, give the commit as `git -C <worktree> commit -m "<message>"`, since the user's own shell may sit in another checkout.
    When it is `private`, stage nothing and propose no commit, and never force a spec file in with `git add -f`: git ignores the folder so that it stays out of the repository, and the file alone records the approval.
-4. Name the next skill.
+4. Name the next skill, and the worktree to run it in when the spec has one.
    When `design.md` exists, offer no skip and name the skill `sdd status` reports: `sdd-design` at `2. Design` for a requested or approved design, which it re-checks against the revised spec, or for a skip that misses a surface the spec now lists.
    When `design.md` is absent and the UI surfaces section lists a surface, name each listed surface and offer `sdd-design` for a Claude Design mockup before planning, with `sdd-plan` as the alternative.
    When the user skips the design, run `.claude/sdd/bin/sdd set-status <slug> design skipped`, which records their git `user.name`, the date and the surfaces the skip covers; write their reason under `design.md`'s Skip reason and "None" under every other section, then, only when `mode` is `shared`, stage `<folder>/design.md` by explicit path and propose a commit message.

@@ -282,9 +282,9 @@ class PrivateBecomesSharedTests(PrivateCase):
         self.assertEqual(data["mode"], "shared")
         self.assertEqual(data["folder"], str(self.store_of(self.repo) / SLUG))
         self.assertNotIn(EXCLUDE_LINE, self.exclude_lines())
-        data, err = self.status_from(worktree)
+        data, err = self.status_from(worktree, SECOND_SLUG)
         self.assertEqual(data["mode"], "shared")
-        self.assertEqual(data["folder"], str(self.store_of(worktree) / SLUG))
+        self.assertEqual(data["folder"], str(self.store_of(worktree) / SECOND_SLUG))
         self.assertNotIn(EXCLUDE_LINE, self.exclude_lines())
 
 

@@ -36,6 +36,7 @@ The agents in `.claude/agents/` are dispatched by the skills: `implementer` and 
 ## How to start
 
 - A feature worth a spec: run `/sdd-outline <slug> <brief>`.
+  Started on the base, it first makes the spec's branch and a worktree for it and moves the session there; run every later phase from that worktree.
   A spec that lists UI surfaces is offered `/sdd-design` before planning, or a recorded skip.
   Each phase ends by naming the next skill; you run it when you are ready, in a fresh session before `sdd-implement`.
 - A small change: `/tdd <what to build>` as a one-shot, then `/sdd-review` before the PR.
@@ -47,7 +48,7 @@ Working files always live in `docs/sdd/<slug>/` inside the project.
 A repository is shared or private, and git decides which; nothing asks you.
 
 - **Shared**: some checkout of the repository tracks at least one file under `docs/sdd/`, a spec or an empty `docs/sdd/.gitkeep`.
-  The spec folder is the current checkout's own `docs/sdd/`.
+  The spec folder is the current checkout's own `docs/sdd/`, which for a spec in flight is its worktree's.
   Each skill stages the artifact it approved by explicit path and proposes a commit message; you commit, so the branch records when each gate passed.
 - **Private**: git tracks nothing under `docs/sdd/`.
   The helper adds `/docs/sdd/` to the repository's local exclude file (`.git/info/exclude`), never to `.gitignore`, so nothing in the repository or its history changes, and no spec file is ever staged or committed.
@@ -61,15 +62,27 @@ A shared repository whose last tracked file under `docs/sdd/` is deleted becomes
 `sdd status` reports the mode and the spec folder's absolute path, and the skills and agents take every spec file's path from it instead of spelling `docs/sdd/<slug>/` under the current directory.
 The folder stays after the merge as the record of the change.
 
+## One branch and one worktree per spec
+
+`sdd-outline` started on the base makes the spec's branch and a worktree for it before it writes anything, with `.claude/sdd/bin/sdd worktree <branch>`, and every later phase runs in that worktree.
+The worktree is `.claude/worktrees/<branch>` in the main checkout, slashes as dashes, unless `--path <dir>` names another place.
+
+- **Commit a gate artifact** in the worktree, not the main checkout: `git -C <worktree> commit`.
+- **Find a spec's worktree**: `.claude/sdd/bin/sdd status <slug>`, run in the main checkout of a shared repository, names it.
+- **Pick a spec up on another machine**: push its branch, then there run `git fetch` and `.claude/sdd/bin/sdd worktree <branch>`, which checks the branch out tracking the remote, and run the next skill from the worktree it prints.
+- **Finish or abandon a spec**: `scripts/setup/gwt-remove.sh <branch>` removes the worktree and deletes the branch; without that script, `git worktree remove <path>` then `git branch -d <branch>`.
+  Git refuses to delete a branch whose commits are neither merged nor pushed, and a private repository's spec folder stays in the main checkout's `docs/sdd/` until you delete it.
+
 ## The helper
 
 ```
 sdd root                                              project root, the docs/sdd/ folder that holds every spec, and the mode, shared or private
-sdd init <slug> [--branch <name>] [--base <name>]     create spec.md from the template, recording the feature branch and its base; ignores a private folder first, and says whether to stage
-sdd find                                              the slug whose spec branch is the current branch
+sdd worktree <branch> [--base <name>] [--path <dir>]  check a branch out in a worktree of its own and print its path: the one that has it, else a new one on the local branch, tracking the remote's, or cut from the base
+sdd init <slug> [--branch <name>] [--base <name>]     create spec.md from the template, recording the feature branch and its base; ignores a private folder first, says whether to stage, and refuses on the base of a shared repository
+sdd find                                              the slug whose spec branch is the current branch, else the specs other worktrees are building
 sdd base [slug]                                       the base the spec records, else the remote's default branch from origin/HEAD or the remote itself
 sdd set-base <slug> [branch]                          record a spec's base: the named branch, or the remote's default branch when none is named
-sdd status [slug] [--json]                            the spec folder's path and mode, artifact states, task progress, pending journal entry, phase, next skill, and a note naming the next step once a review was accepted
+sdd status [slug] [--json]                            the spec folder's path and mode, artifact states, task progress, pending journal entry, phase, next skill, and a note naming the next step once a review was accepted; refuses, naming the worktree or the branch, when a shared repository keeps the spec elsewhere
 sdd hash <file>                                       content hash of the body below the frontmatter
 sdd lint <slug> [spec|design|plan|tasks|review]       structure, traceability and unfilled template placeholders; no artifact means every one present
 sdd approve <slug> <spec|design|plan|tasks>           record the user's approval (only after they give it); refused on lint errors, and a design without its link, version and read

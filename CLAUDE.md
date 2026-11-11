@@ -54,7 +54,8 @@ The full company perspective lives in [docs/company/company-overview.md](./docs/
 - Commit only from a non-main branch: check `git branch --show-current` before every commit and branch first when on `main`.
   `.husky/pre-commit` and `.husky/pre-push` refuse commits on and pushes to the default branch.
 - Branches are named `<type>/<kebab-slug>` (`type`: `feature` | `bug` | `chore`).
-- `sdd-implement` creates the spec's feature branch, in a dedicated git worktree when this checkout should stay on `main`: `scripts/setup/gwt-add.sh --no-open <branch>` creates it and the native `EnterWorktree` tool relocates the session into it. Post-merge cleanup is `scripts/setup/gwt-remove.sh <branch>` from the main checkout.
+- `sdd-outline` makes the spec's feature branch in a dedicated git worktree before it writes the spec, and every later phase works there: `.claude/sdd/bin/sdd worktree <branch>` creates both, `scripts/setup/gwt-add.sh --no-open <branch>` copies the local env files into it and installs its dependencies, and the native `EnterWorktree` tool relocates the session into it.
+  Post-merge cleanup is `scripts/setup/gwt-remove.sh <branch>` from the main checkout.
 
 ### Markdown
 

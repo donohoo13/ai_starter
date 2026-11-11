@@ -8,6 +8,8 @@ in sync with the document.
 Git decides where that folder is: the current checkout's own while any checkout
 tracks a file under docs/sdd/, and otherwise the main checkout's, ignored
 through the repository's local exclude file and shared by every worktree.
+It also makes each spec's branch and the worktree that holds it, so no spec file
+is written on the base.
 Behavior follows sections 4 and 5 of .claude/sdd/spec-driven-development.md,
 which lives beside this script; SDD_HOME overrides that location for tests.
 """
@@ -52,23 +54,31 @@ def git(*args: str, cwd: Path | None = None, timeout: float | None = None) -> st
     return None if output is None else output.strip()
 
 
-def git_output(*args: str, cwd: Path | None = None, timeout: float | None = None) -> str | None:
+def git_output(
+    *args: str, cwd: Path | None = None, timeout: float | None = None, stdin: str | None = None
+) -> str | None:
     """Run a git command and return its stdout exactly as printed, or None when it fails, would prompt, or outlasts the timeout."""
+    result = run_git(*args, cwd=cwd, timeout=timeout, stdin=stdin)
+    return result.stdout if result is not None and result.returncode == 0 else None
+
+
+def run_git(
+    *args: str, cwd: Path | None = None, timeout: float | None = None, stdin: str | None = None
+) -> subprocess.CompletedProcess | None:
+    """Run a git command and return what it exited with and printed, or None when git is missing or outlasts the timeout."""
     try:
-        result = subprocess.run(
+        return subprocess.run(
             ["git", *args],
             cwd=cwd,
             capture_output=True,
             text=True,
             check=False,
             timeout=timeout,
+            input=stdin,
             env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
         )
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return None
-    if result.returncode != 0:
-        return None
-    return result.stdout
 
 
 def project_root() -> Path:
@@ -91,11 +101,27 @@ class Store(NamedTuple):
     checkout: Path | None  # the checkout that holds `path`, or None outside git
 
 
+class Worktree(NamedTuple):
+    path: Path
+    branch: str  # "" while its HEAD is detached, and for a bare repository
+
+
+def list_worktrees(checkout: Path) -> list[Worktree]:
+    """Every worktree git lists for the repository, the main one first, with the branch checked out in each."""
+    listing = git("worktree", "list", "--porcelain", cwd=checkout) or ""
+    path_prefix, branch_prefix = "worktree ", "branch refs/heads/"
+    found: list[Worktree] = []
+    for line in listing.splitlines():
+        if line.startswith(path_prefix):
+            found.append(Worktree(Path(line[len(path_prefix) :]), ""))
+        elif line.startswith(branch_prefix) and found:
+            found[-1] = found[-1]._replace(branch=line[len(branch_prefix) :])
+    return found
+
+
 def worktree_paths(checkout: Path) -> list[Path]:
     """The path git lists for every worktree of the repository, the main one first."""
-    listing = git("worktree", "list", "--porcelain", cwd=checkout) or ""
-    prefix = "worktree "
-    return [Path(line[len(prefix) :]) for line in listing.splitlines() if line.startswith(prefix)]
+    return [worktree.path for worktree in list_worktrees(checkout)]
 
 
 def tracks_spec_files(checkout: Path) -> bool:
@@ -179,13 +205,19 @@ def sync_exclude(store: Store) -> None:
         return
     if has_entry or not store.path.is_dir() or is_ignored(store.checkout):
         return
-    separator = "" if not lines or lines[-1].endswith("\n") else "\n"
-    exclude.parent.mkdir(parents=True, exist_ok=True)
-    exclude.write_text("".join(lines) + separator + EXCLUDE_NOTE + "\n" + EXCLUDE_PATTERN + "\n")
+    append_to_exclude(exclude, EXCLUDE_NOTE, EXCLUDE_PATTERN)
     note(
         "private repository: added %s to %s, so git ignores the spec folder in every worktree"
         % (EXCLUDE_PATTERN, exclude)
     )
+
+
+def append_to_exclude(exclude: Path, comment: str, pattern: str) -> None:
+    """Add a pattern under its comment at the end of the local exclude file, keeping every line already there."""
+    text = exclude.read_text() if exclude.is_file() else ""
+    separator = "" if not text or text.endswith("\n") else "\n"
+    exclude.parent.mkdir(parents=True, exist_ok=True)
+    exclude.write_text(text + separator + comment + "\n" + pattern + "\n")
 
 
 def report_stray_folders(store: Store) -> None:
@@ -633,16 +665,76 @@ def resolve_slug(slug: str | None) -> str:
 
 def find_slug() -> str:
     slugs = all_slugs()
-    if not slugs:
-        raise Refusal("no specs under %s" % sdd_dir())
     branch = current_branch()
     for slug in slugs:
         fields, _, _ = read_artifact(slug, "spec")
         if fields.get("branch") == branch:
             return slug
-    raise Refusal(
-        "no spec matches branch %r; existing slugs: %s" % (branch, ", ".join(slugs))
-    )
+    if slugs:
+        here = "no spec matches branch %r; existing slugs: %s" % (branch, ", ".join(slugs))
+    else:
+        here = "no specs under %s" % sdd_dir()
+    elsewhere = [
+        "%s in %s (branch %s)" % (slug, worktree.path, worktree.branch)
+        for slug, worktree in sorted(specs_built_elsewhere().items())
+    ]
+    raise Refusal(here + ("; other worktrees hold: %s" % ", ".join(elsewhere) if elsewhere else ""))
+
+
+def spec_branch(text: str) -> str:
+    return parse_frontmatter(text)[0].get("branch", "")
+
+
+def specs_built_elsewhere() -> dict[str, Worktree]:
+    """Each spec another worktree of a shared repository is building: one whose `branch` is the branch checked out there.
+
+    A copy of a merged spec names the branch it was built on, never the one a later worktree has checked out, so it is left out.
+    """
+    store = spec_store()
+    if store.mode != SHARED or store.checkout is None:
+        return {}
+    found: dict[str, Worktree] = {}
+    for worktree in list_worktrees(store.checkout):
+        if not worktree.branch or worktree.path.resolve() == store.checkout.resolve():
+            continue
+        for spec in sorted((worktree.path / STORE_DIR).glob("*/spec.md")):
+            if spec_branch(spec.read_text()) == worktree.branch:
+                found.setdefault(spec.parent.name, worktree)
+    return found
+
+
+def branch_committing(slug: str) -> str | None:
+    """The branch, a local one before the remote's, whose tip commits this spec and is the branch that spec names."""
+    path = "%s/%s/spec.md" % (STORE_DIR, slug)
+    listing = git("for-each-ref", "--format=%(refname)", "refs/heads", "refs/remotes/origin") or ""
+    refs = [ref for ref in listing.splitlines() if not ref.endswith("/HEAD")]
+    answers = git_output("cat-file", "--batch-check", stdin="".join("%s:%s\n" % (ref, path) for ref in refs)) or ""
+    for ref, answer in zip(refs, answers.splitlines()):
+        if answer.endswith(" missing"):
+            continue
+        branch = ref.split("/", 2)[2] if ref.startswith("refs/heads/") else ref.split("/", 3)[3]
+        if spec_branch(git_output("show", "%s:%s" % (ref, path)) or "") == branch:
+            return branch
+    return None
+
+
+def refuse_spec_kept_elsewhere(slug: str) -> None:
+    """A shared repository keeps a spec on its own branch, so say where that is when this checkout does not hold it."""
+    if spec_store().mode != SHARED or artifact_path(slug, "spec").is_file():
+        return
+    worktree = specs_built_elsewhere().get(slug)
+    if worktree:
+        raise Refusal(
+            "spec %s is not in this checkout: the worktree at %s holds it, on branch %s; "
+            "move the session into that worktree and run this again there" % (slug, worktree.path, worktree.branch)
+        )
+    branch = branch_committing(slug)
+    if branch:
+        raise Refusal(
+            "spec %s is not in this checkout: branch %s commits it, and no worktree has that branch checked out; "
+            "run `sdd worktree %s`, move the session into the worktree it prints, and run this again there"
+            % (slug, branch, branch)
+        )
 
 
 @command("root", "Print the project root, the folder that holds every spec, and whether git tracks it")
@@ -689,6 +781,12 @@ def cmd_init(args: argparse.Namespace) -> int:
     text = template("spec")
     title = title_from_slug(args.slug)
     base, base_source = (args.base, "--base") if args.base else default_branch()
+    store = spec_store()
+    if store.mode == SHARED and base and current_branch() == base:
+        raise Refusal(
+            "this checkout is on %s, the base, and a shared repository commits its spec files, which belong on the spec's own branch; "
+            "run `sdd worktree <branch>`, move the session into the worktree it prints, and run init there" % base
+        )
     text = set_frontmatter(
         text,
         {
@@ -702,7 +800,6 @@ def cmd_init(args: argparse.Namespace) -> int:
         },
     )
     text = re.sub(r"^# .*$", "# " + title, text, count=1, flags=re.MULTILINE)
-    store = spec_store()
     path.parent.mkdir(parents=True, exist_ok=True)
     sync_exclude(store)
     path.write_text(text)
@@ -780,6 +877,129 @@ def cmd_set_base(args: argparse.Namespace) -> int:
             raise Refusal("the base cannot be empty; name the branch this work merges into")
     write_artifact(args.slug, "spec", set_frontmatter(found[2], {"base": base, "updated": today()}))
     print("spec.md base is now %s%s" % (base, how))
+    return 0
+
+
+# --- the spec's branch and its worktree --------------------------------------
+
+WORKTREE_HOME = ".claude/worktrees"
+WORKTREE_EXCLUDE_PATTERN = "/%s/" % WORKTREE_HOME
+WORKTREE_EXCLUDE_NOTE = "# sdd: worktrees made by `sdd worktree` sit here, out of the main checkout's git status"
+
+
+def ref_exists(ref: str) -> bool:
+    return git("rev-parse", "--verify", "--quiet", ref + "^{commit}") is not None
+
+
+def fetch_branch(branch: str) -> None:
+    """Bring the remote's copy of one branch up to date; a missing remote, a branch it lacks or no answer in time leave the refs as they were."""
+    refspec = "+refs/heads/%s:refs/remotes/origin/%s" % (branch, branch)
+    git("fetch", "--quiet", "origin", refspec, timeout=REMOTE_TIMEOUT_SECONDS)
+
+
+def base_start_point(base: str | None) -> str:
+    """The commit a new branch is cut from: the remote's copy of the base, since a local copy can lag or hold commits the remote lacks, else the local one."""
+    if not base:
+        base = default_branch()[0]
+    if not base:
+        raise Refusal("%s, then pass it as `--base <branch>`" % ask_for_base(None))
+    fetch_branch(base)
+    for ref, name in (("refs/remotes/origin/" + base, "origin/" + base), ("refs/heads/" + base, base)):
+        if ref_exists(ref):
+            return name
+    raise Refusal(
+        "the base %r is a branch neither the remote nor this repository has; name the right one with `--base <branch>`"
+        % base
+    )
+
+
+def new_worktree_arguments(branch: str, base: str | None) -> tuple[list[str], str]:
+    """How `git worktree add` gets the branch, and the same in words: the local branch, else the remote's, else a new one cut from the base."""
+    if ref_exists("refs/heads/" + branch):
+        return [branch], "on the existing local branch"
+    fetch_branch(branch)
+    if ref_exists("refs/remotes/origin/" + branch):
+        return ["--track", "-b", branch, "origin/" + branch], "tracking origin/%s, which already had the branch" % branch
+    start = base_start_point(base)
+    return ["--no-track", "-b", branch, start], "cut from %s at %s" % (start, git("rev-parse", "--short", start))
+
+
+def main_checkout_for_worktrees(current: Path, listed: list[Worktree]) -> Path:
+    main = main_checkout(current, [worktree.path for worktree in listed])
+    if main is None:
+        raise Refusal(
+            "git lists no main checkout to hold the worktree: the main worktree is bare, or its git directory sits apart "
+            "from its checkout; name a directory with `--path <dir>`"
+        )
+    return main
+
+
+def refuse_taken_path(target: Path, branch: str) -> None:
+    if target.exists() and (not target.is_dir() or any(target.iterdir())):
+        raise Refusal(
+            "%s already exists and is not a worktree of branch %s; remove it, or name another directory with `--path <dir>`"
+            % (target, branch)
+        )
+
+
+def ignore_worktree_home(main: Path) -> None:
+    """Keep the worktrees inside the main checkout out of its `git status`, through the local exclude file, so nothing in the repository changes."""
+    if git("check-ignore", "-q", WORKTREE_HOME + "/", cwd=main) is not None:
+        return
+    exclude = exclude_file(main)
+    append_to_exclude(exclude, WORKTREE_EXCLUDE_NOTE, WORKTREE_EXCLUDE_PATTERN)
+    note(
+        "added %s to %s, so the main checkout's git status leaves out the worktrees inside it"
+        % (WORKTREE_EXCLUDE_PATTERN, exclude)
+    )
+
+
+def print_worktree(path: Path, branch: str, state: str) -> None:
+    print("worktree: %s" % path)
+    print("branch: %s" % branch)
+    print("state: %s" % state)
+
+
+@command(
+    "worktree",
+    "Check a branch out in a worktree of its own and print where: the one that already has it, else a new one on the local branch, on the remote's, or on a branch cut from the base",
+    (["branch"], {}),
+    (
+        ["--base"],
+        {"help": "branch a new branch is cut from; defaults to the remote's default branch"},
+    ),
+    (
+        ["--path"],
+        {"help": "directory for a new worktree; defaults to .claude/worktrees/<branch, slashes as dashes> in the main checkout"},
+    ),
+)
+def cmd_worktree(args: argparse.Namespace) -> int:
+    top = git("rev-parse", "--show-toplevel")
+    if not top:
+        raise Refusal("not inside a git repository, so there is no branch to make; run `sdd init <slug>` here")
+    current, branch = Path(top), args.branch
+    if git("check-ref-format", "--branch", branch) != branch:
+        raise Refusal("%r is not a branch name git accepts" % branch)
+    listed = list_worktrees(current)
+    holder = next((worktree for worktree in listed if worktree.branch == branch), None)
+    if holder and not holder.path.is_dir():
+        raise Refusal(
+            "git lists branch %s as checked out in %s, which is gone; run `git worktree prune`, then this again"
+            % (branch, holder.path)
+        )
+    if holder:
+        print_worktree(holder.path, branch, "already checked out there; nothing was created")
+        return 0
+    main = None if args.path else main_checkout_for_worktrees(current, listed)
+    target = main / WORKTREE_HOME / branch.replace("/", "-") if main else Path(args.path).expanduser().resolve()
+    refuse_taken_path(target, branch)
+    arguments, how = new_worktree_arguments(branch, args.base)
+    result = run_git("worktree", "add", "--quiet", str(target), *arguments)
+    if result is None or result.returncode != 0:
+        raise Refusal("git worktree add failed: %s" % (result.stderr.strip() if result else "git did not run"))
+    if main:
+        ignore_worktree_home(main)
+    print_worktree(target, branch, "created, %s" % how)
     return 0
 
 
@@ -1226,6 +1446,7 @@ def describe_base(slug: str, report: dict) -> str:
 )
 def cmd_status(args: argparse.Namespace) -> int:
     slug = resolve_slug(args.slug)
+    refuse_spec_kept_elsewhere(slug)
     report = collect_status(slug)
     if args.json:
         print(json.dumps(report, indent=2))
