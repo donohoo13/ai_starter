@@ -284,10 +284,12 @@ class PlanOnDesignTests(SddCase):
     def test_a_design_approved_under_an_earlier_hash_form_stays_current(self):
         self.approve_design_chain("design")
         text = self.read_artifact("design")
-        body = self.cli.normalized_body(text)
+        body = self.cli.body_as_written(text)
+        based_on = "based_on: %s\n" % self.frontmatter("design")["based_on"]
         earlier_forms = {
             "body only": body,
-            "body and based_on": body + "based_on: %s\n" % self.frontmatter("design")["based_on"],
+            "body and based_on": body + based_on,
+            "body, based_on and version": body + based_on + "version: %s\n" % self.frontmatter("design")["version"],
         }
         for form, covered in earlier_forms.items():
             with self.subTest(form=form):
