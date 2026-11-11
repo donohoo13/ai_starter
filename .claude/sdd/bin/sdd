@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 
 ARTIFACTS = ("spec", "design", "plan", "tasks", "review")
-UPSTREAM = {"design": "spec", "plan": "spec", "tasks": "plan"}
+UPSTREAM = {"design": "spec", "plan": "spec", "tasks": "plan", "review": "tasks"}
 DOC_NAME = "spec-driven-development.md"
 SKILL_NAMES = ("sdd-outline", "sdd-design", "sdd-plan", "sdd-task", "sdd-implement", "tdd", "sdd-review")
 
@@ -365,6 +365,7 @@ def task_progress(body: str) -> dict:
 
 MARKER = "[NEEDS CLARIFICATION"
 APPROVED_STATUSES = {"approved", "in-progress", "done"}
+SETTLED_STATUSES = APPROVED_STATUSES | {"accepted"}
 
 
 def artifact_state(slug: str, name: str, upstream: dict | None) -> dict:
@@ -439,9 +440,26 @@ def derive_phase(states: dict, markers: int) -> tuple[str, str | None]:
         return "4. Tasks", "sdd-task"
     if tasks["status"] in ("approved", "in-progress"):
         return "5. Implement", "sdd-implement"
-    if not review["exists"] or review["status"] != "accepted":
+    if not review["exists"] or review["status"] != "accepted" or review["stale"]:
         return "6. Validate", "sdd-review"
     return "Done", None
+
+
+def finished_run_note(slug: str, phase: str, review: dict) -> str | None:
+    """The next step for a review that was accepted, which the phase and skill alone do not name."""
+    reopen = "`sdd set-status %s review open`" % slug
+    if phase == "Done":
+        return (
+            "the run is finished; for pull request feedback or a late fix, reopen the review with %s and run sdd-review; "
+            "a change in behavior goes through sdd-outline" % reopen
+        )
+    if phase != "6. Validate" or not review["based_on"]:
+        return None
+    if review["status"] == "accepted":
+        return "review.md was accepted for an earlier tasks.md; reopen it with %s and run every review again" % reopen
+    if review["stale"]:
+        return "review.md was reopened and the tasks changed since its acceptance; run every review again"
+    return "review.md was reopened after its acceptance; triage the new feedback, fix what the user picks, and accept it again"
 
 
 def chain_states(slug: str) -> dict[str, dict]:
@@ -468,6 +486,7 @@ def collect_status(slug: str) -> dict:
         "tasks": task_progress(tasks[1]) if tasks else None,
         "phase": phase,
         "skill": skill,
+        "note": finished_run_note(slug, phase, states["review"]),
     }
 
 
@@ -477,14 +496,14 @@ def describe_artifact(name: str, state: dict, progress: dict | None) -> str:
     parts = ["%-8s %-12s" % (name, state["status"] or "(no status)")]
     if name != "review":
         parts.append("hash %s" % state["hash"])
-        if state["based_on"]:
-            parts.append("based_on %s" % state["based_on"])
-        if state["changed"]:
-            parts.append("changed since approval")
-        if state["stale"]:
-            parts.append("stale")
-        if state["status"] in APPROVED_STATUSES and not state["changed"] and not state["stale"]:
-            parts.append("current")
+    if state["based_on"]:
+        parts.append("based_on %s" % state["based_on"])
+    if state["changed"]:
+        parts.append("changed since approval")
+    if state["stale"]:
+        parts.append("stale")
+    if state["status"] in SETTLED_STATUSES and not state["changed"] and not state["stale"]:
+        parts.append("current")
     if name == "tasks" and progress:
         parts.append("%d/%d done" % (progress["done"], progress["total"]))
         if progress["next"]:
@@ -511,6 +530,8 @@ def cmd_status(args: argparse.Namespace) -> int:
     print("clarification markers: %d" % report["clarifications"])
     print("phase: %s" % report["phase"])
     print("next skill: %s" % (report["skill"] or "none"))
+    if report["note"]:
+        print("note: %s" % report["note"])
     return 0
 
 
@@ -898,13 +919,23 @@ def lint_task_fields(lint: Lint, task: dict, offset: int, defined: set[str], act
 
 
 def lint_close_outs(lint: Lint, items: list[dict], offset: int) -> None:
-    last_by_slice: dict[str, dict] = {}
+    by_slice: dict[str, list[dict]] = {}
     for item in items:
         if item["slice"]:
-            last_by_slice[item["slice"]] = item
-    for slice_name, item in last_by_slice.items():
-        if item["id"] or "close" not in item["text"].lower():
-            lint.error("slice %s does not end with a close-out item" % slice_name, item["line"] + offset)
+            by_slice.setdefault(item["slice"], []).append(item)
+    for slice_name, slice_items in by_slice.items():
+        close_out = slice_items[-1]
+        line = close_out["line"] + offset
+        if close_out["id"] or "close" not in close_out["text"].lower():
+            lint.error("slice %s does not end with a close-out item" % slice_name, line)
+            continue
+        unchecked = [item["id"] or item["text"] for item in slice_items if not item["checked"]]
+        if close_out["checked"] and unchecked:
+            lint.error(
+                "slice %s is closed with unchecked work: %s; uncheck its close-out so sdd-implement builds it"
+                % (slice_name, ", ".join(unchecked)),
+                line,
+            )
 
 
 VERIFIED_ENTRY = re.compile(r"^- ((?:FR|NFR|INV)-[^\s:]+):\s*\S")
@@ -1129,12 +1160,13 @@ TRANSITIONS = {
     ("tasks", "in-progress"): {"approved", "in-progress"},
     ("tasks", "done"): {"approved", "in-progress"},
     ("review", "accepted"): {"open"},
+    ("review", "open"): {"accepted"},
 }
 
 
 @command(
     "set-status",
-    "Record a design request or skip, move tasks.md to in-progress or done, or review.md to accepted",
+    "Record a design request or skip, move tasks.md to in-progress or done, or review.md to accepted or back to open",
     (["slug"], {}),
     (["artifact"], {"choices": ["design", "tasks", "review"]}),
     (["status"], {}),
@@ -1163,12 +1195,14 @@ def cmd_set_status(args: argparse.Namespace) -> int:
                 "%d item%s still unchecked, first: %s"
                 % (len(unchecked), "" if len(unchecked) == 1 else "s", unchecked[0]["text"])
             )
+    updates = {"status": args.status, "updated": today()}
     if key == ("review", "accepted"):
         lint = lint_review(args.slug)
         print(lint.report())
         if lint.errors:
             raise Refusal("lint reported errors; fix them before accepting review.md")
-    write_artifact(args.slug, args.artifact, set_frontmatter(text, {"status": args.status, "updated": today()}))
+        updates["based_on"] = artifact_state(args.slug, "tasks", None)["approved_hash"] or ""
+    write_artifact(args.slug, args.artifact, set_frontmatter(text, updates))
     print("%s.md is now %s" % (args.artifact, args.status))
     return 0
 
