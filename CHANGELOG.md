@@ -8,6 +8,12 @@ In a project created from the template, this file is template residue: delete it
 ## v0.3.0 — unreleased
 
 - **What**:
+  - The AI process suite leaves the template: every skill (`sdd-outline`, `sdd-design`, `sdd-plan`, `sdd-task`, `sdd-implement`, `sdd-review`, `tdd`, `render-check`, `design-init`, `stage-for-commit`, `curate-context`), every agent, the SDD document with its `sdd` helper, templates and tests, `.claude/rules/skill-authoring.md`, `docs/skill-quality.md`, and the `process-suite`, `sdd-helper` and `rules-frontmatter` batteries.
+    They install at user level from a personal dotfiles repository, for Claude Code and Codex alike.
+    Every bullet below that describes a skill, an agent, the SDD document or its helper records how that suite changed before it left; none of it ships.
+  - `CLAUDE.md` becomes `AGENTS.md` and keeps only what is true of this project; the rules a user-level context already carries are gone.
+  - The nine files under `docs/standards/` are replaced by one, `docs/standards/stack.md`, which holds the stack's own choices (tooling, Tailwind, classic Outlook support).
+  - `docs/notes/global-claude.md` is removed.
   - The spec suite is replaced by a five-phase spec-driven development chain: `sdd-outline`, `sdd-plan`, `sdd-task`, `sdd-implement` and `sdd-review` follow `.claude/sdd/spec-driven-development.md` by section, keep state with the `.claude/sdd/bin/sdd` helper (approvals with content hashes, staleness down the chain, structural lint, templates generated from the appendices), and commit their artifacts under `docs/sdd/<slug>/` as `spec.md`, `plan.md`, `tasks.md` and `review.md`.
     `sdd`, `implement-spec`, `review` and `preflight` are removed, with the `builder` and `docs-reviewer` agents only they dispatched.
   - `sdd-implement` orchestrates instead of building: a fresh `implementer` agent (new, `tdd` preloaded, `opus` pinned, dispatched at `effort: high` unless the user names another level) builds each slice from a pointer-only brief and self-checks against the matching `docs/standards/` files.
@@ -116,7 +122,10 @@ In a project created from the template, this file is template residue: delete it
     `sdd init` refuses on the base of a shared repository, and `sdd status` and `sdd find`, run in a checkout that does not hold a shared repository's spec, refuse and name the worktree that holds it or the branch that commits it.
     `scripts/setup/gwt-add.sh` adopts the worktree the helper made to copy the local files and install dependencies, and, given a branch only `origin` has, checks it out tracking it instead of cutting a new branch of that name from `HEAD`.
     Section 5 of the SDD document holds the rules, including how a session moves into the worktree with Claude Code's `EnterWorktree` tool and without it, and section 14 says how an abandoned spec's worktree and branch are cleared.
-- **Why**: the design restructure gets better results from design sessions.
+- **Why**: the process suite is a way of working, not a project's payload.
+  Installed once at user level it serves every repository and both tools from one source, where a copy in each project drifted and had to be carried across by hand.
+  A context file that repeats a user-level one costs every session its lines twice, and standards that every project shares belong with the process, leaving a project only its own stack's choices.
+  The design restructure gets better results from design sessions.
   Role-named tokens and component bindings give a building session exact values to compose from instead of prose to interpret, and the linter catches broken references and contrast failures before a surface ships.
   `DESIGN.md` is the filename the format's spec and tooling use, and the skill that fills it now carries the same name.
   `pnpm dev` wrote its pidfile before the previous log was cleared, so a reader acting on the new pid could read the last server's output, and the dev-server battery failed intermittently on slow runners.
@@ -149,6 +158,10 @@ In a project created from the template, this file is template residue: delete it
   The pre-commit hook refused each gate commit on the base, a repository without that hook took the commit there, and the worktree `sdd-implement` then cut from the base held none of the staged files, so `sdd status` in it found no spec; up to four approvals sat uncommitted on the wrong branch of one machine.
   `gwt-add.sh` cut a new branch from `HEAD` when the branch existed only on the remote, so a spec pushed from one machine would have been forked, not picked up, on another.
 - **Adaptation notes**:
+  - A project that keeps the suite keeps its own copies and takes none of this release's removals.
+    One that moves to a user-level install deletes `.claude/skills/`, `.claude/agents/`, `.claude/sdd/` and the three batteries, renames `CLAUDE.md` to `AGENTS.md`, and names its worktree setup script in that file, since the user-level skills run one only when the context file names it.
+    Specs already under `docs/sdd/` are read unchanged.
+  - A project that edited a file under `docs/standards/` keeps that file; a repository standards file with a name the user-level set does not use adds to it.
   - A `docs/specs/*.md` spec in flight finishes under the old skills before taking this release, or is outlined again with `sdd-outline` into `docs/sdd/<slug>/`; nothing migrates it.
   - A project that edited `sdd-implement` reapplies its edits to the orchestrator, or to `implementer` when they concerned how a task is built.
     One that used `refine` gets standards checks inside each slice, QA at the end of `sdd-implement`, and render passes through `/render-check`; `git grep -E 'refine|refiner|code-reviewer'` finds project files that still name the removed pieces.

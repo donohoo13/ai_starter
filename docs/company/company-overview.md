@@ -1,6 +1,6 @@
 # Company Overview
 
-Narrative company context for this project: what the company does, who it serves, and where this product fits. This document is descriptive only — rules and conventions live in `CLAUDE.md`.
+Narrative company context for this project: what the company does, who it serves, and where this product fits. This document is descriptive only — rules and conventions live in `AGENTS.md`.
 
 ## Company
 
